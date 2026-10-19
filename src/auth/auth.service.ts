@@ -8,11 +8,11 @@ import { promisify } from 'node:util';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { AuthSession } from './entities/auth-session.entity.js';
-import { User } from './entities/user.entity.js';
+import { AuthUser } from './entities/user.entity.js';
 
 const scryptAsync = promisify(scrypt);
 
-type StoredUser = User & {
+type StoredUser = AuthUser & {
   passwordHash: Buffer;
   passwordSalt: Buffer;
 };
@@ -66,7 +66,7 @@ export class AuthService {
     };
   }
 
-  private toPublicUser(user: StoredUser): User {
+  private toPublicUser(user: StoredUser): AuthUser {
     return {
       id: user.id,
       name: user.name,

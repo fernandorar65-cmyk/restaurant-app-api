@@ -13,7 +13,13 @@ export class InternalProductLookupAdapter implements ProductLookupPort {
   async findById(productId: string): Promise<ProductSnapshot | null> {
     try {
       const product = await this.productsService.findOne(productId);
-      return { id: product.id, price: product.price };
+      return {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        available: product.available,
+        categoryId: product.categoryId,
+      };
     } catch (error) {
       if (error instanceof ProductNotFoundError) {
         return null;

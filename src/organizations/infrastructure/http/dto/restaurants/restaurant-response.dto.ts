@@ -8,6 +8,9 @@ export class RestaurantResponseDto {
   @ApiProperty({ example: 'Restaurante Centro' })
   name: string;
 
+  @ApiProperty({ example: 'restaurante-centro' })
+  slug: string;
+
   @ApiPropertyOptional({ example: 'Av. Reforma 123, CDMX' })
   address: string | null;
 
@@ -27,6 +30,7 @@ export class RestaurantResponseDto {
     const dto = new RestaurantResponseDto();
     dto.id = restaurant.id;
     dto.name = restaurant.name;
+    dto.slug = restaurant.slug;
     dto.address = restaurant.address;
     dto.phone = restaurant.phone;
     dto.organizationId = restaurant.organizationId;

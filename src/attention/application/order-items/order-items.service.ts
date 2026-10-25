@@ -5,7 +5,10 @@ import {
   ProductReferenceNotFoundError,
   UserReferenceNotFoundError,
 } from '../../domain/exceptions/external-reference.errors.js';
-import { OrderItemNotFoundError } from '../../domain/exceptions/order-item.errors.js';
+import {
+  OrderItemNotFoundError,
+  ProductUnavailableError,
+} from '../../domain/exceptions/order-item.errors.js';
 import { ORDER_ITEM_REPOSITORY } from '../../domain/repositories/order-item.repository.js';
 import type { OrderItemRepository } from '../../domain/repositories/order-item.repository.js';
 import type { TransactionContext } from '../../domain/transaction-context.js';
@@ -22,6 +25,8 @@ export interface CreateOrderItemInput {
   productId: string;
   quantity: number;
   userId?: string;
+  customerId?: string;
+  roundNumber?: number;
   notes?: string;
 }
 
@@ -49,6 +54,9 @@ export class OrderItemsService {
     if (!product) {
       throw new ProductReferenceNotFoundError(input.productId);
     }
+    if (!product.available) {
+      throw new ProductUnavailableError(input.productId);
+    }
 
     if (input.userId) {
       const userExists = await this.userLookup.exists(input.userId);
@@ -62,6 +70,7 @@ export class OrderItemsService {
         id: randomUUID(),
         ...input,
         unitPrice: product.price,
+        productName: product.name,
       });
       const saved = await this.orderItemRepository.save(orderItem, tx);
       await this.recalculateOrderTotal(input.orderId, tx);
@@ -71,6 +80,18 @@ export class OrderItemsService {
 
   findAll(): Promise<OrderItem[]> {
     return this.orderItemRepository.findAll();
+  }
+
+  findByOrderId(orderId: string): Promise<OrderItem[]> {
+    return this.orderItemRepository.findByOrderId(orderId);
+  }
+
+  async nextRoundNumber(orderId: string): Promise<number> {
+    const items = await this.orderItemRepository.findByOrderId(orderId);
+    if (items.length === 0) {
+      return 1;
+    }
+    return Math.max(...items.map((item) => item.roundNumber)) + 1;
   }
 
   async findOne(id: string): Promise<OrderItem> {

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Order } from '../../domain/entities/order.entity.js';
 import type { OrderLineSnapshot } from '../../domain/entities/order.entity.js';
+import { FulfillmentType } from '../../domain/entities/fulfillment-type.enum.js';
 import { OrderStatus } from '../../domain/entities/order-status.enum.js';
 import { DiningTableReferenceNotFoundError } from '../../domain/exceptions/external-reference.errors.js';
 import { OrderNotFoundError } from '../../domain/exceptions/order.errors.js';
@@ -12,7 +13,11 @@ import { DINING_TABLE_LOOKUP } from '../ports/dining-table-lookup.port.js';
 import type { DiningTableLookupPort } from '../ports/dining-table-lookup.port.js';
 
 export interface CreateOrderInput {
-  diningTableId: string;
+  fulfillmentType?: FulfillmentType;
+  diningTableId?: string;
+  deliveryAddress?: string;
+  customerId?: string;
+  guestToken?: string;
   status?: OrderStatus;
 }
 
@@ -20,6 +25,12 @@ export interface UpdateOrderInput {
   diningTableId?: string;
   status?: OrderStatus;
 }
+
+const OPEN_ORDER_STATUSES = [
+  OrderStatus.OPEN,
+  OrderStatus.IN_PROGRESS,
+  OrderStatus.SERVED,
+];
 
 @Injectable()
 export class OrdersService {
@@ -30,8 +41,11 @@ export class OrdersService {
   ) {}
 
   async create(input: CreateOrderInput): Promise<Order> {
-    await this.assertDiningTableExists(input.diningTableId);
-    const order = Order.create({ id: randomUUID(), ...input });
+    const fulfillmentType = input.fulfillmentType ?? FulfillmentType.DINE_IN;
+    if (fulfillmentType === FulfillmentType.DINE_IN && input.diningTableId) {
+      await this.assertDiningTableExists(input.diningTableId);
+    }
+    const order = Order.create({ id: randomUUID(), ...input, fulfillmentType });
     return this.orderRepository.save(order);
   }
 
@@ -39,8 +53,15 @@ export class OrdersService {
     return this.orderRepository.findAll();
   }
 
-  async findOne(id: string): Promise<Order> {
-    const order = await this.orderRepository.findById(id);
+  findOpenByDiningTable(diningTableId: string): Promise<Order | null> {
+    return this.orderRepository.findOpenByDiningTableId(
+      diningTableId,
+      OPEN_ORDER_STATUSES,
+    );
+  }
+
+  async findOne(id: string, tx?: TransactionContext): Promise<Order> {
+    const order = await this.orderRepository.findById(id, tx);
     if (!order) {
       throw new OrderNotFoundError(id);
     }
@@ -52,7 +73,7 @@ export class OrdersService {
     input: UpdateOrderInput,
     tx?: TransactionContext,
   ): Promise<Order> {
-    const order = await this.findOne(id);
+    const order = await this.findOne(id, tx);
     if (input.diningTableId) {
       await this.assertDiningTableExists(input.diningTableId);
       order.changeDiningTable(input.diningTableId);
@@ -68,9 +89,15 @@ export class OrdersService {
     lines: OrderLineSnapshot[],
     tx?: TransactionContext,
   ): Promise<Order> {
-    const order = await this.findOne(id);
+    const order = await this.findOne(id, tx);
     order.recalculateTotal(lines);
     return this.orderRepository.save(order, tx);
+  }
+
+  async requestBill(id: string): Promise<Order> {
+    const order = await this.findOne(id);
+    order.requestBill();
+    return this.orderRepository.save(order);
   }
 
   async remove(id: string): Promise<void> {

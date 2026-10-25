@@ -7,6 +7,14 @@ export class CreateRestaurantDto {
   @MinLength(2)
   name: string;
 
+  @ApiPropertyOptional({
+    example: 'restaurante-centro',
+    description: 'Se genera a partir del nombre si no se envía',
+  })
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
   @ApiPropertyOptional({ example: 'Av. Reforma 123, CDMX' })
   @IsOptional()
   @IsString()

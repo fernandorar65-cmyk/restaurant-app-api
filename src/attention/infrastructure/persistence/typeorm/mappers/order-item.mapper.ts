@@ -7,10 +7,13 @@ export class OrderItemMapper {
       id: orm.id,
       quantity: orm.quantity,
       unitPrice: Number(orm.unitPrice),
+      productName: orm.productName,
       notes: orm.notes ?? null,
       orderId: orm.orderId,
       productId: orm.productId,
       userId: orm.userId ?? null,
+      customerId: orm.customerId ?? null,
+      roundNumber: orm.roundNumber,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -24,10 +27,13 @@ export class OrderItemMapper {
     orm.id = domain.id;
     orm.quantity = domain.quantity;
     orm.unitPrice = domain.unitPrice;
+    orm.productName = domain.productName;
     orm.notes = domain.notes ?? undefined;
     orm.orderId = domain.orderId;
     orm.productId = domain.productId;
     orm.userId = domain.userId ?? undefined;
+    orm.customerId = domain.customerId ?? undefined;
+    orm.roundNumber = domain.roundNumber;
     return orm;
   }
 }

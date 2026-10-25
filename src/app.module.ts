@@ -7,6 +7,7 @@ import { buildTypeOrmOptions } from './common/persistence/database/typeorm.confi
 import { IamModule } from './iam/iam.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { AttentionModule } from './attention/attention.module.js';
+import { CustomersModule } from './customers/customers.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AttentionModule } from './attention/attention.module.js';
     }),
     IamModule,
     OrganizationsModule,
+    CustomersModule,
     AttentionModule,
   ],
   controllers: [AppController],

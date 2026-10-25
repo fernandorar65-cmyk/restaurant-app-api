@@ -10,6 +10,9 @@ export class OrderItemOrmEntity extends BaseOrmEntity {
   @Column({ name: 'unit_price', type: 'decimal', precision: 10, scale: 2 })
   unitPrice: number;
 
+  @Column({ name: 'product_name' })
+  productName: string;
+
   @Column({ type: 'text', nullable: true })
   notes?: string;
 
@@ -27,4 +30,10 @@ export class OrderItemOrmEntity extends BaseOrmEntity {
 
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId?: string;
+
+  @Column({ name: 'customer_id', type: 'uuid', nullable: true })
+  customerId?: string;
+
+  @Column({ name: 'round_number', type: 'int', default: 1 })
+  roundNumber: number;
 }

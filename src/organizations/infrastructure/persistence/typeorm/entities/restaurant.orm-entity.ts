@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
 import { DiningTableOrmEntity } from './dining-table.orm-entity.js';
 import { EmployeeOrmEntity } from './employee.orm-entity.js';
@@ -7,9 +7,13 @@ import { MenuOrmEntity } from './menu.orm-entity.js';
 import type { OrganizationOrmEntity } from './organization.orm-entity.js';
 
 @Entity('restaurants')
+@Unique(['slug'])
 export class RestaurantOrmEntity extends BaseOrmEntity {
   @Column()
   name: string;
+
+  @Column()
+  slug: string;
 
   @Column({ nullable: true })
   address?: string;

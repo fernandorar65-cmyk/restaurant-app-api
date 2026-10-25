@@ -29,4 +29,9 @@ export class TypeOrmRestaurantRepository
   ): RestaurantOrmEntity {
     return RestaurantMapper.toPersistence(domain, existing);
   }
+
+  async findBySlug(slug: string): Promise<Restaurant | null> {
+    const found = await this.repository.findOne({ where: { slug } });
+    return found ? this.toDomain(found) : null;
+  }
 }

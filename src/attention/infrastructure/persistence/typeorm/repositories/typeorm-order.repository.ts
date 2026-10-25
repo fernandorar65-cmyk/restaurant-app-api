@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Order } from '../../../../domain/entities/order.entity.js';
+import { OrderStatus } from '../../../../domain/entities/order-status.enum.js';
 import { OrderRepository } from '../../../../domain/repositories/order.repository.js';
 import type { TransactionContext } from '../../../../domain/transaction-context.js';
 import { OrderOrmEntity } from '../entities/order.orm-entity.js';
@@ -36,5 +37,16 @@ export class TypeOrmOrderRepository
       return tx.manager.getRepository(OrderOrmEntity);
     }
     return this.repository;
+  }
+
+  async findOpenByDiningTableId(
+    diningTableId: string,
+    openStatuses: OrderStatus[],
+  ): Promise<Order | null> {
+    const found = await this.repository.findOne({
+      where: { diningTableId, status: In(openStatuses) },
+      order: { createdAt: 'DESC' },
+    });
+    return found ? this.toDomain(found) : null;
   }
 }

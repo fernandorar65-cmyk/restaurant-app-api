@@ -4,10 +4,13 @@ export interface OrderItemProps {
   id: string;
   quantity: number;
   unitPrice: number;
+  productName: string;
   notes: string | null;
   orderId: string;
   productId: string;
   userId: string | null;
+  customerId: string | null;
+  roundNumber: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,10 +22,13 @@ export class OrderItem {
     id: string;
     quantity: number;
     unitPrice: number;
+    productName: string;
     notes?: string;
     orderId: string;
     productId: string;
     userId?: string;
+    customerId?: string;
+    roundNumber?: number;
   }): OrderItem {
     OrderItem.validateQuantity(params.quantity);
     const now = new Date();
@@ -30,10 +36,13 @@ export class OrderItem {
       id: params.id,
       quantity: params.quantity,
       unitPrice: params.unitPrice,
+      productName: params.productName,
       notes: params.notes ?? null,
       orderId: params.orderId,
       productId: params.productId,
       userId: params.userId ?? null,
+      customerId: params.customerId ?? null,
+      roundNumber: params.roundNumber ?? 1,
       createdAt: now,
       updatedAt: now,
     });
@@ -69,6 +78,9 @@ export class OrderItem {
   get unitPrice(): number {
     return this.props.unitPrice;
   }
+  get productName(): string {
+    return this.props.productName;
+  }
   get notes(): string | null {
     return this.props.notes;
   }
@@ -80,6 +92,12 @@ export class OrderItem {
   }
   get userId(): string | null {
     return this.props.userId;
+  }
+  get customerId(): string | null {
+    return this.props.customerId;
+  }
+  get roundNumber(): number {
+    return this.props.roundNumber;
   }
   get createdAt(): Date {
     return this.props.createdAt;

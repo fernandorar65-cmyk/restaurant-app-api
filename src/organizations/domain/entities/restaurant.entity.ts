@@ -3,6 +3,7 @@ import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 export interface RestaurantProps {
   id: string;
   name: string;
+  slug: string;
   address: string | null;
   phone: string | null;
   organizationId: string;
@@ -16,6 +17,7 @@ export class Restaurant {
   static create(params: {
     id: string;
     name: string;
+    slug: string;
     address?: string;
     phone?: string;
     organizationId: string;
@@ -25,6 +27,7 @@ export class Restaurant {
     return new Restaurant({
       id: params.id,
       name: params.name,
+      slug: params.slug,
       address: params.address ?? null,
       phone: params.phone ?? null,
       organizationId: params.organizationId,
@@ -70,6 +73,9 @@ export class Restaurant {
   }
   get name(): string {
     return this.props.name;
+  }
+  get slug(): string {
+    return this.props.slug;
   }
   get address(): string | null {
     return this.props.address;

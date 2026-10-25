@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CartValidationService } from './application/cart-validation/cart-validation.service.js';
 import { CategoriesService } from './application/categories/categories.service.js';
 import { DiningTablesService } from './application/dining-tables/dining-tables.service.js';
 import { EmployeesService } from './application/employees/employees.service.js';
@@ -36,6 +37,7 @@ import { TypeOrmOrganizationRepository } from './infrastructure/persistence/type
 import { TypeOrmProductRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-product.repository.js';
 import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-restaurant.repository.js';
 import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-table-qr-code.repository.js';
+import { CartValidationController } from './infrastructure/http/controllers/cart-validation.controller.js';
 import { CategoriesController } from './infrastructure/http/controllers/categories.controller.js';
 import { DiningTablesController } from './infrastructure/http/controllers/dining-tables.controller.js';
 import { EmployeesController } from './infrastructure/http/controllers/employees.controller.js';
@@ -70,6 +72,7 @@ import { TableQrCodesController } from './infrastructure/http/controllers/table-
     CategoriesController,
     ProductsController,
     KitchenSuppliesController,
+    CartValidationController,
   ],
   providers: [
     OrganizationsService,
@@ -81,6 +84,7 @@ import { TableQrCodesController } from './infrastructure/http/controllers/table-
     CategoriesService,
     ProductsService,
     KitchenSuppliesService,
+    CartValidationService,
     { provide: ORGANIZATION_REPOSITORY, useClass: TypeOrmOrganizationRepository },
     { provide: RESTAURANT_REPOSITORY, useClass: TypeOrmRestaurantRepository },
     { provide: DINING_TABLE_REPOSITORY, useClass: TypeOrmDiningTableRepository },
@@ -94,6 +98,13 @@ import { TableQrCodesController } from './infrastructure/http/controllers/table-
       useClass: TypeOrmKitchenSupplyRepository,
     },
   ],
-  exports: [ProductsService, DiningTablesService],
+  exports: [
+    ProductsService,
+    DiningTablesService,
+    RestaurantsService,
+    TableQrCodesService,
+    CategoriesService,
+    MenusService,
+  ],
 })
 export class OrganizationsModule {}

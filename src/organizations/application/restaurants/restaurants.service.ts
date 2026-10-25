@@ -8,6 +8,7 @@ import { OrganizationsService } from '../organizations/organizations.service.js'
 
 export interface CreateRestaurantInput {
   name: string;
+  slug?: string;
   address?: string;
   phone?: string;
   organizationId: string;
@@ -30,7 +31,8 @@ export class RestaurantsService {
 
   async create(input: CreateRestaurantInput): Promise<Restaurant> {
     await this.organizationsService.findOne(input.organizationId);
-    const restaurant = Restaurant.create({ id: randomUUID(), ...input });
+    const slug = await this.uniqueSlug(input.slug ?? input.name);
+    const restaurant = Restaurant.create({ id: randomUUID(), ...input, slug });
     return this.restaurantRepository.save(restaurant);
   }
 
@@ -42,6 +44,14 @@ export class RestaurantsService {
     const restaurant = await this.restaurantRepository.findById(id);
     if (!restaurant) {
       throw new RestaurantNotFoundError(id);
+    }
+    return restaurant;
+  }
+
+  async findBySlug(slug: string): Promise<Restaurant> {
+    const restaurant = await this.restaurantRepository.findBySlug(slug);
+    if (!restaurant) {
+      throw new RestaurantNotFoundError(slug);
     }
     return restaurant;
   }
@@ -61,4 +71,25 @@ export class RestaurantsService {
       throw new RestaurantNotFoundError(id);
     }
   }
+
+  private async uniqueSlug(seed: string): Promise<string> {
+    const base = slugify(seed);
+    let candidate = base;
+    let suffix = 1;
+    while (await this.restaurantRepository.findBySlug(candidate)) {
+      suffix += 1;
+      candidate = `${base}-${suffix}`;
+    }
+    return candidate;
+  }
+}
+
+function slugify(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 }

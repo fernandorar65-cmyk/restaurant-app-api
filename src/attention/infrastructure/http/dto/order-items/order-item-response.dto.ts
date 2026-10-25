@@ -11,6 +11,9 @@ export class OrderItemResponseDto {
   @ApiProperty({ example: 12.5 })
   unitPrice: number;
 
+  @ApiProperty({ example: 'Causa limeña' })
+  productName: string;
+
   @ApiPropertyOptional({ example: 'Sin cebolla' })
   notes: string | null;
 
@@ -23,6 +26,12 @@ export class OrderItemResponseDto {
   @ApiPropertyOptional()
   userId: string | null;
 
+  @ApiPropertyOptional()
+  customerId: string | null;
+
+  @ApiProperty({ example: 1 })
+  roundNumber: number;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -34,10 +43,13 @@ export class OrderItemResponseDto {
     dto.id = orderItem.id;
     dto.quantity = orderItem.quantity;
     dto.unitPrice = orderItem.unitPrice;
+    dto.productName = orderItem.productName;
     dto.notes = orderItem.notes;
     dto.orderId = orderItem.orderId;
     dto.productId = orderItem.productId;
     dto.userId = orderItem.userId;
+    dto.customerId = orderItem.customerId;
+    dto.roundNumber = orderItem.roundNumber;
     dto.createdAt = orderItem.createdAt;
     dto.updatedAt = orderItem.updatedAt;
     return dto;

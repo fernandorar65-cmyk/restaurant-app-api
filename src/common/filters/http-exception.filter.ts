@@ -7,10 +7,22 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import {
+  BusinessRuleDomainError,
   ConflictDomainError,
+  ForbiddenDomainError,
   NotFoundDomainError,
+  UnauthorizedDomainError,
   ValidationDomainError,
 } from '../domain/domain-error.js';
+
+const DOMAIN_ERROR_TYPES = [
+  NotFoundDomainError,
+  ConflictDomainError,
+  ValidationDomainError,
+  UnauthorizedDomainError,
+  ForbiddenDomainError,
+  BusinessRuleDomainError,
+] as const;
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -45,6 +57,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof ValidationDomainError) {
       return HttpStatus.BAD_REQUEST;
     }
+    if (exception instanceof UnauthorizedDomainError) {
+      return HttpStatus.UNAUTHORIZED;
+    }
+    if (exception instanceof ForbiddenDomainError) {
+      return HttpStatus.FORBIDDEN;
+    }
+    if (exception instanceof BusinessRuleDomainError) {
+      return HttpStatus.UNPROCESSABLE_ENTITY;
+    }
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
@@ -57,12 +78,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const message = (response as { message?: string | string[] }).message;
       return message ?? exception.message;
     }
-    if (
-      exception instanceof NotFoundDomainError ||
-      exception instanceof ConflictDomainError ||
-      exception instanceof ValidationDomainError
-    ) {
-      return exception.message;
+    if (DOMAIN_ERROR_TYPES.some((type) => exception instanceof type)) {
+      return (exception as Error).message;
     }
     return 'Internal server error';
   }

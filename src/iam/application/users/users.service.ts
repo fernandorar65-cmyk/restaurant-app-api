@@ -4,8 +4,8 @@ import { User } from '../../domain/entities/user.entity.js';
 import { DuplicateEmailError, UserNotFoundError } from '../../domain/exceptions/user.errors.js';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.js';
 import type { UserRepository } from '../../domain/repositories/user.repository.js';
-import { PASSWORD_HASHER } from '../ports/password-hasher.port.js';
-import type { PasswordHasher } from '../ports/password-hasher.port.js';
+import { PASSWORD_HASHER } from '../../../common/application/ports/password-hasher.port.js';
+import type { PasswordHasher } from '../../../common/application/ports/password-hasher.port.js';
 import { RolesService } from '../roles/roles.service.js';
 
 export interface CreateUserInput {

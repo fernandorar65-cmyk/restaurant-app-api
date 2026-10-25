@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PASSWORD_HASHER } from './application/ports/password-hasher.port.js';
+import { PASSWORD_HASHER } from '../common/application/ports/password-hasher.port.js';
 import { PermissionsService } from './application/permissions/permissions.service.js';
 import { RolePermissionsService } from './application/role-permissions/role-permissions.service.js';
 import { RolesService } from './application/roles/roles.service.js';
@@ -17,7 +17,7 @@ import { TypeOrmPermissionRepository } from './infrastructure/persistence/typeor
 import { TypeOrmRolePermissionRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-role-permission.repository.js';
 import { TypeOrmRoleRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-role.repository.js';
 import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-user.repository.js';
-import { ScryptPasswordHasher } from './infrastructure/security/scrypt-password-hasher.js';
+import { ScryptPasswordHasher } from '../common/infrastructure/security/scrypt-password-hasher.js';
 import { PermissionsController } from './infrastructure/http/controllers/permissions.controller.js';
 import { RolePermissionsController } from './infrastructure/http/controllers/role-permissions.controller.js';
 import { RolesController } from './infrastructure/http/controllers/roles.controller.js';

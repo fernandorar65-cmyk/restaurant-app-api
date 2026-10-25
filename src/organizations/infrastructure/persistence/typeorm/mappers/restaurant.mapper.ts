@@ -6,6 +6,7 @@ export class RestaurantMapper {
     return Restaurant.fromPersistence({
       id: orm.id,
       name: orm.name,
+      slug: orm.slug,
       address: orm.address ?? null,
       phone: orm.phone ?? null,
       organizationId: orm.organizationId,
@@ -21,6 +22,7 @@ export class RestaurantMapper {
     const orm = existing ?? new RestaurantOrmEntity();
     orm.id = domain.id;
     orm.name = domain.name;
+    orm.slug = domain.slug;
     orm.address = domain.address ?? undefined;
     orm.phone = domain.phone ?? undefined;
     orm.organizationId = domain.organizationId;

@@ -24,8 +24,8 @@ export abstract class TypeOrmBaseRepository<
     return this.repository;
   }
 
-  async findById(id: string): Promise<TDomain | null> {
-    const found = await this.repository.findOne({
+  async findById(id: string, tx?: unknown): Promise<TDomain | null> {
+    const found = await this.getRepository(tx).findOne({
       where: { id } as FindOptionsWhere<TOrm>,
     });
     return found ? this.toDomain(found) : null;

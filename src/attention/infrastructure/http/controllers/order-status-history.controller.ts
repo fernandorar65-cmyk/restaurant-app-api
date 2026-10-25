@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -42,7 +42,7 @@ export class OrderStatusHistoryController {
   @ApiOkResponse({ type: OrderStatusHistoryResponseDto })
   @ApiNotFoundResponse({ description: 'Entrada no encontrada' })
   async findOne(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<OrderStatusHistoryResponseDto> {
     const entry = await this.orderStatusHistoryService.findOne(id);
     return OrderStatusHistoryResponseDto.fromDomain(entry);
@@ -53,7 +53,7 @@ export class OrderStatusHistoryController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la entrada eliminada' })
   @ApiNotFoundResponse({ description: 'Entrada no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.orderStatusHistoryService.remove(id);
     return { id };
   }

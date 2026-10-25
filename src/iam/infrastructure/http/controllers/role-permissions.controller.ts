@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -41,7 +41,7 @@ export class RolePermissionsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: RolePermissionResponseDto })
   @ApiNotFoundResponse({ description: 'Asignación no encontrada' })
-  async findOne(@Param('id') id: string): Promise<RolePermissionResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RolePermissionResponseDto> {
     const rolePermission = await this.rolePermissionsService.findOne(id);
     return RolePermissionResponseDto.fromDomain(rolePermission);
   }
@@ -51,7 +51,7 @@ export class RolePermissionsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la asignación eliminada' })
   @ApiNotFoundResponse({ description: 'Asignación no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.rolePermissionsService.remove(id);
     return { id };
   }

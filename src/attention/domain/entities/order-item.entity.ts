@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 export interface OrderItemProps {
   id: string;
   quantity: number;
@@ -43,7 +45,7 @@ export class OrderItem {
 
   private static validateQuantity(quantity: number): void {
     if (quantity < 1) {
-      throw new Error('La cantidad debe ser al menos 1');
+      throw new ValidationDomainError('La cantidad debe ser al menos 1');
     }
   }
 

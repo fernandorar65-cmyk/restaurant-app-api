@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class EmployeesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: EmployeeResponseDto })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
-  async findOne(@Param('id') id: string): Promise<EmployeeResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<EmployeeResponseDto> {
     const employee = await this.employeesService.findOne(id);
     return EmployeeResponseDto.fromDomain(employee);
   }
@@ -57,7 +58,7 @@ export class EmployeesController {
   @ApiOkResponse({ type: EmployeeResponseDto })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
   ): Promise<EmployeeResponseDto> {
     const employee = await this.employeesService.update(id, dto);
@@ -69,7 +70,7 @@ export class EmployeesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del empleado eliminado' })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.employeesService.remove(id);
     return { id };
   }

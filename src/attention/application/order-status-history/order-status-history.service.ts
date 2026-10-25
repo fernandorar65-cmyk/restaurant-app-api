@@ -6,6 +6,8 @@ import { OrderStatusHistoryNotFoundError } from '../../domain/exceptions/order-s
 import { ORDER_STATUS_HISTORY_REPOSITORY } from '../../domain/repositories/order-status-history.repository.js';
 import type { OrderStatusHistoryRepository } from '../../domain/repositories/order-status-history.repository.js';
 import { OrdersService } from '../orders/orders.service.js';
+import { TRANSACTION_RUNNER } from '../ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../ports/transaction-runner.port.js';
 
 export interface CreateOrderStatusHistoryInput {
   orderId: string;
@@ -19,6 +21,8 @@ export class OrderStatusHistoryService {
     @Inject(ORDER_STATUS_HISTORY_REPOSITORY)
     private readonly orderStatusHistoryRepository: OrderStatusHistoryRepository,
     private readonly ordersService: OrdersService,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(
@@ -26,12 +30,18 @@ export class OrderStatusHistoryService {
   ): Promise<OrderStatusHistory> {
     await this.ordersService.findOne(input.orderId);
 
-    const entry = OrderStatusHistory.create({ id: randomUUID(), ...input });
-    const saved = await this.orderStatusHistoryRepository.save(entry);
+    return this.transactionRunner.run(async (tx) => {
+      const entry = OrderStatusHistory.create({ id: randomUUID(), ...input });
+      const saved = await this.orderStatusHistoryRepository.save(entry, tx);
 
-    await this.ordersService.update(input.orderId, { status: input.status });
+      await this.ordersService.update(
+        input.orderId,
+        { status: input.status },
+        tx,
+      );
 
-    return saved;
+      return saved;
+    });
   }
 
   findAll(): Promise<OrderStatusHistory[]> {

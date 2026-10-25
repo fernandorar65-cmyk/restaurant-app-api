@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import {
   ConflictDomainError,
   NotFoundDomainError,
+  ValidationDomainError,
 } from '../domain/domain-error.js';
 
 @Catch()
@@ -41,6 +42,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof ConflictDomainError) {
       return HttpStatus.CONFLICT;
     }
+    if (exception instanceof ValidationDomainError) {
+      return HttpStatus.BAD_REQUEST;
+    }
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
@@ -55,7 +59,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
     if (
       exception instanceof NotFoundDomainError ||
-      exception instanceof ConflictDomainError
+      exception instanceof ConflictDomainError ||
+      exception instanceof ValidationDomainError
     ) {
       return exception.message;
     }

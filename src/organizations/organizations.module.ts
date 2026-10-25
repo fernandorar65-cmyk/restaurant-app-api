@@ -96,4 +96,4 @@ import { TableQrCodesController } from './infrastructure/http/controllers/table-
   ],
   exports: [ProductsService, DiningTablesService],
 })
-export class OrganizationsContextModule {}
+export class OrganizationsModule {}

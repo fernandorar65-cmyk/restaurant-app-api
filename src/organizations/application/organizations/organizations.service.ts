@@ -53,6 +53,14 @@ export class OrganizationsService {
     input: UpdateOrganizationInput,
   ): Promise<Organization> {
     const organization = await this.findOne(id);
+    if (input.name) {
+      const existing = await this.organizationRepository.findByName(
+        input.name,
+      );
+      if (existing && existing.id !== organization.id) {
+        throw new DuplicateOrganizationNameError(input.name);
+      }
+    }
     organization.update(input);
     return this.organizationRepository.save(organization);
   }

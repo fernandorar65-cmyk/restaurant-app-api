@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class RolesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
-  async findOne(@Param('id') id: string): Promise<RoleResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RoleResponseDto> {
     const role = await this.rolesService.findOne(id);
     return RoleResponseDto.fromDomain(role);
   }
@@ -57,7 +58,7 @@ export class RolesController {
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoleDto,
   ): Promise<RoleResponseDto> {
     const role = await this.rolesService.update(id, dto);
@@ -69,7 +70,7 @@ export class RolesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del rol eliminado' })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.rolesService.remove(id);
     return { id };
   }

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -50,7 +51,7 @@ export class KitchenSuppliesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: KitchenSupplyResponseDto })
   @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
-  async findOne(@Param('id') id: string): Promise<KitchenSupplyResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<KitchenSupplyResponseDto> {
     const kitchenSupply = await this.kitchenSuppliesService.findOne(id);
     return KitchenSupplyResponseDto.fromDomain(kitchenSupply);
   }
@@ -61,7 +62,7 @@ export class KitchenSuppliesController {
   @ApiOkResponse({ type: KitchenSupplyResponseDto })
   @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateKitchenSupplyDto,
   ): Promise<KitchenSupplyResponseDto> {
     const kitchenSupply = await this.kitchenSuppliesService.update(id, dto);
@@ -73,7 +74,7 @@ export class KitchenSuppliesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del insumo eliminado' })
   @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.kitchenSuppliesService.remove(id);
     return { id };
   }

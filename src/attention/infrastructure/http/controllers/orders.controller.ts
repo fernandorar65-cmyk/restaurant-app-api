@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class OrdersController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: OrderResponseDto })
   @ApiNotFoundResponse({ description: 'Orden no encontrada' })
-  async findOne(@Param('id') id: string): Promise<OrderResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrderResponseDto> {
     const order = await this.ordersService.findOne(id);
     return OrderResponseDto.fromDomain(order);
   }
@@ -57,7 +58,7 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderResponseDto })
   @ApiNotFoundResponse({ description: 'Orden no encontrada' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
     const order = await this.ordersService.update(id, dto);
@@ -69,7 +70,7 @@ export class OrdersController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la orden eliminada' })
   @ApiNotFoundResponse({ description: 'Orden no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.ordersService.remove(id);
     return { id };
   }

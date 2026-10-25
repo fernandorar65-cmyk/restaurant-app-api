@@ -31,9 +31,10 @@ export class UsersService {
   ) {}
 
   async create(input: CreateUserInput): Promise<User> {
-    const existing = await this.userRepository.findByEmail(input.email);
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const existing = await this.userRepository.findByEmail(normalizedEmail);
     if (existing) {
-      throw new DuplicateEmailError(input.email);
+      throw new DuplicateEmailError(normalizedEmail);
     }
     await this.rolesService.findOne(input.roleId);
 
@@ -71,6 +72,11 @@ export class UsersService {
       user.rename(input.name);
     }
     if (input.email) {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const existing = await this.userRepository.findByEmail(normalizedEmail);
+      if (existing && existing.id !== user.id) {
+        throw new DuplicateEmailError(normalizedEmail);
+      }
       user.changeEmail(input.email);
     }
     if (input.password) {

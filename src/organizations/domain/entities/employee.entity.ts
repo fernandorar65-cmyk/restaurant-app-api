@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 export interface EmployeeProps {
   id: string;
   name: string;
@@ -37,7 +39,7 @@ export class Employee {
 
   private static validateName(name: string): void {
     if (name.trim().length < 2) {
-      throw new Error('El nombre del empleado debe tener al menos 2 caracteres');
+      throw new ValidationDomainError('El nombre del empleado debe tener al menos 2 caracteres');
     }
   }
 

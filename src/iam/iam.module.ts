@@ -52,5 +52,6 @@ import { UsersController } from './infrastructure/http/controllers/users.control
     },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
   ],
+  exports: [UsersService],
 })
 export class IamModule {}

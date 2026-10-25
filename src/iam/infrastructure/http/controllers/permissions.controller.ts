@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class PermissionsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: PermissionResponseDto })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
-  async findOne(@Param('id') id: string): Promise<PermissionResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<PermissionResponseDto> {
     const permission = await this.permissionsService.findOne(id);
     return PermissionResponseDto.fromDomain(permission);
   }
@@ -57,7 +58,7 @@ export class PermissionsController {
   @ApiOkResponse({ type: PermissionResponseDto })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePermissionDto,
   ): Promise<PermissionResponseDto> {
     const permission = await this.permissionsService.update(id, dto);
@@ -69,7 +70,7 @@ export class PermissionsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del permiso eliminado' })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.permissionsService.remove(id);
     return { id };
   }

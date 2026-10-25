@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Order } from '../../domain/entities/order.entity.js';
+import type { OrderLineSnapshot } from '../../domain/entities/order.entity.js';
 import { OrderStatus } from '../../domain/entities/order-status.enum.js';
 import { DiningTableReferenceNotFoundError } from '../../domain/exceptions/external-reference.errors.js';
 import { OrderNotFoundError } from '../../domain/exceptions/order.errors.js';
 import { ORDER_REPOSITORY } from '../../domain/repositories/order.repository.js';
 import type { OrderRepository } from '../../domain/repositories/order.repository.js';
+import type { TransactionContext } from '../../domain/transaction-context.js';
 import { DINING_TABLE_LOOKUP } from '../ports/dining-table-lookup.port.js';
 import type { DiningTableLookupPort } from '../ports/dining-table-lookup.port.js';
 
@@ -17,7 +19,6 @@ export interface CreateOrderInput {
 export interface UpdateOrderInput {
   diningTableId?: string;
   status?: OrderStatus;
-  total?: number;
 }
 
 @Injectable()
@@ -46,13 +47,30 @@ export class OrdersService {
     return order;
   }
 
-  async update(id: string, input: UpdateOrderInput): Promise<Order> {
+  async update(
+    id: string,
+    input: UpdateOrderInput,
+    tx?: TransactionContext,
+  ): Promise<Order> {
     const order = await this.findOne(id);
     if (input.diningTableId) {
       await this.assertDiningTableExists(input.diningTableId);
+      order.changeDiningTable(input.diningTableId);
     }
-    order.update(input);
-    return this.orderRepository.save(order);
+    if (input.status) {
+      order.changeStatus(input.status);
+    }
+    return this.orderRepository.save(order, tx);
+  }
+
+  async recalculateTotal(
+    id: string,
+    lines: OrderLineSnapshot[],
+    tx?: TransactionContext,
+  ): Promise<Order> {
+    const order = await this.findOne(id);
+    order.recalculateTotal(lines);
+    return this.orderRepository.save(order, tx);
   }
 
   async remove(id: string): Promise<void> {

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -48,7 +49,7 @@ export class OrganizationsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: OrganizationResponseDto })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
-  async findOne(@Param('id') id: string): Promise<OrganizationResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrganizationResponseDto> {
     const organization = await this.organizationsService.findOne(id);
     return OrganizationResponseDto.fromDomain(organization);
   }
@@ -59,7 +60,7 @@ export class OrganizationsController {
   @ApiOkResponse({ type: OrganizationResponseDto })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOrganizationDto,
   ): Promise<OrganizationResponseDto> {
     const organization = await this.organizationsService.update(id, dto);
@@ -71,7 +72,7 @@ export class OrganizationsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la organización eliminada' })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.organizationsService.remove(id);
     return { id };
   }

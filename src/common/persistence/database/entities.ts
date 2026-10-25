@@ -1,3 +1,6 @@
+// Used only by the TypeORM CLI (data-source.ts) for migrations, which runs
+// outside Nest's DI container and so can't rely on autoLoadEntities like the
+// running app does (see typeorm.config.ts).
 import { OrderItemOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-item.orm-entity.js';
 import { OrderStatusHistoryOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-status-history.orm-entity.js';
 import { OrderOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order.orm-entity.js';

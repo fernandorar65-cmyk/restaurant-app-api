@@ -1,39 +1,51 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { OrderItem } from '../../../../domain/entities/order-item.entity.js';
 import { OrderItemRepository } from '../../../../domain/repositories/order-item.repository.js';
+import type { TransactionContext } from '../../../../domain/transaction-context.js';
 import { OrderItemOrmEntity } from '../entities/order-item.orm-entity.js';
 import { OrderItemMapper } from '../mappers/order-item.mapper.js';
+import { TypeOrmTransactionContext } from '../typeorm-transaction-runner.js';
 
 @Injectable()
-export class TypeOrmOrderItemRepository implements OrderItemRepository {
+export class TypeOrmOrderItemRepository
+  extends TypeOrmBaseRepository<OrderItem, OrderItemOrmEntity>
+  implements OrderItemRepository
+{
   constructor(
     @InjectRepository(OrderItemOrmEntity)
-    private readonly repository: Repository<OrderItemOrmEntity>,
-  ) {}
-
-  async findById(id: string): Promise<OrderItem | null> {
-    const found = await this.repository.findOne({ where: { id } });
-    return found ? OrderItemMapper.toDomain(found) : null;
+    repository: Repository<OrderItemOrmEntity>,
+  ) {
+    super(repository);
   }
 
-  async findAll(): Promise<OrderItem[]> {
-    const rows = await this.repository.find();
-    return rows.map(OrderItemMapper.toDomain);
+  protected toDomain(orm: OrderItemOrmEntity): OrderItem {
+    return OrderItemMapper.toDomain(orm);
   }
 
-  async save(orderItem: OrderItem): Promise<OrderItem> {
-    const existing = await this.repository.findOne({
-      where: { id: orderItem.id },
-    });
-    const orm = OrderItemMapper.toPersistence(orderItem, existing ?? undefined);
-    const saved = await this.repository.save(orm);
-    return OrderItemMapper.toDomain(saved);
+  protected toPersistence(
+    domain: OrderItem,
+    existing?: OrderItemOrmEntity,
+  ): OrderItemOrmEntity {
+    return OrderItemMapper.toPersistence(domain, existing);
   }
 
-  async delete(id: string): Promise<boolean> {
-    const result = await this.repository.delete(id);
-    return (result.affected ?? 0) > 0;
+  protected override getRepository(
+    tx?: TransactionContext,
+  ): Repository<OrderItemOrmEntity> {
+    if (tx instanceof TypeOrmTransactionContext) {
+      return tx.manager.getRepository(OrderItemOrmEntity);
+    }
+    return this.repository;
+  }
+
+  async findByOrderId(
+    orderId: string,
+    tx?: TransactionContext,
+  ): Promise<OrderItem[]> {
+    const rows = await this.getRepository(tx).find({ where: { orderId } });
+    return rows.map((row) => this.toDomain(row));
   }
 }

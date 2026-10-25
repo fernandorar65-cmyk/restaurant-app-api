@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { entities } from './entities.js';
 
 export function buildTypeOrmOptions(
   configService: ConfigService,
@@ -12,7 +11,7 @@ export function buildTypeOrmOptions(
     username: configService.get<string>('DB_USERNAME', 'postgres'),
     password: configService.get<string>('DB_PASSWORD', 'postgres'),
     database: configService.get<string>('DB_DATABASE', 'restaurant_api'),
-    entities,
+    autoLoadEntities: true,
     synchronize:
       configService.get<string>('NODE_ENV', 'development') !== 'production',
   };

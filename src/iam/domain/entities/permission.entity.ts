@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 export interface PermissionProps {
   id: string;
   name: string;
@@ -27,7 +29,7 @@ export class Permission {
 
   private static validateName(name: string): void {
     if (name.trim().length < 2) {
-      throw new Error('El nombre del permiso debe tener al menos 2 caracteres');
+      throw new ValidationDomainError('El nombre del permiso debe tener al menos 2 caracteres');
     }
   }
 

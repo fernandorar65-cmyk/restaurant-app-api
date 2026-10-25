@@ -1,3 +1,4 @@
+import { InvalidOrderStatusTransitionError } from '../exceptions/order.errors.js';
 import { OrderStatus } from './order-status.enum.js';
 
 export interface OrderProps {
@@ -8,6 +9,19 @@ export interface OrderProps {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface OrderLineSnapshot {
+  quantity: number;
+  unitPrice: number;
+}
+
+const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.OPEN]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+  [OrderStatus.IN_PROGRESS]: [OrderStatus.SERVED, OrderStatus.CANCELLED],
+  [OrderStatus.SERVED]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+  [OrderStatus.PAID]: [],
+  [OrderStatus.CANCELLED]: [],
+};
 
 export class Order {
   private constructor(private props: OrderProps) {}
@@ -32,25 +46,28 @@ export class Order {
     return new Order(props);
   }
 
-  update(params: {
-    status?: OrderStatus;
-    total?: number;
-    diningTableId?: string;
-  }): void {
-    if (params.status) {
-      this.props.status = params.status;
-    }
-    if (params.total !== undefined) {
-      this.props.total = params.total;
-    }
-    if (params.diningTableId) {
-      this.props.diningTableId = params.diningTableId;
-    }
+  changeDiningTable(diningTableId: string): void {
+    this.props.diningTableId = diningTableId;
     this.props.updatedAt = new Date();
   }
 
   changeStatus(status: OrderStatus): void {
+    if (status === this.props.status) {
+      return;
+    }
+    const allowedTargets = ALLOWED_STATUS_TRANSITIONS[this.props.status];
+    if (!allowedTargets.includes(status)) {
+      throw new InvalidOrderStatusTransitionError(this.props.status, status);
+    }
     this.props.status = status;
+    this.props.updatedAt = new Date();
+  }
+
+  recalculateTotal(lines: OrderLineSnapshot[]): void {
+    this.props.total = lines.reduce(
+      (sum, line) => sum + line.quantity * line.unitPrice,
+      0,
+    );
     this.props.updatedAt = new Date();
   }
 

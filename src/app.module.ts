@@ -5,7 +5,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { buildTypeOrmOptions } from './common/persistence/database/typeorm.config.js';
 import { IamModule } from './iam/iam.module.js';
-import { OrganizationsContextModule } from './organizations/organizations.module.js';
+import { OrganizationsModule } from './organizations/organizations.module.js';
 import { AttentionModule } from './attention/attention.module.js';
 
 @Module({
@@ -16,7 +16,7 @@ import { AttentionModule } from './attention/attention.module.js';
       useFactory: buildTypeOrmOptions,
     }),
     IamModule,
-    OrganizationsContextModule,
+    OrganizationsModule,
     AttentionModule,
   ],
   controllers: [AppController],

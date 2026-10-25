@@ -60,6 +60,12 @@ export class TableQrCodesService {
     const tableQrCode = await this.findOne(id);
     if (input.diningTableId) {
       await this.diningTablesService.findOne(input.diningTableId);
+      const existing = await this.tableQrCodeRepository.findByDiningTableId(
+        input.diningTableId,
+      );
+      if (existing && existing.id !== tableQrCode.id) {
+        throw new DuplicateTableQrCodeError();
+      }
     }
     tableQrCode.update(input);
     return this.tableQrCodeRepository.save(tableQrCode);

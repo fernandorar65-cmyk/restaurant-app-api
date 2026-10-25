@@ -1,47 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Organization } from '../../../../domain/entities/organization.entity.js';
 import { OrganizationRepository } from '../../../../domain/repositories/organization.repository.js';
 import { OrganizationOrmEntity } from '../entities/organization.orm-entity.js';
 import { OrganizationMapper } from '../mappers/organization.mapper.js';
 
 @Injectable()
-export class TypeOrmOrganizationRepository implements OrganizationRepository {
+export class TypeOrmOrganizationRepository
+  extends TypeOrmBaseRepository<Organization, OrganizationOrmEntity>
+  implements OrganizationRepository
+{
   constructor(
     @InjectRepository(OrganizationOrmEntity)
-    private readonly repository: Repository<OrganizationOrmEntity>,
-  ) {}
+    repository: Repository<OrganizationOrmEntity>,
+  ) {
+    super(repository);
+  }
 
-  async findById(id: string): Promise<Organization | null> {
-    const found = await this.repository.findOne({ where: { id } });
-    return found ? OrganizationMapper.toDomain(found) : null;
+  protected toDomain(orm: OrganizationOrmEntity): Organization {
+    return OrganizationMapper.toDomain(orm);
+  }
+
+  protected toPersistence(
+    domain: Organization,
+    existing?: OrganizationOrmEntity,
+  ): OrganizationOrmEntity {
+    return OrganizationMapper.toPersistence(domain, existing);
   }
 
   async findByName(name: string): Promise<Organization | null> {
     const found = await this.repository.findOne({ where: { name } });
-    return found ? OrganizationMapper.toDomain(found) : null;
-  }
-
-  async findAll(): Promise<Organization[]> {
-    const rows = await this.repository.find();
-    return rows.map(OrganizationMapper.toDomain);
-  }
-
-  async save(organization: Organization): Promise<Organization> {
-    const existing = await this.repository.findOne({
-      where: { id: organization.id },
-    });
-    const orm = OrganizationMapper.toPersistence(
-      organization,
-      existing ?? undefined,
-    );
-    const saved = await this.repository.save(orm);
-    return OrganizationMapper.toDomain(saved);
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const result = await this.repository.delete(id);
-    return (result.affected ?? 0) > 0;
+    return found ? this.toDomain(found) : null;
   }
 }

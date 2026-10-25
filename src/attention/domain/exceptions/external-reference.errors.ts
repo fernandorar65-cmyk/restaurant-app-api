@@ -18,3 +18,9 @@ export class ProductReferenceNotFoundError extends NotFoundDomainError {
     super(`Product with id "${id}" not found`);
   }
 }
+
+export class UserReferenceNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`User with id "${id}" not found`);
+  }
+}

@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 export interface OrganizationProps {
   id: string;
   name: string;
@@ -34,7 +36,7 @@ export class Organization {
 
   private static validateName(name: string): void {
     if (name.trim().length < 2) {
-      throw new Error('El nombre de la organización debe tener al menos 2 caracteres');
+      throw new ValidationDomainError('El nombre de la organización debe tener al menos 2 caracteres');
     }
   }
 

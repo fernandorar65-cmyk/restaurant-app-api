@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface UserProps {
@@ -40,13 +42,13 @@ export class User {
 
   private static validateName(name: string): void {
     if (name.trim().length < 2) {
-      throw new Error('El nombre del usuario debe tener al menos 2 caracteres');
+      throw new ValidationDomainError('El nombre del usuario debe tener al menos 2 caracteres');
     }
   }
 
   private static validateEmail(email: string): void {
     if (!EMAIL_REGEX.test(email)) {
-      throw new Error(`"${email}" no es un correo válido`);
+      throw new ValidationDomainError(`"${email}" no es un correo válido`);
     }
   }
 

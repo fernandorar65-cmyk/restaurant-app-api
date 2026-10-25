@@ -49,6 +49,10 @@ export class PermissionsService {
   async update(id: string, input: UpdatePermissionInput): Promise<Permission> {
     const permission = await this.findOne(id);
     if (input.name) {
+      const existing = await this.permissionRepository.findByName(input.name);
+      if (existing && existing.id !== permission.id) {
+        throw new DuplicatePermissionNameError(input.name);
+      }
       permission.rename(input.name);
     }
     if (input.description !== undefined) {

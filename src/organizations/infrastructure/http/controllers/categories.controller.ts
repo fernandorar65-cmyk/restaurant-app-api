@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class CategoriesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<CategoryResponseDto> {
     const category = await this.categoriesService.findOne(id);
     return CategoryResponseDto.fromDomain(category);
   }
@@ -57,7 +58,7 @@ export class CategoriesController {
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCategoryDto,
   ): Promise<CategoryResponseDto> {
     const category = await this.categoriesService.update(id, dto);
@@ -69,7 +70,7 @@ export class CategoriesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la categoría eliminada' })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.categoriesService.remove(id);
     return { id };
   }

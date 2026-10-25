@@ -1,3 +1,5 @@
+import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+
 export interface RoleProps {
   id: string;
   name: string;
@@ -27,7 +29,7 @@ export class Role {
 
   private static validateName(name: string): void {
     if (name.trim().length < 2) {
-      throw new Error('El nombre del rol debe tener al menos 2 caracteres');
+      throw new ValidationDomainError('El nombre del rol debe tener al menos 2 caracteres');
     }
   }
 

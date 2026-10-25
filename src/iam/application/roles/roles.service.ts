@@ -45,6 +45,10 @@ export class RolesService {
   async update(id: string, input: UpdateRoleInput): Promise<Role> {
     const role = await this.findOne(id);
     if (input.name) {
+      const existing = await this.roleRepository.findByName(input.name);
+      if (existing && existing.id !== role.id) {
+        throw new DuplicateRoleNameError(input.name);
+      }
       role.rename(input.name);
     }
     if (input.description !== undefined) {

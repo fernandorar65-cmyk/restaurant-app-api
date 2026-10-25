@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -48,7 +49,7 @@ export class DiningTablesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: DiningTableResponseDto })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
-  async findOne(@Param('id') id: string): Promise<DiningTableResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<DiningTableResponseDto> {
     const diningTable = await this.diningTablesService.findOne(id);
     return DiningTableResponseDto.fromDomain(diningTable);
   }
@@ -59,7 +60,7 @@ export class DiningTablesController {
   @ApiOkResponse({ type: DiningTableResponseDto })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDiningTableDto,
   ): Promise<DiningTableResponseDto> {
     const diningTable = await this.diningTablesService.update(id, dto);
@@ -71,7 +72,7 @@ export class DiningTablesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la mesa eliminada' })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.diningTablesService.remove(id);
     return { id };
   }

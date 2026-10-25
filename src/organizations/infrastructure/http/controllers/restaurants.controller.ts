@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -48,7 +49,7 @@ export class RestaurantsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: RestaurantResponseDto })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
-  async findOne(@Param('id') id: string): Promise<RestaurantResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RestaurantResponseDto> {
     const restaurant = await this.restaurantsService.findOne(id);
     return RestaurantResponseDto.fromDomain(restaurant);
   }
@@ -59,7 +60,7 @@ export class RestaurantsController {
   @ApiOkResponse({ type: RestaurantResponseDto })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRestaurantDto,
   ): Promise<RestaurantResponseDto> {
     const restaurant = await this.restaurantsService.update(id, dto);
@@ -71,7 +72,7 @@ export class RestaurantsController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del restaurante eliminado' })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.restaurantsService.remove(id);
     return { id };
   }

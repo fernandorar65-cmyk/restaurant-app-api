@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -48,7 +49,7 @@ export class TableQrCodesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: TableQrCodeResponseDto })
   @ApiNotFoundResponse({ description: 'QR no encontrado' })
-  async findOne(@Param('id') id: string): Promise<TableQrCodeResponseDto> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<TableQrCodeResponseDto> {
     const tableQrCode = await this.tableQrCodesService.findOne(id);
     return TableQrCodeResponseDto.fromDomain(tableQrCode);
   }
@@ -59,7 +60,7 @@ export class TableQrCodesController {
   @ApiOkResponse({ type: TableQrCodeResponseDto })
   @ApiNotFoundResponse({ description: 'QR no encontrado' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTableQrCodeDto,
   ): Promise<TableQrCodeResponseDto> {
     const tableQrCode = await this.tableQrCodesService.update(id, dto);
@@ -71,7 +72,7 @@ export class TableQrCodesController {
   @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del QR eliminado' })
   @ApiNotFoundResponse({ description: 'QR no encontrado' })
-  async remove(@Param('id') id: string): Promise<{ id: string }> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.tableQrCodesService.remove(id);
     return { id };
   }

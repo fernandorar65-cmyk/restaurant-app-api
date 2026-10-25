@@ -6,6 +6,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import {
+  ConflictDomainError,
+  NotFoundDomainError,
+} from '../domain/domain-error.js';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -14,11 +18,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const statusCode =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
+    const statusCode = this.resolveStatus(exception);
     const message = this.extractMessage(exception);
 
     response.status(statusCode).json({
@@ -31,6 +31,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     });
   }
 
+  private resolveStatus(exception: unknown): number {
+    if (exception instanceof HttpException) {
+      return exception.getStatus();
+    }
+    if (exception instanceof NotFoundDomainError) {
+      return HttpStatus.NOT_FOUND;
+    }
+    if (exception instanceof ConflictDomainError) {
+      return HttpStatus.CONFLICT;
+    }
+    return HttpStatus.INTERNAL_SERVER_ERROR;
+  }
+
   private extractMessage(exception: unknown): string | string[] {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
@@ -39,6 +52,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
       const message = (response as { message?: string | string[] }).message;
       return message ?? exception.message;
+    }
+    if (
+      exception instanceof NotFoundDomainError ||
+      exception instanceof ConflictDomainError
+    ) {
+      return exception.message;
     }
     return 'Internal server error';
   }

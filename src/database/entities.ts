@@ -1,35 +1,35 @@
-import { OrderItem } from '../attention/order-items/entities/order-item.entity.js';
-import { OrderStatusHistory } from '../attention/order-status-history/entities/order-status-history.entity.js';
-import { Order } from '../attention/orders/entities/order.entity.js';
-import { Permission } from '../iam/permissions/entities/permission.entity.js';
-import { RolePermission } from '../iam/role-permissions/entities/role-permission.entity.js';
-import { Role } from '../iam/roles/entities/role.entity.js';
-import { User } from '../iam/users/entities/user.entity.js';
-import { Category } from '../organizations/categories/entities/category.entity.js';
-import { DiningTable } from '../organizations/dining-tables/entities/dining-table.entity.js';
-import { Employee } from '../organizations/employees/entities/employee.entity.js';
-import { KitchenSupply } from '../organizations/kitchen-supplies/entities/kitchen-supply.entity.js';
-import { Menu } from '../organizations/menus/entities/menu.entity.js';
-import { Organization } from '../organizations/organizations/entities/organization.entity.js';
-import { Product } from '../organizations/products/entities/product.entity.js';
-import { Restaurant } from '../organizations/restaurants/entities/restaurant.entity.js';
-import { TableQrCode } from '../organizations/table-qr-codes/entities/table-qr-code.entity.js';
+import { OrderItemOrmEntity } from '../contexts/attention/infrastructure/persistence/typeorm/entities/order-item.orm-entity.js';
+import { OrderStatusHistoryOrmEntity } from '../contexts/attention/infrastructure/persistence/typeorm/entities/order-status-history.orm-entity.js';
+import { OrderOrmEntity } from '../contexts/attention/infrastructure/persistence/typeorm/entities/order.orm-entity.js';
+import { PermissionOrmEntity } from '../contexts/iam/infrastructure/persistence/typeorm/entities/permission.orm-entity.js';
+import { RolePermissionOrmEntity } from '../contexts/iam/infrastructure/persistence/typeorm/entities/role-permission.orm-entity.js';
+import { RoleOrmEntity } from '../contexts/iam/infrastructure/persistence/typeorm/entities/role.orm-entity.js';
+import { UserOrmEntity } from '../contexts/iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
+import { CategoryOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/category.orm-entity.js';
+import { DiningTableOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/dining-table.orm-entity.js';
+import { EmployeeOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/employee.orm-entity.js';
+import { KitchenSupplyOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/kitchen-supply.orm-entity.js';
+import { MenuOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/menu.orm-entity.js';
+import { OrganizationOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
+import { ProductOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
+import { RestaurantOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
+import { TableQrCodeOrmEntity } from '../contexts/organizations/infrastructure/persistence/typeorm/entities/table-qr-code.orm-entity.js';
 
 export const entities = [
-  User,
-  Role,
-  Permission,
-  RolePermission,
-  Organization,
-  Restaurant,
-  DiningTable,
-  TableQrCode,
-  Employee,
-  Menu,
-  Category,
-  Product,
-  KitchenSupply,
-  Order,
-  OrderItem,
-  OrderStatusHistory,
+  UserOrmEntity,
+  RoleOrmEntity,
+  PermissionOrmEntity,
+  RolePermissionOrmEntity,
+  OrganizationOrmEntity,
+  RestaurantOrmEntity,
+  DiningTableOrmEntity,
+  TableQrCodeOrmEntity,
+  EmployeeOrmEntity,
+  MenuOrmEntity,
+  CategoryOrmEntity,
+  ProductOrmEntity,
+  KitchenSupplyOrmEntity,
+  OrderOrmEntity,
+  OrderItemOrmEntity,
+  OrderStatusHistoryOrmEntity,
 ];

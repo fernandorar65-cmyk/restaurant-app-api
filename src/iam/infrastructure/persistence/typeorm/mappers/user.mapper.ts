@@ -9,6 +9,8 @@ export class UserMapper {
       email: orm.email,
       passwordHash: orm.passwordHash,
       roleId: orm.roleId,
+      resetPasswordTokenHash: orm.resetPasswordTokenHash,
+      resetPasswordExpiresAt: orm.resetPasswordExpiresAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -21,6 +23,8 @@ export class UserMapper {
     orm.email = domain.email;
     orm.passwordHash = domain.passwordHash;
     orm.roleId = domain.roleId;
+    orm.resetPasswordTokenHash = domain.resetPasswordTokenHash;
+    orm.resetPasswordExpiresAt = domain.resetPasswordExpiresAt;
     return orm;
   }
 }

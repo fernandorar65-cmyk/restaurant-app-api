@@ -16,8 +16,8 @@ import { CUSTOMER_REPOSITORY } from '../../domain/repositories/customer.reposito
 import type { CustomerRepository } from '../../domain/repositories/customer.repository.js';
 import { REFRESH_TOKEN_REPOSITORY } from '../../domain/repositories/refresh-token.repository.js';
 import type { RefreshTokenRepository } from '../../domain/repositories/refresh-token.repository.js';
-import { PASSWORD_RESET_NOTIFIER } from '../ports/password-reset-notifier.port.js';
-import type { PasswordResetNotifier } from '../ports/password-reset-notifier.port.js';
+import { PASSWORD_RESET_NOTIFIER } from '../../../common/application/ports/password-reset-notifier.port.js';
+import type { PasswordResetNotifier } from '../../../common/application/ports/password-reset-notifier.port.js';
 
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days

@@ -17,6 +17,12 @@ export class UserOrmEntity extends BaseOrmEntity {
   @Column({ name: 'role_id' })
   roleId: string;
 
+  @Column({ name: 'reset_password_token_hash', type: 'varchar', nullable: true })
+  resetPasswordTokenHash: string | null;
+
+  @Column({ name: 'reset_password_expires_at', type: 'timestamp', nullable: true })
+  resetPasswordExpiresAt: Date | null;
+
   @ManyToOne('RoleOrmEntity', (role: RoleOrmEntity) => role.users, {
     eager: true,
   })

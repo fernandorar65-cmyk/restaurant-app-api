@@ -31,4 +31,11 @@ export class TypeOrmUserRepository
     const found = await this.repository.findOne({ where: { email } });
     return found ? this.toDomain(found) : null;
   }
+
+  async findByResetTokenHash(tokenHash: string): Promise<User | null> {
+    const found = await this.repository.findOne({
+      where: { resetPasswordTokenHash: tokenHash },
+    });
+    return found ? this.toDomain(found) : null;
+  }
 }

@@ -8,6 +8,8 @@ export interface UserProps {
   email: string;
   passwordHash: string;
   roleId: string;
+  resetPasswordTokenHash: string | null;
+  resetPasswordExpiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +33,8 @@ export class User {
       email: params.email.trim().toLowerCase(),
       passwordHash: params.passwordHash,
       roleId: params.roleId,
+      resetPasswordTokenHash: null,
+      resetPasswordExpiresAt: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -74,6 +78,26 @@ export class User {
     this.touch();
   }
 
+  setPasswordResetToken(tokenHash: string, expiresAt: Date): void {
+    this.props.resetPasswordTokenHash = tokenHash;
+    this.props.resetPasswordExpiresAt = expiresAt;
+    this.touch();
+  }
+
+  clearPasswordResetToken(): void {
+    this.props.resetPasswordTokenHash = null;
+    this.props.resetPasswordExpiresAt = null;
+    this.touch();
+  }
+
+  hasValidPasswordResetToken(tokenHash: string): boolean {
+    return (
+      this.props.resetPasswordTokenHash === tokenHash &&
+      this.props.resetPasswordExpiresAt !== null &&
+      this.props.resetPasswordExpiresAt.getTime() > Date.now()
+    );
+  }
+
   private touch(): void {
     this.props.updatedAt = new Date();
   }
@@ -96,6 +120,14 @@ export class User {
 
   get roleId(): string {
     return this.props.roleId;
+  }
+
+  get resetPasswordTokenHash(): string | null {
+    return this.props.resetPasswordTokenHash;
+  }
+
+  get resetPasswordExpiresAt(): Date | null {
+    return this.props.resetPasswordExpiresAt;
   }
 
   get createdAt(): Date {

@@ -1,29 +1,40 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TableQrCode } from '../../../../domain/entities/table-qr-code.entity.js';
 
 export class TableQrCodeResponseDto {
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
+  @ApiProperty()
   id: string;
-
-  @ApiProperty({ example: 'https://app.restaurant.com/t/424590bf' })
-  codeUrl: string;
 
   @ApiProperty()
   diningTableId: string;
 
-  @ApiProperty()
-  createdAt: Date;
+  @ApiProperty({ example: 2 })
+  version: number;
 
   @ApiProperty()
-  updatedAt: Date;
+  isActive: boolean;
 
-  static fromDomain(tableQrCode: TableQrCode): TableQrCodeResponseDto {
+  @ApiProperty()
+  generatedAt: Date;
+
+  @ApiPropertyOptional({ nullable: true })
+  revokedAt: Date | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Token a imprimir en el QR. Solo viene al generarlo; no se guarda en texto plano',
+  })
+  token?: string;
+
+  static fromDomain(qrCode: TableQrCode, token?: string): TableQrCodeResponseDto {
     const dto = new TableQrCodeResponseDto();
-    dto.id = tableQrCode.id;
-    dto.codeUrl = tableQrCode.codeUrl;
-    dto.diningTableId = tableQrCode.diningTableId;
-    dto.createdAt = tableQrCode.createdAt;
-    dto.updatedAt = tableQrCode.updatedAt;
+    dto.id = qrCode.id;
+    dto.diningTableId = qrCode.diningTableId;
+    dto.version = qrCode.version;
+    dto.isActive = qrCode.isActive;
+    dto.generatedAt = qrCode.generatedAt;
+    dto.revokedAt = qrCode.revokedAt;
+    dto.token = token;
     return dto;
   }
 }

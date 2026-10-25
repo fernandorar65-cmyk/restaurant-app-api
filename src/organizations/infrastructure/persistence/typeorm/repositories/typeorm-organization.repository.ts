@@ -30,8 +30,8 @@ export class TypeOrmOrganizationRepository
     return OrganizationMapper.toPersistence(domain, existing);
   }
 
-  async findByName(name: string): Promise<Organization | null> {
-    const found = await this.repository.findOne({ where: { name } });
+  async findByTaxIdentifier(taxIdentifier: string): Promise<Organization | null> {
+    const found = await this.repository.findOne({ where: { taxIdentifier } });
     return found ? this.toDomain(found) : null;
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Permission } from '../../../../domain/entities/permission.entity.js';
 import { PermissionRepository } from '../../../../domain/repositories/permission.repository.js';
@@ -30,8 +30,24 @@ export class TypeOrmPermissionRepository
     return PermissionMapper.toPersistence(domain, existing);
   }
 
-  async findByName(name: string): Promise<Permission | null> {
-    const found = await this.repository.findOne({ where: { name } });
+  override async findAll(): Promise<Permission[]> {
+    const rows = await this.repository.find({ order: { code: 'ASC' } });
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findByCode(code: string): Promise<Permission | null> {
+    const found = await this.repository.findOne({ where: { code } });
     return found ? this.toDomain(found) : null;
+  }
+
+  async findByIds(ids: string[]): Promise<Permission[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.repository.find({
+      where: { id: In(ids) },
+      order: { code: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
   }
 }

@@ -5,12 +5,14 @@ export class UserMapper {
   static toDomain(orm: UserOrmEntity): User {
     return User.fromPersistence({
       id: orm.id,
-      name: orm.name,
       email: orm.email,
       passwordHash: orm.passwordHash,
-      roleId: orm.roleId,
-      resetPasswordTokenHash: orm.resetPasswordTokenHash,
-      resetPasswordExpiresAt: orm.resetPasswordExpiresAt,
+      firstName: orm.firstName,
+      lastName: orm.lastName,
+      phone: orm.phone,
+      status: orm.status,
+      mustChangePassword: orm.mustChangePassword,
+      lastLoginAt: orm.lastLoginAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -19,12 +21,14 @@ export class UserMapper {
   static toPersistence(domain: User, existing?: UserOrmEntity): UserOrmEntity {
     const orm = existing ?? new UserOrmEntity();
     orm.id = domain.id;
-    orm.name = domain.name;
     orm.email = domain.email;
     orm.passwordHash = domain.passwordHash;
-    orm.roleId = domain.roleId;
-    orm.resetPasswordTokenHash = domain.resetPasswordTokenHash;
-    orm.resetPasswordExpiresAt = domain.resetPasswordExpiresAt;
+    orm.firstName = domain.firstName;
+    orm.lastName = domain.lastName;
+    orm.phone = domain.phone;
+    orm.status = domain.status;
+    orm.mustChangePassword = domain.mustChangePassword;
+    orm.lastLoginAt = domain.lastLoginAt;
     return orm;
   }
 }

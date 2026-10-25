@@ -7,7 +7,10 @@ import { buildTypeOrmOptions } from './common/persistence/database/typeorm.confi
 import { IamModule } from './iam/iam.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { AttentionModule } from './attention/attention.module.js';
-import { CustomersModule } from './customers/customers.module.js';
+import { CatalogModule } from './catalog/catalog.module.js';
+import { FinanceModule } from './finance/finance.module.js';
+import { InventoryModule } from './inventory/inventory.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
@@ -18,8 +21,11 @@ import { CustomersModule } from './customers/customers.module.js';
     }),
     IamModule,
     OrganizationsModule,
-    CustomersModule,
+    CatalogModule,
     AttentionModule,
+    PaymentsModule,
+    InventoryModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

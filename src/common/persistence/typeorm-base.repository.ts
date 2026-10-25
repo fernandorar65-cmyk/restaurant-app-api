@@ -1,4 +1,5 @@
-import type { FindOptionsWhere, Repository } from 'typeorm';
+import type { FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
+import { TypeOrmTransactionContext } from './typeorm-transaction-runner.js';
 
 /**
  * Factors out the find/save/delete boilerplate shared by every TypeORM
@@ -16,12 +17,11 @@ export abstract class TypeOrmBaseRepository<
   protected abstract toPersistence(domain: TDomain, existing?: TOrm): TOrm;
 
   /**
-   * Hook for repositories that participate in a shared transaction (see
-   * attention's TransactionContext). Defaults to the module-scoped
-   * repository; override to resolve a transaction-bound one instead.
+   * Resolves the repository bound to the given transaction, or the
+   * module-scoped one when the call is not part of a transaction.
    */
-  protected getRepository(_tx?: unknown): Repository<TOrm> {
-    return this.repository;
+  protected getRepository(tx?: unknown): Repository<TOrm> {
+    return transactionalRepository(this.repository, tx);
   }
 
   async findById(id: string, tx?: unknown): Promise<TDomain | null> {
@@ -50,4 +50,14 @@ export abstract class TypeOrmBaseRepository<
     const result = await this.getRepository(tx).delete(id);
     return (result.affected ?? 0) > 0;
   }
+}
+
+export function transactionalRepository<T extends ObjectLiteral>(
+  repository: Repository<T>,
+  tx?: unknown,
+): Repository<T> {
+  if (tx instanceof TypeOrmTransactionContext) {
+    return tx.manager.getRepository(repository.target);
+  }
+  return repository;
 }

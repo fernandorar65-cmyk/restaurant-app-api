@@ -13,7 +13,6 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { OrganizationsService } from '../../../application/organizations/organizations.service.js';
@@ -41,22 +40,24 @@ export class OrganizationsController {
   @ApiOkResponse({ type: [OrganizationResponseDto] })
   async findAll(): Promise<OrganizationResponseDto[]> {
     const organizations = await this.organizationsService.findAll();
-    return organizations.map(OrganizationResponseDto.fromDomain);
+    return organizations.map((organization) =>
+      OrganizationResponseDto.fromDomain(organization),
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una organización por id' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: OrganizationResponseDto })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrganizationResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<OrganizationResponseDto> {
     const organization = await this.organizationsService.findOne(id);
     return OrganizationResponseDto.fromDomain(organization);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una organización' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: OrganizationResponseDto })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
   async update(
@@ -69,7 +70,6 @@ export class OrganizationsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar una organización' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id de la organización eliminada' })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {

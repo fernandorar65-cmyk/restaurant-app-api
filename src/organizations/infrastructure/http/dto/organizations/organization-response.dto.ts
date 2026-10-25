@@ -1,18 +1,28 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Organization } from '../../../../domain/entities/organization.entity.js';
+import { OrganizationStatus } from '../../../../domain/enums/organization-status.enum.js';
 
 export class OrganizationResponseDto {
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
+  @ApiProperty()
   id: string;
 
-  @ApiProperty({ example: 'Grupo Sabores S.A.' })
+  @ApiProperty({ example: 'Grupo Sabores' })
   name: string;
 
-  @ApiPropertyOptional({ example: 'contacto@gruposabores.com' })
-  email: string | null;
+  @ApiPropertyOptional({ nullable: true })
+  legalName: string | null;
 
-  @ApiPropertyOptional({ example: '+52 55 1234 5678' })
-  phone: string | null;
+  @ApiPropertyOptional({ nullable: true })
+  taxIdentifier: string | null;
+
+  @ApiProperty({ example: 'PEN' })
+  currencyCode: string;
+
+  @ApiProperty({ example: 'America/Lima' })
+  timezone: string;
+
+  @ApiProperty({ enum: OrganizationStatus })
+  status: OrganizationStatus;
 
   @ApiProperty()
   createdAt: Date;
@@ -24,8 +34,11 @@ export class OrganizationResponseDto {
     const dto = new OrganizationResponseDto();
     dto.id = organization.id;
     dto.name = organization.name;
-    dto.email = organization.email;
-    dto.phone = organization.phone;
+    dto.legalName = organization.legalName;
+    dto.taxIdentifier = organization.taxIdentifier;
+    dto.currencyCode = organization.currencyCode;
+    dto.timezone = organization.timezone;
+    dto.status = organization.status;
     dto.createdAt = organization.createdAt;
     dto.updatedAt = organization.updatedAt;
     return dto;

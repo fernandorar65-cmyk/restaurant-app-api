@@ -4,8 +4,8 @@ import {
 } from '../../../common/domain/domain-error.js';
 
 export class RolePermissionNotFoundError extends NotFoundDomainError {
-  constructor(id: string) {
-    super(`Role-permission with id "${id}" not found`);
+  constructor() {
+    super('The role does not have that permission assigned');
   }
 }
 

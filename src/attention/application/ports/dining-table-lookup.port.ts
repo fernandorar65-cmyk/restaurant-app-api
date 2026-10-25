@@ -1,12 +1,15 @@
 export const DINING_TABLE_LOOKUP = Symbol('DINING_TABLE_LOOKUP');
 
+export interface DiningTableSnapshot {
+  id: string;
+  restaurantId: string;
+  isOperational: boolean;
+}
+
 /**
- * Attention's own view of "does this dining table exist". Backed today by
- * an in-process adapter that calls organizations' DiningTablesService
- * directly (see infrastructure/lookups). If attention ever moves to its
- * own service, only that adapter changes (e.g. to an HTTP client) — this
- * port, and everything that depends on it, stays the same.
+ * Attention's own view of a dining table (organizations context). If
+ * attention is ever split into its own service only the adapter changes.
  */
 export interface DiningTableLookupPort {
-  exists(diningTableId: string): Promise<boolean>;
+  findById(diningTableId: string): Promise<DiningTableSnapshot | null>;
 }

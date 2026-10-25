@@ -5,10 +5,15 @@ export class EmployeeMapper {
   static toDomain(orm: EmployeeOrmEntity): Employee {
     return Employee.fromPersistence({
       id: orm.id,
-      name: orm.name,
-      email: orm.email ?? null,
-      position: orm.position,
-      restaurantId: orm.restaurantId,
+      organizationId: orm.organizationId,
+      userId: orm.userId,
+      employeeCode: orm.employeeCode,
+      documentNumber: orm.documentNumber,
+      positionName: orm.positionName,
+      area: orm.area,
+      status: orm.status,
+      hiredAt: orm.hiredAt,
+      terminatedAt: orm.terminatedAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -20,10 +25,15 @@ export class EmployeeMapper {
   ): EmployeeOrmEntity {
     const orm = existing ?? new EmployeeOrmEntity();
     orm.id = domain.id;
-    orm.name = domain.name;
-    orm.email = domain.email ?? undefined;
-    orm.position = domain.position;
-    orm.restaurantId = domain.restaurantId;
+    orm.organizationId = domain.organizationId;
+    orm.userId = domain.userId;
+    orm.employeeCode = domain.employeeCode;
+    orm.documentNumber = domain.documentNumber;
+    orm.positionName = domain.positionName;
+    orm.area = domain.area;
+    orm.status = domain.status;
+    orm.hiredAt = domain.hiredAt;
+    orm.terminatedAt = domain.terminatedAt;
     return orm;
   }
 }

@@ -9,8 +9,8 @@ export class RoleNotFoundError extends NotFoundDomainError {
   }
 }
 
-export class DuplicateRoleNameError extends ConflictDomainError {
-  constructor(name: string) {
-    super(`Role "${name}" already exists`);
+export class DuplicateRoleCodeError extends ConflictDomainError {
+  constructor(code: string) {
+    super(`The organization already has a role with code "${code}"`);
   }
 }

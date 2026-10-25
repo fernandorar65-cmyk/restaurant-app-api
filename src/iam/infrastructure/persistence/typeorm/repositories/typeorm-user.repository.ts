@@ -28,13 +28,8 @@ export class TypeOrmUserRepository
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const found = await this.repository.findOne({ where: { email } });
-    return found ? this.toDomain(found) : null;
-  }
-
-  async findByResetTokenHash(tokenHash: string): Promise<User | null> {
     const found = await this.repository.findOne({
-      where: { resetPasswordTokenHash: tokenHash },
+      where: { email: email.trim().toLowerCase() },
     });
     return found ? this.toDomain(found) : null;
   }

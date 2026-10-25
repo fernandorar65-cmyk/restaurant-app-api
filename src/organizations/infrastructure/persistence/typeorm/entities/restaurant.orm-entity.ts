@@ -1,49 +1,89 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { DiningTableOrmEntity } from './dining-table.orm-entity.js';
-import { EmployeeOrmEntity } from './employee.orm-entity.js';
-import { KitchenSupplyOrmEntity } from './kitchen-supply.orm-entity.js';
-import { MenuOrmEntity } from './menu.orm-entity.js';
+import {
+  decimalTransformer,
+  inValues,
+} from '../../../../../common/persistence/column-options.js';
+import { RestaurantStatus } from '../../../../domain/enums/restaurant-status.enum.js';
 import type { OrganizationOrmEntity } from './organization.orm-entity.js';
 
 @Entity('restaurants')
-@Unique(['slug'])
+@Unique('uq_restaurants_organization_code', ['organizationId', 'code'])
+@Unique('uq_restaurants_slug', ['slug'])
+@Index('idx_restaurants_organization', ['organizationId'])
+@Check(
+  'chk_restaurants_status',
+  inValues('status', Object.values(RestaurantStatus)),
+)
+@Check(
+  'chk_restaurants_latitude',
+  'latitude IS NULL OR latitude BETWEEN -90 AND 90',
+)
+@Check(
+  'chk_restaurants_longitude',
+  'longitude IS NULL OR longitude BETWEEN -180 AND 180',
+)
 export class RestaurantOrmEntity extends BaseOrmEntity {
-  @Column()
-  name: string;
-
-  @Column()
-  slug: string;
-
-  @Column({ nullable: true })
-  address?: string;
-
-  @Column({ nullable: true })
-  phone?: string;
-
-  @Column({ name: 'organization_id' })
+  @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
 
-  @ManyToOne(
-    'OrganizationOrmEntity',
-    (organization: OrganizationOrmEntity) => organization.restaurants,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne('OrganizationOrmEntity', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'organization_id' })
   organization?: OrganizationOrmEntity;
 
-  @OneToMany(() => DiningTableOrmEntity, (diningTable) => diningTable.restaurant)
-  diningTables?: DiningTableOrmEntity[];
+  @Column({ type: 'varchar', length: 50 })
+  code: string;
 
-  @OneToMany(() => EmployeeOrmEntity, (employee) => employee.restaurant)
-  employees?: EmployeeOrmEntity[];
+  @Column({ type: 'varchar', length: 180 })
+  slug: string;
 
-  @OneToMany(() => MenuOrmEntity, (menu) => menu.restaurant)
-  menus?: MenuOrmEntity[];
+  @Column({ type: 'varchar', length: 150 })
+  name: string;
 
-  @OneToMany(
-    () => KitchenSupplyOrmEntity,
-    (kitchenSupply) => kitchenSupply.restaurant,
-  )
-  kitchenSupplies?: KitchenSupplyOrmEntity[];
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  description: string | null;
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  address: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  phone: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 9,
+    scale: 6,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  latitude: number | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 9,
+    scale: 6,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
+  longitude: number | null;
+
+  @Column({ name: 'currency_code', type: 'char', length: 3, default: 'PEN' })
+  currencyCode: string;
+
+  @Column({ type: 'varchar', length: 80, default: 'America/Lima' })
+  timezone: string;
+
+  @Column({ type: 'varchar', length: 20, default: RestaurantStatus.ACTIVE })
+  status: RestaurantStatus;
 }

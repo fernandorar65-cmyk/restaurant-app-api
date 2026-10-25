@@ -2,20 +2,22 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Permission } from '../../domain/entities/permission.entity.js';
 import {
-  DuplicatePermissionNameError,
+  DuplicatePermissionCodeError,
   PermissionNotFoundError,
 } from '../../domain/exceptions/permission.errors.js';
 import { PERMISSION_REPOSITORY } from '../../domain/repositories/permission.repository.js';
 import type { PermissionRepository } from '../../domain/repositories/permission.repository.js';
 
 export interface CreatePermissionInput {
+  code: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 export interface UpdatePermissionInput {
   name?: string;
-  description?: string;
+  description?: string | null;
+  isActive?: boolean;
 }
 
 @Injectable()
@@ -26,16 +28,20 @@ export class PermissionsService {
   ) {}
 
   async create(input: CreatePermissionInput): Promise<Permission> {
-    const existing = await this.permissionRepository.findByName(input.name);
-    if (existing) {
-      throw new DuplicatePermissionNameError(input.name);
-    }
     const permission = Permission.create({ id: randomUUID(), ...input });
+    const existing = await this.permissionRepository.findByCode(permission.code);
+    if (existing) {
+      throw new DuplicatePermissionCodeError(permission.code);
+    }
     return this.permissionRepository.save(permission);
   }
 
   findAll(): Promise<Permission[]> {
     return this.permissionRepository.findAll();
+  }
+
+  findByIds(ids: string[]): Promise<Permission[]> {
+    return this.permissionRepository.findByIds(ids);
   }
 
   async findOne(id: string): Promise<Permission> {
@@ -48,16 +54,7 @@ export class PermissionsService {
 
   async update(id: string, input: UpdatePermissionInput): Promise<Permission> {
     const permission = await this.findOne(id);
-    if (input.name) {
-      const existing = await this.permissionRepository.findByName(input.name);
-      if (existing && existing.id !== permission.id) {
-        throw new DuplicatePermissionNameError(input.name);
-      }
-      permission.rename(input.name);
-    }
-    if (input.description !== undefined) {
-      permission.changeDescription(input.description);
-    }
+    permission.update(input);
     return this.permissionRepository.save(permission);
   }
 

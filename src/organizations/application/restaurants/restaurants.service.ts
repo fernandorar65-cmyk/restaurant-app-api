@@ -1,24 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Restaurant } from '../../domain/entities/restaurant.entity.js';
-import { RestaurantNotFoundError } from '../../domain/exceptions/restaurant.errors.js';
+import type { RestaurantDetails } from '../../domain/entities/restaurant.entity.js';
+import { RestaurantStatus } from '../../domain/enums/restaurant-status.enum.js';
+import {
+  DuplicateRestaurantCodeError,
+  RestaurantNotFoundError,
+} from '../../domain/exceptions/restaurant.errors.js';
 import { RESTAURANT_REPOSITORY } from '../../domain/repositories/restaurant.repository.js';
 import type { RestaurantRepository } from '../../domain/repositories/restaurant.repository.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
 
-export interface CreateRestaurantInput {
-  name: string;
-  slug?: string;
-  address?: string;
-  phone?: string;
+export interface CreateRestaurantInput extends RestaurantDetails {
   organizationId: string;
+  name: string;
+  code?: string;
+  slug?: string;
 }
 
-export interface UpdateRestaurantInput {
-  name?: string;
-  address?: string;
-  phone?: string;
-  organizationId?: string;
+export interface UpdateRestaurantInput extends RestaurantDetails {
+  status?: RestaurantStatus;
 }
 
 @Injectable()
@@ -30,14 +31,32 @@ export class RestaurantsService {
   ) {}
 
   async create(input: CreateRestaurantInput): Promise<Restaurant> {
-    await this.organizationsService.findOne(input.organizationId);
+    const organization = await this.organizationsService.findOne(
+      input.organizationId,
+    );
     const slug = await this.uniqueSlug(input.slug ?? input.name);
-    const restaurant = Restaurant.create({ id: randomUUID(), ...input, slug });
+    const code = input.code ?? slug.toUpperCase().slice(0, 50);
+    const existing = await this.restaurantRepository.findByCode(
+      organization.id,
+      code,
+    );
+    if (existing) {
+      throw new DuplicateRestaurantCodeError(code);
+    }
+    const restaurant = Restaurant.create({
+      ...input,
+      id: randomUUID(),
+      code,
+      slug,
+      // A restaurant inherits its organization's settings unless overridden.
+      currencyCode: input.currencyCode ?? organization.currencyCode,
+      timezone: input.timezone ?? organization.timezone,
+    });
     return this.restaurantRepository.save(restaurant);
   }
 
-  findAll(): Promise<Restaurant[]> {
-    return this.restaurantRepository.findAll();
+  findAll(filter: { organizationId?: string } = {}): Promise<Restaurant[]> {
+    return this.restaurantRepository.findAll(filter);
   }
 
   async findOne(id: string): Promise<Restaurant> {
@@ -58,9 +77,6 @@ export class RestaurantsService {
 
   async update(id: string, input: UpdateRestaurantInput): Promise<Restaurant> {
     const restaurant = await this.findOne(id);
-    if (input.organizationId) {
-      await this.organizationsService.findOne(input.organizationId);
-    }
     restaurant.update(input);
     return this.restaurantRepository.save(restaurant);
   }

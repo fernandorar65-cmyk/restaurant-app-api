@@ -1,18 +1,31 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User } from '../../../../domain/entities/user.entity.js';
+import { UserStatus } from '../../../../domain/enums/user-status.enum.js';
 
 export class UserResponseDto {
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
+  @ApiProperty()
   id: string;
-
-  @ApiProperty({ example: 'Ana Pérez' })
-  name: string;
 
   @ApiProperty({ example: 'ana@restaurant.com' })
   email: string;
 
+  @ApiProperty({ example: 'Ana' })
+  firstName: string;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Pérez' })
+  lastName: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  phone: string | null;
+
+  @ApiProperty({ enum: UserStatus })
+  status: UserStatus;
+
   @ApiProperty()
-  roleId: string;
+  mustChangePassword: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  lastLoginAt: Date | null;
 
   @ApiProperty()
   createdAt: Date;
@@ -23,9 +36,13 @@ export class UserResponseDto {
   static fromDomain(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
-    dto.name = user.name;
     dto.email = user.email;
-    dto.roleId = user.roleId;
+    dto.firstName = user.firstName;
+    dto.lastName = user.lastName;
+    dto.phone = user.phone;
+    dto.status = user.status;
+    dto.mustChangePassword = user.mustChangePassword;
+    dto.lastLoginAt = user.lastLoginAt;
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;
     return dto;

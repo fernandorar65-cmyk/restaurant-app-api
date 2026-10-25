@@ -1,79 +1,100 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
+  ParseArrayPipe,
   ParseUUIDPipe,
   Patch,
-  Post,
+  Query,
 } from '@nestjs/common';
 import {
-  ApiCreatedResponse,
+  ApiConflictResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { OrderItemsService } from '../../../application/order-items/order-items.service.js';
-import { CreateOrderItemDto } from '../dto/order-items/create-order-item.dto.js';
-import { OrderItemResponseDto } from '../dto/order-items/order-item-response.dto.js';
-import { UpdateOrderItemDto } from '../dto/order-items/update-order-item.dto.js';
+import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
+import { ChangeOrderItemStatusDto } from '../dto/attention-requests.dto.js';
+import {
+  OrderItemHistoryResponseDto,
+  OrderItemResponseDto,
+} from '../dto/attention-responses.dto.js';
 
+/** Kitchen and floor: follow each dish through its states. */
 @ApiTags('attention/order-items')
 @Controller('order-items')
 export class OrderItemsController {
-  constructor(private readonly orderItemsService: OrderItemsService) {}
-
-  @Post()
-  @ApiOperation({ summary: 'Agregar un platillo a una orden' })
-  @ApiCreatedResponse({ type: OrderItemResponseDto })
-  async create(
-    @Body() dto: CreateOrderItemDto,
-  ): Promise<OrderItemResponseDto> {
-    const orderItem = await this.orderItemsService.create(dto);
-    return OrderItemResponseDto.fromDomain(orderItem);
-  }
+  constructor(private readonly itemsService: OrderItemsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar items de órdenes' })
+  @ApiOperation({ summary: 'Platos de un restaurante (tablero de cocina)' })
+  @ApiQuery({ name: 'restaurantId', required: true })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Uno o varios estados separados por coma, ej. SUBMITTED,PREPARING',
+  })
   @ApiOkResponse({ type: [OrderItemResponseDto] })
-  async findAll(): Promise<OrderItemResponseDto[]> {
-    const orderItems = await this.orderItemsService.findAll();
-    return orderItems.map(OrderItemResponseDto.fromDomain);
+  async findForRestaurant(
+    @Query('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Query(
+      'status',
+      new ParseArrayPipe({ items: String, separator: ',', optional: true }),
+    )
+    statuses?: string[],
+  ): Promise<OrderItemResponseDto[]> {
+    const items = await this.itemsService.findForRestaurant(
+      restaurantId,
+      statuses?.filter((status): status is OrderItemStatus =>
+        Object.values<string>(OrderItemStatus).includes(status),
+      ),
+    );
+    return items.map((item) => OrderItemResponseDto.fromDomain(item));
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un item de orden por id' })
-  @ApiParam({ name: 'id' })
+  @ApiOperation({ summary: 'Obtener un plato' })
   @ApiOkResponse({ type: OrderItemResponseDto })
-  @ApiNotFoundResponse({ description: 'Item no encontrado' })
+  @ApiNotFoundResponse({ description: 'Plato no encontrado' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrderItemResponseDto> {
-    const orderItem = await this.orderItemsService.findOne(id);
-    return OrderItemResponseDto.fromDomain(orderItem);
+    const item = await this.itemsService.findOne(id);
+    return OrderItemResponseDto.fromDomain(item);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un item de orden' })
-  @ApiParam({ name: 'id' })
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Cambiar el estado de un plato',
+    description:
+      'SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. Cada cambio queda en el historial',
+  })
   @ApiOkResponse({ type: OrderItemResponseDto })
-  @ApiNotFoundResponse({ description: 'Item no encontrado' })
-  async update(
+  @ApiConflictResponse({
+    description: 'Transición no permitida o el plato fue modificado por otro empleado',
+  })
+  async changeStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateOrderItemDto,
+    @Body() dto: ChangeOrderItemStatusDto,
   ): Promise<OrderItemResponseDto> {
-    const orderItem = await this.orderItemsService.update(id, dto);
-    return OrderItemResponseDto.fromDomain(orderItem);
+    const item = await this.itemsService.changeStatus(id, {
+      status: dto.status,
+      expectedVersion: dto.version,
+      reason: dto.reason,
+      changedByUserId: dto.changedByUserId,
+    });
+    return OrderItemResponseDto.fromDomain(item);
   }
 
-  @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un item de orden' })
-  @ApiParam({ name: 'id' })
-  @ApiOkResponse({ description: 'Id del item eliminado' })
-  @ApiNotFoundResponse({ description: 'Item no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.orderItemsService.remove(id);
-    return { id };
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Historial de estados del plato' })
+  @ApiOkResponse({ type: [OrderItemHistoryResponseDto] })
+  async history(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<OrderItemHistoryResponseDto[]> {
+    const entries = await this.itemsService.history(id);
+    return entries.map((entry) => OrderItemHistoryResponseDto.fromDomain(entry));
   }
 }

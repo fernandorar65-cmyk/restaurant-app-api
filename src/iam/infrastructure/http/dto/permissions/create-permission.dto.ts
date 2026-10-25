@@ -1,14 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreatePermissionDto {
-  @ApiProperty({ example: 'orders:create', minLength: 2 })
+  @ApiProperty({ example: 'orders.manage' })
   @IsString()
-  @MinLength(2)
+  @MinLength(1)
+  @MaxLength(100)
+  code: string;
+
+  @ApiProperty({ example: 'Gestionar pedidos' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Permite crear órdenes' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description?: string;
+  @MaxLength(500)
+  description?: string | null;
 }

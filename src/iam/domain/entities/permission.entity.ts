@@ -1,23 +1,32 @@
-import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+import { requireText } from '../../../common/domain/value-objects/required-text.js';
 
 export interface PermissionProps {
   id: string;
+  code: string;
   name: string;
   description: string | null;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/** Global capability, identified by a code such as "orders.manage". */
 export class Permission {
   private constructor(private props: PermissionProps) {}
 
-  static create(params: { id: string; name: string; description?: string }): Permission {
-    Permission.validateName(params.name);
+  static create(params: {
+    id: string;
+    code: string;
+    name: string;
+    description?: string | null;
+  }): Permission {
     const now = new Date();
     return new Permission({
       id: params.id,
-      name: params.name,
+      code: Permission.normalizeCode(params.code),
+      name: requireText(params.name, 'El nombre del permiso', { max: 120 }),
       description: params.description ?? null,
+      isActive: true,
       createdAt: now,
       updatedAt: now,
     });
@@ -27,43 +36,47 @@ export class Permission {
     return new Permission(props);
   }
 
-  private static validateName(name: string): void {
-    if (name.trim().length < 2) {
-      throw new ValidationDomainError('El nombre del permiso debe tener al menos 2 caracteres');
+  static normalizeCode(code: string): string {
+    return requireText(code, 'El código del permiso', { max: 100 }).toLowerCase();
+  }
+
+  update(params: {
+    name?: string;
+    description?: string | null;
+    isActive?: boolean;
+  }): void {
+    if (params.name !== undefined) {
+      this.props.name = requireText(params.name, 'El nombre del permiso', {
+        max: 120,
+      });
     }
-  }
-
-  rename(name: string): void {
-    Permission.validateName(name);
-    this.props.name = name;
-    this.touch();
-  }
-
-  changeDescription(description: string | undefined): void {
-    this.props.description = description ?? null;
-    this.touch();
-  }
-
-  private touch(): void {
+    if (params.description !== undefined) {
+      this.props.description = params.description;
+    }
+    if (params.isActive !== undefined) {
+      this.props.isActive = params.isActive;
+    }
     this.props.updatedAt = new Date();
   }
 
   get id(): string {
     return this.props.id;
   }
-
+  get code(): string {
+    return this.props.code;
+  }
   get name(): string {
     return this.props.name;
   }
-
   get description(): string | null {
     return this.props.description;
   }
-
+  get isActive(): boolean {
+    return this.props.isActive;
+  }
   get createdAt(): Date {
     return this.props.createdAt;
   }
-
   get updatedAt(): Date {
     return this.props.updatedAt;
   }

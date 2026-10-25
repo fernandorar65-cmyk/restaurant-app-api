@@ -1,4 +1,7 @@
-import { UnauthorizedDomainError } from '../../../common/domain/domain-error.js';
+import {
+  ForbiddenDomainError,
+  UnauthorizedDomainError,
+} from '../../../common/domain/domain-error.js';
 
 export class InvalidCredentialsError extends UnauthorizedDomainError {
   constructor() {
@@ -15,5 +18,11 @@ export class InvalidRefreshTokenError extends UnauthorizedDomainError {
 export class InvalidPasswordResetTokenError extends UnauthorizedDomainError {
   constructor() {
     super('Invalid or expired password reset token');
+  }
+}
+
+export class AccountDisabledError extends ForbiddenDomainError {
+  constructor() {
+    super('This account is inactive or blocked');
   }
 }

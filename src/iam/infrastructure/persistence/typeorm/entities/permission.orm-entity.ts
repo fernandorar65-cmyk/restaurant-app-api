@@ -1,19 +1,18 @@
-import { Column, Entity, OneToMany, Unique } from 'typeorm';
+import { Column, Entity, Unique } from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { RolePermissionOrmEntity } from './role-permission.orm-entity.js';
 
 @Entity('permissions')
-@Unique(['name'])
+@Unique('uq_permissions_code', ['code'])
 export class PermissionOrmEntity extends BaseOrmEntity {
-  @Column()
+  @Column({ type: 'varchar', length: 100 })
+  code: string;
+
+  @Column({ type: 'varchar', length: 120 })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string | null;
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  description: string | null;
 
-  @OneToMany(
-    () => RolePermissionOrmEntity,
-    (rolePermission) => rolePermission.permission,
-  )
-  rolePermissions?: RolePermissionOrmEntity[];
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 }

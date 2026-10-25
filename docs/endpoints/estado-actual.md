@@ -1,194 +1,137 @@
 # Endpoints · Estado actual
 
-Este documento refleja lo que **ya está implementado y corriendo** en el código, no el diseño objetivo. Para la API objetivo del comensal ver [comensales.md](comensales.md); para la del dueño/personal ver [restaurant.md](restaurant.md) — ambos son specs a futuro, bastante más grandes que lo que hay hoy.
+Este documento refleja lo que **ya está implementado y corriendo**, sobre el modelo de datos de Restaurant CMR (38 tablas). Para la API objetivo ver [comensales.md](comensales.md) y [restaurant.md](restaurant.md).
 
 Swagger interactivo en `/docs`.
 
-## Convenciones actuales
+## Convenciones
 
-- Sin prefijo global: el CRUD interno (IAM / organizations / attention) vive en la raíz (`/roles`, `/orders`, etc). Los endpoints de auth de personal viven en `/api/v1/owner`, y los de comensal en `/api/v1/customer` + rutas públicas (`/api/v1/orders`, `/api/v1/tables`, `/api/v1/restaurants/:slug/cart/validate`).
-- Respuesta estándar: `{ "success", "statusCode", "message", "data", "timestamp", "path" }` (interceptor global).
-- Errores: `{ "success": false, "statusCode", "message", "data": null, ... }` con `400` (datos inválidos / invariante de dominio), `401` (credenciales o token inválido), `403` (sin acceso al recurso), `404`, `409` (conflicto / duplicado), `422` (regla de negocio), `500`.
-- Todos los `:id` que son UUID usan `ParseUUIDPipe` (UUID inválido → 400, no 500).
-- **El CRUD interno de IAM/organizations/attention sigue sin autenticación** (acceso libre). Personal y comensal sí tienen JWT real, cada uno con secretos y tokens propios — un JWT de comensal no sirve en `/api/v1/owner/*` y viceversa.
-- No hay paginación (`?page=&limit=`) en ningún endpoint todavía, todos los `findAll` devuelven el listado completo.
-
----
-
-## Personal / staff — auth (`/api/v1/owner`)
-
-JWT propio del personal (access 15 min, refresh 30 días con rotación de un solo uso), separado del de comensal.
-
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/api/v1/owner/auth/login` | público | Login con email y contraseña (usuarios creados vía `POST /users`) |
-| POST | `/api/v1/owner/auth/refresh` | público | Rota el refresh token y emite un par nuevo |
-| POST | `/api/v1/owner/auth/logout` | personal | Invalida el refresh token enviado |
-| POST | `/api/v1/owner/auth/forgot-password` | público | Genera un token de reseteo (se loguea en consola; no hay envío de correo real) |
-| POST | `/api/v1/owner/auth/reset-password` | público | Cambia la contraseña con el token |
-| GET | `/api/v1/owner/me` | personal | Usuario autenticado |
-| PATCH | `/api/v1/owner/me` | personal | Edita el nombre (`phone`/`cargo` viven en `Employee`, sin vincular todavía a `User`) |
-| PATCH | `/api/v1/owner/me/password` | personal | Cambia la contraseña (pide la actual) |
-
-> No implementado todavía: `POST /auth/register` (alta de dueño con org+sede en un solo paso) y `POST /auth/first-password` (contraseña temporal forzada) — ver sección de pendientes.
+- Sin prefijo global: el CRUD interno vive en la raíz (`/restaurants`, `/attentions`, ...). La autenticación vive en `/api/v1/owner/auth` y `/api/v1/customer/auth`; las rutas públicas del comensal en `/api/v1/...`.
+- Respuesta estándar: `{ "success", "statusCode", "message", "data", "timestamp", "path" }`.
+- Errores: `400` (datos inválidos / invariante de dominio), `401`, `403` (sin acceso al recurso), `404`, `409` (duplicado, transición no permitida, conflicto de versión o de concurrencia), `422` (regla de negocio), `500`.
+- Las violaciones de restricciones de la base que se escapan de las validaciones se traducen: único → `409`, FK → `409`, CHECK → `400`.
+- Todos los `:id` son UUID (`ParseUUIDPipe`).
+- Estados y tipos en MAYÚSCULAS, igual que en la base (`OPEN`, `DINE_IN`, `PREPARING`, ...).
+- **El CRUD interno sigue sin autenticación ni permisos** (acceso libre). Las membresías y los permisos ya existen como datos, pero todavía no se aplican en los endpoints.
+- No hay paginación todavía.
 
 ---
 
-## Personal / staff — CRUD interno (sin prefijo, sin auth)
+## Identidad y acceso (IAM)
 
-### IAM
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/users` | Crea un usuario (`name`, `email`, `password`, `roleId`) |
-| GET | `/users` | Lista usuarios |
-| GET | `/users/:id` | Detalle |
-| PATCH | `/users/:id` | Edita nombre/email/password/rol |
-| DELETE | `/users/:id` | Elimina |
-| POST | `/roles` | Crea un rol (`name`, `description?`) |
-| GET | `/roles` | Lista roles |
-| GET | `/roles/:id` | Detalle |
-| PATCH | `/roles/:id` | Edita |
-| DELETE | `/roles/:id` | Elimina |
-| POST | `/permissions` | Crea un permiso (`name`, `description?`) |
-| GET | `/permissions` | Lista permisos |
-| GET | `/permissions/:id` | Detalle |
-| PATCH | `/permissions/:id` | Edita |
-| DELETE | `/permissions/:id` | Elimina |
-| POST | `/role-permissions` | Asigna un permiso a un rol (`roleId`, `permissionId`) |
-| GET | `/role-permissions` | Lista asignaciones |
-| GET | `/role-permissions/:id` | Detalle |
-| DELETE | `/role-permissions/:id` | Revoca |
-
-### Organizations
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/organizations` | Crea una organización (`name`, `email?`, `phone?`) |
-| GET | `/organizations` | Lista |
-| GET | `/organizations/:id` | Detalle |
-| PATCH | `/organizations/:id` | Edita |
-| DELETE | `/organizations/:id` | Elimina |
-| POST | `/restaurants` | Crea un restaurante (`name`, `slug?` autogenerado, `address?`, `phone?`, `organizationId`) |
-| GET | `/restaurants` | Lista |
-| GET | `/restaurants/:id` | Detalle |
-| PATCH | `/restaurants/:id` | Edita |
-| DELETE | `/restaurants/:id` | Elimina |
-| POST | `/dining-tables` | Crea una mesa (`tableNumber`, `capacity`, `restaurantId`) |
-| GET | `/dining-tables` | Lista |
-| GET | `/dining-tables/:id` | Detalle |
-| PATCH | `/dining-tables/:id` | Edita (incluye `status`) |
-| DELETE | `/dining-tables/:id` | Elimina |
-| POST | `/table-qr-codes` | Crea el QR de una mesa (`codeUrl`, `diningTableId`) — 1 QR por mesa |
-| GET | `/table-qr-codes` | Lista |
-| GET | `/table-qr-codes/:id` | Detalle |
-| PATCH | `/table-qr-codes/:id` | Edita |
-| DELETE | `/table-qr-codes/:id` | Elimina |
-| POST | `/menus` | Crea un menú (`name`, `description?`, `active?`, `restaurantId`) |
-| GET | `/menus` | Lista |
-| GET | `/menus/:id` | Detalle |
-| PATCH | `/menus/:id` | Edita |
-| DELETE | `/menus/:id` | Elimina |
-| POST | `/categories` | Crea una categoría (`name`, `description?`, `menuId`) |
-| GET | `/categories` | Lista |
-| GET | `/categories/:id` | Detalle |
-| PATCH | `/categories/:id` | Edita |
-| DELETE | `/categories/:id` | Elimina |
-| POST | `/products` | Crea un producto (`name`, `description?`, `price`, `available?`, `categoryId`) |
-| GET | `/products` | Lista |
-| GET | `/products/:id` | Detalle |
-| PATCH | `/products/:id` | Edita (incluye `available`) |
-| DELETE | `/products/:id` | Elimina |
-| POST | `/employees` | Crea un empleado |
-| GET | `/employees` | Lista |
-| GET | `/employees/:id` | Detalle |
-| PATCH | `/employees/:id` | Edita |
-| DELETE | `/employees/:id` | Elimina |
-| POST | `/kitchen-supplies` | Crea un insumo de cocina |
-| GET | `/kitchen-supplies` | Lista |
-| GET | `/kitchen-supplies/:id` | Detalle |
-| PATCH | `/kitchen-supplies/:id` | Edita |
-| DELETE | `/kitchen-supplies/:id` | Elimina |
-
-### Attention
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/orders` | Crea un pedido (`diningTableId`, `status?`) — asume dine-in |
-| GET | `/orders` | Lista |
-| GET | `/orders/:id` | Detalle |
-| PATCH | `/orders/:id` | Cambia mesa o estado (transiciones validadas: `open→in_progress/cancelled`, `in_progress→served/cancelled`, `served→paid/cancelled`) |
-| DELETE | `/orders/:id` | Elimina |
-| POST | `/order-items` | Agrega un ítem (`orderId`, `productId`, `quantity`, `userId?`, `notes?`) — recalcula el total del pedido |
-| GET | `/order-items` | Lista |
-| GET | `/order-items/:id` | Detalle |
-| PATCH | `/order-items/:id` | Edita cantidad/notas |
-| DELETE | `/order-items/:id` | Elimina — recalcula el total |
-| POST | `/order-status-history` | Registra un cambio de estado (`orderId`, `status`, `notes?`) — actualiza el pedido en la misma transacción |
-| GET | `/order-status-history` | Lista |
-| GET | `/order-status-history/:id` | Detalle |
-| DELETE | `/order-status-history/:id` | Elimina |
-
----
-
-## Comensal (`/api/v1`, público)
+Una sola identidad (`users`) para comensales y personal: el mismo usuario puede ser comensal, dueño de una organización y empleado en otra. Lo que puede hacer en cada organización lo define su **membresía** (rol + sedes). Los tokens de `/owner/auth` y `/customer/auth` son los mismos (access 15 min, refresh 30 días con rotación de un solo uso).
 
 ### Auth
 
-JWT propio del comensal (distinto al de personal, que todavía no existe). Access token 15 min, refresh token 30 días con rotación (uno de un solo uso).
-
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/v1/customer/auth/register` | público | Crea la cuenta (`name`, `email`, `password`, `marketingOptIn?`) y devuelve tokens |
-| POST | `/api/v1/customer/auth/login` | público | Login con email y contraseña |
-| POST | `/api/v1/customer/auth/refresh` | público | Rota el refresh token y emite un par nuevo |
-| POST | `/api/v1/customer/auth/logout` | comensal | Invalida el refresh token enviado |
-| POST | `/api/v1/customer/auth/forgot-password` | público | Genera un token de reseteo (se loguea en consola; no hay envío de correo real todavía) |
-| POST | `/api/v1/customer/auth/reset-password` | público | Cambia la contraseña con el token |
-| GET | `/api/v1/customer/me` | comensal | Perfil del comensal |
+| POST | `/api/v1/customer/auth/register` | público | Crea usuario + perfil de comensal (`email`, `password`, `firstName`, `lastName?`, `phone?`, `dietaryPreferences?`) y devuelve la sesión |
+| POST | `/api/v1/{owner\|customer}/auth/login` | público | Login con email y contraseña. Usuarios `INACTIVE`/`BLOCKED` reciben 403 |
+| POST | `/api/v1/{owner\|customer}/auth/refresh` | público | Rota el refresh token (el anterior deja de servir) |
+| POST | `/api/v1/{owner\|customer}/auth/logout` | bearer | Invalida el refresh token |
+| POST | `/api/v1/{owner\|customer}/auth/forgot-password` | público | Genera un token de un solo uso (30 min). Hoy se loguea en consola, no hay correo real |
+| POST | `/api/v1/{owner\|customer}/auth/reset-password` | público | Cambia la contraseña con el token |
+| GET / PATCH | `/api/v1/owner/me` | bearer | Usuario autenticado; edita `firstName`, `lastName`, `phone` |
+| PATCH | `/api/v1/owner/me/password` | bearer | Cambia la contraseña (pide la actual) |
+| GET / PATCH | `/api/v1/customer/me` | bearer | Usuario + preferencias alimentarias |
 
-### Mesas / QR
+### CRUD interno
 
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/api/v1/tables/qr/:token` | público | Resuelve el QR: restaurante, mesa y la cuenta abierta si existe (`404` si el token no existe) |
+| Recurso | Rutas | Notas |
+|---|---|---|
+| Usuarios | `POST/GET /users`, `GET/PATCH/DELETE /users/:id` | `mustChangePassword` para contraseñas temporales; `status` ACTIVE/INACTIVE/BLOCKED |
+| Roles | `POST/GET /roles?organizationId=`, `GET/PATCH/DELETE /roles/:id` | Pertenecen a una organización; `code` único por organización (se guarda en mayúsculas) |
+| Permisos de un rol | `GET/POST /roles/:id/permissions`, `DELETE /roles/:id/permissions/:permissionId` | Reemplaza al antiguo `/role-permissions` |
+| Permisos | `POST/GET /permissions`, `GET/PATCH/DELETE /permissions/:id` | `code` global, en minúsculas (`orders.manage`) |
+| Membresías | `POST/GET /memberships?organizationId=&userId=`, `GET/PATCH/DELETE /memberships/:id` | Usuario + organización + rol + alcance: `allRestaurants=true` o `restaurantIds`. Lista vacía = sin acceso a sedes. El rol y las sedes deben ser de la misma organización |
 
-### Carrito
+---
 
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/api/v1/restaurants/:slug/cart/validate` | público | Valida disponibilidad, pertenencia al restaurante y precio de cada ítem. Devuelve `{ valid, issues[], total }` |
+## Organizaciones y sedes
 
-### Pedidos
+| Recurso | Rutas | Notas |
+|---|---|---|
+| Organizaciones | `POST/GET /organizations`, `GET/PATCH/DELETE /organizations/:id` | `taxIdentifier` único; moneda y zona horaria por defecto `PEN` / `America/Lima` |
+| Restaurantes (sedes) | `POST/GET /restaurants?organizationId=`, `GET/PATCH/DELETE /restaurants/:id` | `slug` y `code` se generan si no se envían; heredan moneda y zona de la organización |
+| Pisos | `POST/GET /restaurant-floors?restaurantId=`, `GET/PATCH/DELETE /restaurant-floors/:id` | Nombre único por sede |
+| Mesas | `POST/GET /dining-tables?restaurantId=&floorId=`, `GET/PATCH/DELETE /dining-tables/:id` | Se crean en un piso (la sede sale del piso). `operationalStatus` ACTIVE/INACTIVE/MAINTENANCE, `serviceStatus` AVAILABLE/RESERVED/CLEANING. "Ocupada" no se guarda: es tener una atención activa |
+| QR de mesa | `POST /table-qr-codes` (`diningTableId`), `GET /table-qr-codes?diningTableId=`, `GET /table-qr-codes/:id`, `POST /table-qr-codes/:id/revoke` | Generar emite una nueva versión y revoca la anterior. **El `token` solo viene en la respuesta de generación**; en la base solo queda su hash |
+| Empleados | `POST/GET /employees?organizationId=`, `GET/PATCH/DELETE /employees/:id` | `userId` opcional (empleado sin acceso al sistema); `employeeCode` único por organización |
 
-Auth **opcional**: con `Authorization: Bearer <access token>` el pedido queda asociado al comensal; sin login, la respuesta de creación incluye un `guestToken` que debe reenviarse en el header `X-Guest-Token` para operar sobre ese pedido después. El acceso a un pedido se valida por coincidencia de `customerId` o de `guestToken` (si ninguno coincide: `403`).
+---
+
+## Catálogo
+
+| Recurso | Rutas | Notas |
+|---|---|---|
+| Categorías de productos | `POST/GET /product-categories?restaurantId=`, `GET/PATCH/DELETE /product-categories/:id` | Por sede, nombre único |
+| Productos | `POST/GET /products?restaurantId=&categoryId=`, `GET/PATCH/DELETE /products/:id` | La sede sale de la categoría. `status` ACTIVE/INACTIVE (catálogo) e `isAvailable` (agotado hoy). `isTakeawayAllowed` / `isDeliveryAllowed` por modalidad |
+| Menús | `POST/GET /menus?restaurantId=`, `GET/PATCH/DELETE /menus/:id` | `status` DRAFT/ACTIVE/INACTIVE, vigencia `validFrom`/`validUntil` |
+| Productos de un menú | `GET/POST /menus/:id/products`, `PATCH/DELETE /menus/:id/products/:productId` | El producto debe ser de la misma sede. `displayPrice` es solo de exhibición |
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/v1/orders` | Crea el pedido con su primera ronda. `dine_in` requiere `tableToken` (si la mesa ya tiene cuenta abierta, los ítems se agregan como nueva ronda en vez de crear un pedido nuevo). `delivery` requiere `deliveryAddress` (texto libre). `pickup` no requiere ninguno |
-| POST | `/api/v1/orders/:id/rounds` | Agrega otra ronda de ítems a una cuenta abierta |
-| DELETE | `/api/v1/orders/:id/items/:itemId` | Cancela un ítem propio (solo mientras el pedido sigue `open`) |
-| GET | `/api/v1/orders/:id` | Detalle con sus ítems (incluye `roundNumber` de cada uno) |
-| GET | `/api/v1/orders/:id/bill` | Resumen para pagar: ítems, subtotal, descuentos (siempre 0, no hay pagos), total, pagado (siempre 0), saldo |
-| POST | `/api/v1/orders/:id/request-bill` | Marca que se pidió la cuenta (`billRequestedAt`) |
+| POST | `/api/v1/restaurants/:slug/cart/validate` | `{ serviceType, items[{productId, quantity, unitPrice?}] }`. Devuelve `lines` con nombre y **precio del servidor**, `total` e `issues`: `PRODUCT_NOT_FOUND`, `PRODUCT_NOT_IN_RESTAURANT`, `PRODUCT_INACTIVE`, `PRODUCT_UNAVAILABLE`, `MODE_NOT_ALLOWED`, `PRICE_CHANGED` |
+
+---
+
+## Atención (visita, rondas y platos)
+
+Modelo: **atención** (la visita / cuenta) → **rondas** (cada envío del carrito o del mozo) → **ítems** (cada plato, con su estado e historial). Una mesa tiene como máximo una atención activa (`OPEN` o `BILL_REQUESTED`), garantizado también con envíos simultáneos.
+
+### Personal
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/attentions` | Abre una atención: `DINE_IN` con `diningTableId`, o `PICKUP`/`DELIVERY` con `restaurantId` + `fulfillment` (contacto y dirección). Mesa con atención activa → 409 |
+| GET | `/attentions?restaurantId=&status=` | Lista |
+| GET | `/attentions/:id` | Detalle: participantes, rondas con sus platos, datos de recojo/delivery |
+| POST | `/attentions/:id/rounds` | Ronda del mozo `{ requestId, items, submittedByUserId? }`. Idempotente por `requestId` |
+| POST | `/attentions/rounds/:batchId/confirm` | Confirma una ronda recibida |
+| GET | `/attentions/:id/bill` | Ítems cobrables (sin rechazados ni cancelados), total, pagado, saldo |
+| POST | `/attentions/:id/request-bill` | Marca la cuenta como pedida |
+| POST | `/attentions/:id/close` | Cierra; solo con saldo 0 (422 si no) |
+| POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos (primero reembolsar) |
+| GET | `/order-items?restaurantId=&status=SUBMITTED,PREPARING` | Tablero de cocina |
+| GET | `/order-items/:id` | Un plato |
+| PATCH | `/order-items/:id/status` | `{ status, version?, reason?, changedByUserId? }`. Transiciones: SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. `REJECTED` exige `reason`. Si `version` no coincide (otro empleado lo cambió) → 409 |
+| GET | `/order-items/:id/history` | Historial de estados |
+
+### Comensal (`/api/v1`, login opcional)
+
+Identidad: con `Authorization: Bearer` se identifica al usuario; sin login, con el header `X-Guest-Token` (UUID). Solo los participantes de la atención pueden verla o modificarla (403 si no).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/tables/qr/:token` | Resuelve el QR: sede, mesa y atención activa (si hay). QR revocado → 404 `QR_INVALID` |
+| POST | `/api/v1/orders` | Primera ronda: `{ serviceType, tableToken? (DINE_IN), restaurantId? + fulfillment? (PICKUP/DELIVERY), requestId, items, displayName? }`. En mesa se une a la atención activa o la abre. Un invitado nuevo recibe `guestToken` en la respuesta |
+| POST | `/api/v1/orders/:id/rounds` | Otra ronda `{ requestId, items }`. Si la cuenta estaba pedida, vuelve a `OPEN` |
+| DELETE | `/api/v1/orders/:id/items/:itemId` | Cancela un plato propio mientras siga `SUBMITTED` |
+| GET | `/api/v1/orders/:id` | Atención con rondas y estado de cada plato |
+| GET | `/api/v1/orders/:id/bill` | Cuenta |
+| POST | `/api/v1/orders/:id/request-bill` | Pide la cuenta |
+
+Nombre y precio de cada plato se toman del catálogo **en el servidor** al momento del pedido y quedan congelados en el ítem.
+
+---
+
+## Inventario
+
+| Recurso | Rutas | Notas |
+|---|---|---|
+| Categorías de inventario | `POST/GET /inventory-categories?organizationId=`, `GET/PATCH/DELETE /inventory-categories/:id` | Por organización |
+| Insumos | `POST/GET /supplies?restaurantId=&categoryId=`, `GET/PATCH/DELETE /supplies/:id` | Empiezan con stock 0; `PATCH` no toca el stock. `isBelowMinimum` en la respuesta |
+| Movimientos | `POST /supplies/:id/movements`, `GET /supplies/:id/movements` | Única forma de cambiar el stock. `PURCHASE` (suma, recalcula costo promedio con `unitCost`), `USAGE`/`WASTE` (restan; sin stock → 422), `COUNT` (`countedQuantity` fija el stock), `ADJUSTMENT` (`quantity` + `direction` INCREASE/DECREASE). Stock y movimiento se guardan en la misma transacción con bloqueo de fila |
 
 ---
 
 ## Deliberadamente no implementado todavía
 
-**Del lado comensal:**
-- Descubrimiento de restaurantes (`GET /restaurants` público con filtros, geolocalización, "abierto ahora"), carta pública con tags/alérgenos/imágenes, búsqueda de productos.
-- Perfil editable del comensal (`PATCH /customer/me`) y direcciones guardadas (`/customer/me/addresses`).
-- Historial de pedidos del comensal y reorder (`/customer/me/orders`).
-
-**Del lado personal (`restaurant.md`), más allá de login/me:**
-- `POST /auth/register` (alta de dueño con organización+sede en un solo paso) y `POST /auth/first-password` (contraseña temporal forzada).
-- El CRUD interno (`/users`, `/roles`, `/products`, etc.) sigue sin guard — cualquiera puede llamarlo hoy.
-- Todo lo de organización/sedes con scoping por sesión, sala/mesas con áreas y rotación de QR, carta con workflow de publicación, tablero de pedidos por sede, estado por ítem para cocina, cuentas/pagos, gastos, inventario con movimientos, métricas/cierre/finanzas — ver el detalle sección por sección en la comparación que hicimos contra `restaurant.md`.
-
-**Transversal:**
-- Eventos en tiempo real (SSE) y timeline de estados.
-- `Idempotency-Key` (se documenta en los specs pero no se procesa todavía).
-- Estado por ítem (pendiente/preparando/listo/servido) — solo existe el estado del pedido completo.
-- Pagos — explícitamente fuera de alcance hasta que se defina.
-- Envío real de correo para reset de contraseña (hoy es un adaptador placeholder que loguea el token, compartido entre personal y comensal).
+- **Autorización**: guard de permisos por endpoint y validación de organización/sede según la membresía del usuario.
+- **Registro transaccional del propietario** (usuario + organización + rol OWNER + membresía + primera sede) y seeds de permisos/roles base.
+- **Pagos** (`payments`, `payment_allocations`, `refunds`): las tablas existen; la cuenta ya lee lo pagado desde ellas, pero no hay endpoints para registrar pagos.
+- **Finanzas** (gastos y cierre diario): solo tablas.
+- **Catálogo**: alérgenos e ingredientes (solo tablas), carta pública y descubrimiento de restaurantes.
+- **Recetas** (`product_recipes`) y descuento automático de insumos.
+- **Modalidades por sede** (`restaurant_order_modes`) y flujo de estados de recojo/delivery (`fulfillments.status`).
+- Paginación, eventos en tiempo real, envío real de correos.

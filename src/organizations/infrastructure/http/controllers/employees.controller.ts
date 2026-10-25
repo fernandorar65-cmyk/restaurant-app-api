@@ -7,13 +7,14 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { EmployeesService } from '../../../application/employees/employees.service.js';
@@ -27,7 +28,7 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un empleado' })
+  @ApiOperation({ summary: 'Registrar un empleado (con o sin acceso al sistema)' })
   @ApiCreatedResponse({ type: EmployeeResponseDto })
   async create(@Body() dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
     const employee = await this.employeesService.create(dto);
@@ -36,25 +37,29 @@ export class EmployeesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar empleados' })
+  @ApiQuery({ name: 'organizationId', required: false })
   @ApiOkResponse({ type: [EmployeeResponseDto] })
-  async findAll(): Promise<EmployeeResponseDto[]> {
-    const employees = await this.employeesService.findAll();
-    return employees.map(EmployeeResponseDto.fromDomain);
+  async findAll(
+    @Query('organizationId', new ParseUUIDPipe({ optional: true }))
+    organizationId?: string,
+  ): Promise<EmployeeResponseDto[]> {
+    const employees = await this.employeesService.findAll({ organizationId });
+    return employees.map((employee) => EmployeeResponseDto.fromDomain(employee));
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un empleado por id' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: EmployeeResponseDto })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<EmployeeResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<EmployeeResponseDto> {
     const employee = await this.employeesService.findOne(id);
     return EmployeeResponseDto.fromDomain(employee);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un empleado' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: EmployeeResponseDto })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
   async update(
@@ -67,7 +72,6 @@ export class EmployeesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un empleado' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del empleado eliminado' })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {

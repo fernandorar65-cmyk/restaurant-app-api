@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
 import {
   BusinessRuleDomainError,
   ConflictDomainError,
@@ -23,6 +24,32 @@ const DOMAIN_ERROR_TYPES = [
   ForbiddenDomainError,
   BusinessRuleDomainError,
 ] as const;
+
+// Postgres error codes that are a client problem, not a server bug. They are
+// the last line of defense: services check what they can before writing, but
+// constraints still catch races (e.g. two concurrent inserts).
+const POSTGRES_ERRORS: Record<string, { status: number; message: string }> = {
+  '23505': {
+    status: HttpStatus.CONFLICT,
+    message: 'Ya existe un registro con esos datos',
+  },
+  '23503': {
+    status: HttpStatus.CONFLICT,
+    message: 'El registro referencia o es referenciado por datos que no lo permiten',
+  },
+  '23514': {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Los datos no cumplen las reglas del modelo',
+  },
+};
+
+function postgresError(exception: unknown) {
+  if (!(exception instanceof QueryFailedError)) {
+    return undefined;
+  }
+  const code = (exception.driverError as { code?: string } | undefined)?.code;
+  return code ? POSTGRES_ERRORS[code] : undefined;
+}
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -66,7 +93,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof BusinessRuleDomainError) {
       return HttpStatus.UNPROCESSABLE_ENTITY;
     }
-    return HttpStatus.INTERNAL_SERVER_ERROR;
+    return postgresError(exception)?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
   private extractMessage(exception: unknown): string | string[] {
@@ -81,6 +108,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (DOMAIN_ERROR_TYPES.some((type) => exception instanceof type)) {
       return (exception as Error).message;
     }
-    return 'Internal server error';
+    return postgresError(exception)?.message ?? 'Internal server error';
   }
 }

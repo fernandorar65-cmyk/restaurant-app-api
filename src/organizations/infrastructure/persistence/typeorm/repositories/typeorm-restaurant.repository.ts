@@ -30,8 +30,28 @@ export class TypeOrmRestaurantRepository
     return RestaurantMapper.toPersistence(domain, existing);
   }
 
+  override async findAll(
+    filter: { organizationId?: string } = {},
+  ): Promise<Restaurant[]> {
+    const rows = await this.repository.find({
+      where: { organizationId: filter.organizationId },
+      order: { name: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findBySlug(slug: string): Promise<Restaurant | null> {
     const found = await this.repository.findOne({ where: { slug } });
+    return found ? this.toDomain(found) : null;
+  }
+
+  async findByCode(
+    organizationId: string,
+    code: string,
+  ): Promise<Restaurant | null> {
+    const found = await this.repository.findOne({
+      where: { organizationId, code },
+    });
     return found ? this.toDomain(found) : null;
   }
 }

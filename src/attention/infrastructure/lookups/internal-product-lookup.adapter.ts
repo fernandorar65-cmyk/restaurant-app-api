@@ -1,30 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { ProductsService } from '../../../organizations/application/products/products.service.js';
-import { ProductNotFoundError } from '../../../organizations/domain/exceptions/product.errors.js';
+import { ProductsService } from '../../../catalog/application/products/products.service.js';
 import {
+  ProductForOrder,
   ProductLookupPort,
-  ProductSnapshot,
 } from '../../application/ports/product-lookup.port.js';
+import { ServiceType } from '../../domain/enums/service-type.enum.js';
 
+/** In-process adapter over catalog's ProductsService. */
 @Injectable()
 export class InternalProductLookupAdapter implements ProductLookupPort {
   constructor(private readonly productsService: ProductsService) {}
 
-  async findById(productId: string): Promise<ProductSnapshot | null> {
-    try {
-      const product = await this.productsService.findOne(productId);
-      return {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        available: product.available,
-        categoryId: product.categoryId,
-      };
-    } catch (error) {
-      if (error instanceof ProductNotFoundError) {
-        return null;
-      }
-      throw error;
-    }
+  async findForOrder(
+    productIds: string[],
+    serviceType: ServiceType,
+  ): Promise<ProductForOrder[]> {
+    const products = await this.productsService.findByIds(productIds);
+    return products.map((product) => ({
+      id: product.id,
+      restaurantId: product.restaurantId,
+      name: product.name,
+      price: product.price,
+      issue: product.orderIssue(serviceType),
+    }));
   }
 }

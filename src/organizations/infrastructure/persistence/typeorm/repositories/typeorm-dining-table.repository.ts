@@ -29,4 +29,24 @@ export class TypeOrmDiningTableRepository
   ): DiningTableOrmEntity {
     return DiningTableMapper.toPersistence(domain, existing);
   }
+
+  override async findAll(
+    filter: { restaurantId?: string; floorId?: string } = {},
+  ): Promise<DiningTable[]> {
+    const rows = await this.repository.find({
+      where: { restaurantId: filter.restaurantId, floorId: filter.floorId },
+      order: { code: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findByCode(
+    restaurantId: string,
+    code: string,
+  ): Promise<DiningTable | null> {
+    const found = await this.repository.findOne({
+      where: { restaurantId, code },
+    });
+    return found ? this.toDomain(found) : null;
+  }
 }

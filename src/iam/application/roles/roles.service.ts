@@ -1,37 +1,54 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Role } from '../../domain/entities/role.entity.js';
-import { DuplicateRoleNameError, RoleNotFoundError } from '../../domain/exceptions/role.errors.js';
+import { OrganizationReferenceNotFoundError } from '../../domain/exceptions/external-reference.errors.js';
+import {
+  DuplicateRoleCodeError,
+  RoleNotFoundError,
+} from '../../domain/exceptions/role.errors.js';
 import { ROLE_REPOSITORY } from '../../domain/repositories/role.repository.js';
 import type { RoleRepository } from '../../domain/repositories/role.repository.js';
+import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
+import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
 
 export interface CreateRoleInput {
+  organizationId: string;
+  code: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 export interface UpdateRoleInput {
   name?: string;
-  description?: string;
+  description?: string | null;
+  isActive?: boolean;
 }
 
 @Injectable()
 export class RolesService {
   constructor(
     @Inject(ROLE_REPOSITORY) private readonly roleRepository: RoleRepository,
+    @Inject(ORGANIZATION_LOOKUP)
+    private readonly organizationLookup: OrganizationLookupPort,
   ) {}
 
   async create(input: CreateRoleInput): Promise<Role> {
-    const existing = await this.roleRepository.findByName(input.name);
-    if (existing) {
-      throw new DuplicateRoleNameError(input.name);
+    if (!(await this.organizationLookup.organizationExists(input.organizationId))) {
+      throw new OrganizationReferenceNotFoundError(input.organizationId);
     }
     const role = Role.create({ id: randomUUID(), ...input });
+    const existing = await this.roleRepository.findByCode(
+      role.organizationId,
+      role.code,
+    );
+    if (existing) {
+      throw new DuplicateRoleCodeError(role.code);
+    }
     return this.roleRepository.save(role);
   }
 
-  findAll(): Promise<Role[]> {
-    return this.roleRepository.findAll();
+  findAll(filter: { organizationId?: string } = {}): Promise<Role[]> {
+    return this.roleRepository.findAll(filter);
   }
 
   async findOne(id: string): Promise<Role> {
@@ -44,16 +61,7 @@ export class RolesService {
 
   async update(id: string, input: UpdateRoleInput): Promise<Role> {
     const role = await this.findOne(id);
-    if (input.name) {
-      const existing = await this.roleRepository.findByName(input.name);
-      if (existing && existing.id !== role.id) {
-        throw new DuplicateRoleNameError(input.name);
-      }
-      role.rename(input.name);
-    }
-    if (input.description !== undefined) {
-      role.changeDescription(input.description);
-    }
+    role.update(input);
     return this.roleRepository.save(role);
   }
 

@@ -5,10 +5,15 @@ export class DiningTableMapper {
   static toDomain(orm: DiningTableOrmEntity): DiningTable {
     return DiningTable.fromPersistence({
       id: orm.id,
-      tableNumber: orm.tableNumber,
-      capacity: orm.capacity,
-      status: orm.status,
       restaurantId: orm.restaurantId,
+      floorId: orm.floorId,
+      code: orm.code,
+      name: orm.name,
+      capacity: orm.capacity,
+      operationalStatus: orm.operationalStatus,
+      serviceStatus: orm.serviceStatus,
+      positionX: orm.positionX,
+      positionY: orm.positionY,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -20,10 +25,15 @@ export class DiningTableMapper {
   ): DiningTableOrmEntity {
     const orm = existing ?? new DiningTableOrmEntity();
     orm.id = domain.id;
-    orm.tableNumber = domain.tableNumber;
-    orm.capacity = domain.capacity;
-    orm.status = domain.status;
     orm.restaurantId = domain.restaurantId;
+    orm.floorId = domain.floorId;
+    orm.code = domain.code;
+    orm.name = domain.name;
+    orm.capacity = domain.capacity;
+    orm.operationalStatus = domain.operationalStatus;
+    orm.serviceStatus = domain.serviceStatus;
+    orm.positionX = domain.positionX;
+    orm.positionY = domain.positionY;
     return orm;
   }
 }

@@ -1,0 +1,55 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { Product } from '../../../../domain/entities/product.entity.js';
+import { ProductRepository } from '../../../../domain/repositories/product.repository.js';
+import { ProductOrmEntity } from '../entities/product.orm-entity.js';
+import { ProductMapper } from '../mappers/product.mapper.js';
+
+@Injectable()
+export class TypeOrmProductRepository
+  extends TypeOrmBaseRepository<Product, ProductOrmEntity>
+  implements ProductRepository
+{
+  constructor(
+    @InjectRepository(ProductOrmEntity)
+    repository: Repository<ProductOrmEntity>,
+  ) {
+    super(repository);
+  }
+
+  protected toDomain(orm: ProductOrmEntity): Product {
+    return ProductMapper.toDomain(orm);
+  }
+
+  protected toPersistence(
+    domain: Product,
+    existing?: ProductOrmEntity,
+  ): ProductOrmEntity {
+    return ProductMapper.toPersistence(domain, existing);
+  }
+
+  override async findAll(
+    filter: { restaurantId?: string; categoryId?: string } = {},
+  ): Promise<Product[]> {
+    const rows = await this.repository.find({
+      where: { restaurantId: filter.restaurantId, categoryId: filter.categoryId },
+      order: { name: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.repository.find({ where: { id: In(ids) } });
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findByCode(restaurantId: string, code: string): Promise<Product | null> {
+    const found = await this.repository.findOne({ where: { restaurantId, code } });
+    return found ? this.toDomain(found) : null;
+  }
+}

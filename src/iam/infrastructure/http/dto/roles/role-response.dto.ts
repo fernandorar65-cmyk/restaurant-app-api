@@ -2,14 +2,26 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '../../../../domain/entities/role.entity.js';
 
 export class RoleResponseDto {
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
+  @ApiProperty()
   id: string;
 
-  @ApiProperty({ example: 'admin' })
+  @ApiProperty()
+  organizationId: string;
+
+  @ApiProperty({ example: 'WAITER' })
+  code: string;
+
+  @ApiProperty({ example: 'Mozo' })
   name: string;
 
-  @ApiPropertyOptional({ example: 'Acceso total al sistema' })
+  @ApiPropertyOptional({ nullable: true })
   description: string | null;
+
+  @ApiProperty()
+  isSystem: boolean;
+
+  @ApiProperty()
+  isActive: boolean;
 
   @ApiProperty()
   createdAt: Date;
@@ -20,8 +32,12 @@ export class RoleResponseDto {
   static fromDomain(role: Role): RoleResponseDto {
     const dto = new RoleResponseDto();
     dto.id = role.id;
+    dto.organizationId = role.organizationId;
+    dto.code = role.code;
     dto.name = role.name;
     dto.description = role.description;
+    dto.isSystem = role.isSystem;
+    dto.isActive = role.isActive;
     dto.createdAt = role.createdAt;
     dto.updatedAt = role.updatedAt;
     return dto;

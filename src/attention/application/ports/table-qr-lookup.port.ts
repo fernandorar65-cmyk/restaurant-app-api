@@ -5,14 +5,13 @@ export interface TableQrResolution {
   restaurantSlug: string;
   restaurantName: string;
   tableId: string;
-  tableNumber: string;
-  tableStatus: string;
+  tableCode: string;
+  tableName: string;
 }
 
 /**
- * Attention's own view of a QR code → table → restaurant chain, limited to
- * what it needs to resolve the "scan a QR" entry point. Backed today by an
- * in-process adapter that calls organizations' services directly.
+ * Attention's own view of the "scan a QR" chain (token -> table ->
+ * restaurant). Returns null for unknown or revoked tokens.
  */
 export interface TableQrLookupPort {
   resolveByToken(token: string): Promise<TableQrResolution | null>;

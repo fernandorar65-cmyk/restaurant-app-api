@@ -9,8 +9,8 @@ export class OrganizationNotFoundError extends NotFoundDomainError {
   }
 }
 
-export class DuplicateOrganizationNameError extends ConflictDomainError {
-  constructor(name: string) {
-    super(`Organization "${name}" already exists`);
+export class DuplicateTaxIdentifierError extends ConflictDomainError {
+  constructor(taxIdentifier: string) {
+    super(`An organization with tax identifier "${taxIdentifier}" already exists`);
   }
 }

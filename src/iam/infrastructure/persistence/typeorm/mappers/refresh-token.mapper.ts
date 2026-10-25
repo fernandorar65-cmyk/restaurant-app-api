@@ -8,7 +8,7 @@ export class RefreshTokenMapper {
       userId: orm.userId,
       tokenHash: orm.tokenHash,
       expiresAt: orm.expiresAt,
-      revokedAt: orm.revokedAt ?? null,
+      revokedAt: orm.revokedAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -23,7 +23,7 @@ export class RefreshTokenMapper {
     orm.userId = domain.userId;
     orm.tokenHash = domain.tokenHash;
     orm.expiresAt = domain.expiresAt;
-    orm.revokedAt = domain.revokedAt ?? undefined;
+    orm.revokedAt = domain.revokedAt;
     return orm;
   }
 }

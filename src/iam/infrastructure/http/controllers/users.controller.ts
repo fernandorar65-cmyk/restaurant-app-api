@@ -13,7 +13,6 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { UsersService } from '../../../application/users/users.service.js';
@@ -39,12 +38,11 @@ export class UsersController {
   @ApiOkResponse({ type: [UserResponseDto] })
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.usersService.findAll();
-    return users.map(UserResponseDto.fromDomain);
+    return users.map((user) => UserResponseDto.fromDomain(user));
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por id' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<UserResponseDto> {
@@ -53,8 +51,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un usuario' })
-  @ApiParam({ name: 'id' })
+  @ApiOperation({ summary: 'Actualizar un usuario (datos, email, contraseña, estado)' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   async update(
@@ -67,7 +64,6 @@ export class UsersController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un usuario' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del usuario eliminado' })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {

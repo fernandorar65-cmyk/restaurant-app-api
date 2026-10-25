@@ -1,30 +1,49 @@
-import { ValidationDomainError } from '../../../common/domain/domain-error.js';
+import {
+  CurrencyCode,
+  DEFAULT_CURRENCY_CODE,
+} from '../../../common/domain/value-objects/currency-code.js';
+import { requireText } from '../../../common/domain/value-objects/required-text.js';
+import {
+  DEFAULT_TIME_ZONE,
+  TimeZone,
+} from '../../../common/domain/value-objects/time-zone.js';
+import { OrganizationStatus } from '../enums/organization-status.enum.js';
 
 export interface OrganizationProps {
   id: string;
   name: string;
-  email: string | null;
-  phone: string | null;
+  legalName: string | null;
+  taxIdentifier: string | null;
+  currencyCode: string;
+  timezone: string;
+  status: OrganizationStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/** The company, chain or tenant that owns restaurants, staff and data. */
 export class Organization {
   private constructor(private props: OrganizationProps) {}
 
   static create(params: {
     id: string;
     name: string;
-    email?: string;
-    phone?: string;
+    legalName?: string | null;
+    taxIdentifier?: string | null;
+    currencyCode?: string;
+    timezone?: string;
   }): Organization {
-    Organization.validateName(params.name);
     const now = new Date();
     return new Organization({
       id: params.id,
-      name: params.name,
-      email: params.email ?? null,
-      phone: params.phone ?? null,
+      name: requireText(params.name, 'El nombre de la organización', { min: 2 }),
+      legalName: params.legalName ?? null,
+      taxIdentifier: params.taxIdentifier?.trim() || null,
+      currencyCode: CurrencyCode.create(
+        params.currencyCode ?? DEFAULT_CURRENCY_CODE,
+      ).value,
+      timezone: TimeZone.create(params.timezone ?? DEFAULT_TIME_ZONE).value,
+      status: OrganizationStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
     });
@@ -34,22 +53,33 @@ export class Organization {
     return new Organization(props);
   }
 
-  private static validateName(name: string): void {
-    if (name.trim().length < 2) {
-      throw new ValidationDomainError('El nombre de la organización debe tener al menos 2 caracteres');
+  update(params: {
+    name?: string;
+    legalName?: string | null;
+    taxIdentifier?: string | null;
+    currencyCode?: string;
+    timezone?: string;
+    status?: OrganizationStatus;
+  }): void {
+    if (params.name !== undefined) {
+      this.props.name = requireText(params.name, 'El nombre de la organización', {
+        min: 2,
+      });
     }
-  }
-
-  update(params: { name?: string; email?: string; phone?: string }): void {
-    if (params.name) {
-      Organization.validateName(params.name);
-      this.props.name = params.name;
+    if (params.legalName !== undefined) {
+      this.props.legalName = params.legalName;
     }
-    if (params.email !== undefined) {
-      this.props.email = params.email;
+    if (params.taxIdentifier !== undefined) {
+      this.props.taxIdentifier = params.taxIdentifier?.trim() || null;
     }
-    if (params.phone !== undefined) {
-      this.props.phone = params.phone;
+    if (params.currencyCode !== undefined) {
+      this.props.currencyCode = CurrencyCode.create(params.currencyCode).value;
+    }
+    if (params.timezone !== undefined) {
+      this.props.timezone = TimeZone.create(params.timezone).value;
+    }
+    if (params.status !== undefined) {
+      this.props.status = params.status;
     }
     this.props.updatedAt = new Date();
   }
@@ -60,11 +90,20 @@ export class Organization {
   get name(): string {
     return this.props.name;
   }
-  get email(): string | null {
-    return this.props.email;
+  get legalName(): string | null {
+    return this.props.legalName;
   }
-  get phone(): string | null {
-    return this.props.phone;
+  get taxIdentifier(): string | null {
+    return this.props.taxIdentifier;
+  }
+  get currencyCode(): string {
+    return this.props.currencyCode;
+  }
+  get timezone(): string {
+    return this.props.timezone;
+  }
+  get status(): OrganizationStatus {
+    return this.props.status;
   }
   get createdAt(): Date {
     return this.props.createdAt;

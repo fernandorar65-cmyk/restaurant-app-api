@@ -1,12 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, IsUUID, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'Ana Pérez', minLength: 2 })
-  @IsString()
-  @MinLength(2)
-  name: string;
-
   @ApiProperty({ example: 'ana@restaurant.com' })
   @IsEmail()
   email: string;
@@ -16,7 +18,29 @@ export class CreateUserDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
-  @IsUUID()
-  roleId: string;
+  @ApiProperty({ example: 'Ana' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  firstName: string;
+
+  @ApiPropertyOptional({ example: 'Pérez' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastName?: string | null;
+
+  @ApiPropertyOptional({ example: '+51 999 999 999' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string | null;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Obliga a cambiar la contraseña en el primer ingreso',
+  })
+  @IsOptional()
+  @IsBoolean()
+  mustChangePassword?: boolean;
 }

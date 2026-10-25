@@ -6,8 +6,11 @@ export class OrganizationMapper {
     return Organization.fromPersistence({
       id: orm.id,
       name: orm.name,
-      email: orm.email ?? null,
-      phone: orm.phone ?? null,
+      legalName: orm.legalName,
+      taxIdentifier: orm.taxIdentifier,
+      currencyCode: orm.currencyCode,
+      timezone: orm.timezone,
+      status: orm.status,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -20,8 +23,11 @@ export class OrganizationMapper {
     const orm = existing ?? new OrganizationOrmEntity();
     orm.id = domain.id;
     orm.name = domain.name;
-    orm.email = domain.email ?? undefined;
-    orm.phone = domain.phone ?? undefined;
+    orm.legalName = domain.legalName;
+    orm.taxIdentifier = domain.taxIdentifier;
+    orm.currencyCode = domain.currencyCode;
+    orm.timezone = domain.timezone;
+    orm.status = domain.status;
     return orm;
   }
 }

@@ -1,15 +1,26 @@
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { OrderItem } from '../entities/order-item.entity.js';
-import type { TransactionContext } from '../transaction-context.js';
+import { OrderItemStatus } from '../enums/order-item-status.enum.js';
 
 export const ORDER_ITEM_REPOSITORY = Symbol('ORDER_ITEM_REPOSITORY');
 
 export interface OrderItemRepository {
-  findById(id: string): Promise<OrderItem | null>;
-  findAll(): Promise<OrderItem[]>;
-  findByOrderId(
-    orderId: string,
-    tx?: TransactionContext,
+  findById(id: string, tx?: TransactionContext): Promise<OrderItem | null>;
+  findByBatch(batchId: string): Promise<OrderItem[]>;
+  findByAttention(attentionId: string): Promise<OrderItem[]>;
+  /** Kitchen / floor board: items of a restaurant, optionally by status. */
+  findByRestaurant(
+    restaurantId: string,
+    statuses?: OrderItemStatus[],
   ): Promise<OrderItem[]>;
-  save(orderItem: OrderItem, tx?: TransactionContext): Promise<OrderItem>;
-  delete(id: string, tx?: TransactionContext): Promise<boolean>;
+  insert(item: OrderItem, tx?: TransactionContext): Promise<OrderItem>;
+  /**
+   * Persists a status change only if the stored version still equals
+   * expectedVersion (optimistic lock). Returns false when it doesn't.
+   */
+  updateStatus(
+    item: OrderItem,
+    expectedVersion: number,
+    tx?: TransactionContext,
+  ): Promise<boolean>;
 }

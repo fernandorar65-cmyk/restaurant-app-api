@@ -13,7 +13,6 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { PermissionsService } from '../../../application/permissions/permissions.service.js';
@@ -39,22 +38,24 @@ export class PermissionsController {
   @ApiOkResponse({ type: [PermissionResponseDto] })
   async findAll(): Promise<PermissionResponseDto[]> {
     const permissions = await this.permissionsService.findAll();
-    return permissions.map(PermissionResponseDto.fromDomain);
+    return permissions.map((permission) =>
+      PermissionResponseDto.fromDomain(permission),
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un permiso por id' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: PermissionResponseDto })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<PermissionResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PermissionResponseDto> {
     const permission = await this.permissionsService.findOne(id);
     return PermissionResponseDto.fromDomain(permission);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un permiso' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: PermissionResponseDto })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
   async update(
@@ -67,7 +68,6 @@ export class PermissionsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un permiso' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del permiso eliminado' })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {

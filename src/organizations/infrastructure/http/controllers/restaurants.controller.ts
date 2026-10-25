@@ -7,13 +7,14 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { RestaurantsService } from '../../../application/restaurants/restaurants.service.js';
@@ -27,7 +28,7 @@ export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un restaurante' })
+  @ApiOperation({ summary: 'Crear un restaurante (sede)' })
   @ApiCreatedResponse({ type: RestaurantResponseDto })
   async create(
     @Body() dto: CreateRestaurantDto,
@@ -38,25 +39,31 @@ export class RestaurantsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar restaurantes' })
+  @ApiQuery({ name: 'organizationId', required: false })
   @ApiOkResponse({ type: [RestaurantResponseDto] })
-  async findAll(): Promise<RestaurantResponseDto[]> {
-    const restaurants = await this.restaurantsService.findAll();
-    return restaurants.map(RestaurantResponseDto.fromDomain);
+  async findAll(
+    @Query('organizationId', new ParseUUIDPipe({ optional: true }))
+    organizationId?: string,
+  ): Promise<RestaurantResponseDto[]> {
+    const restaurants = await this.restaurantsService.findAll({ organizationId });
+    return restaurants.map((restaurant) =>
+      RestaurantResponseDto.fromDomain(restaurant),
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un restaurante por id' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: RestaurantResponseDto })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RestaurantResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<RestaurantResponseDto> {
     const restaurant = await this.restaurantsService.findOne(id);
     return RestaurantResponseDto.fromDomain(restaurant);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un restaurante' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ type: RestaurantResponseDto })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
   async update(
@@ -69,7 +76,6 @@ export class RestaurantsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un restaurante' })
-  @ApiParam({ name: 'id' })
   @ApiOkResponse({ description: 'Id del restaurante eliminado' })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {

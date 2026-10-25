@@ -1,101 +1,112 @@
-import { ValidationDomainError } from '../../../common/domain/domain-error.js';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { Email } from '../../../common/domain/value-objects/email.js';
+import { requireText } from '../../../common/domain/value-objects/required-text.js';
+import { UserStatus } from '../enums/user-status.enum.js';
 
 export interface UserProps {
   id: string;
-  name: string;
   email: string;
   passwordHash: string;
-  roleId: string;
-  resetPasswordTokenHash: string | null;
-  resetPasswordExpiresAt: Date | null;
+  firstName: string;
+  lastName: string | null;
+  phone: string | null;
+  status: UserStatus;
+  mustChangePassword: boolean;
+  lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
+export interface UserProfileDetails {
+  firstName?: string;
+  lastName?: string | null;
+  phone?: string | null;
+}
+
+/**
+ * The single global identity. The same user can be a diner, an owner of one
+ * organization and staff in another: those are roles (memberships) and
+ * profiles, never different kinds of users.
+ */
 export class User {
   private constructor(private props: UserProps) {}
 
-  static create(params: {
-    id: string;
-    name: string;
-    email: string;
-    passwordHash: string;
-    roleId: string;
-  }): User {
-    User.validateName(params.name);
-    User.validateEmail(params.email);
+  static create(
+    params: UserProfileDetails & {
+      id: string;
+      email: string;
+      passwordHash: string;
+      firstName: string;
+      mustChangePassword?: boolean;
+    },
+  ): User {
     const now = new Date();
-    return new User({
+    const user = new User({
       id: params.id,
-      name: params.name,
-      email: params.email.trim().toLowerCase(),
+      email: Email.create(params.email).value,
       passwordHash: params.passwordHash,
-      roleId: params.roleId,
-      resetPasswordTokenHash: null,
-      resetPasswordExpiresAt: null,
+      firstName: '',
+      lastName: null,
+      phone: null,
+      status: UserStatus.ACTIVE,
+      mustChangePassword: params.mustChangePassword ?? false,
+      lastLoginAt: null,
       createdAt: now,
       updatedAt: now,
     });
+    user.applyProfile(params);
+    return user;
   }
 
   static fromPersistence(props: UserProps): User {
     return new User(props);
   }
 
-  private static validateName(name: string): void {
-    if (name.trim().length < 2) {
-      throw new ValidationDomainError('El nombre del usuario debe tener al menos 2 caracteres');
-    }
-  }
-
-  private static validateEmail(email: string): void {
-    if (!EMAIL_REGEX.test(email)) {
-      throw new ValidationDomainError(`"${email}" no es un correo válido`);
-    }
-  }
-
-  rename(name: string): void {
-    User.validateName(name);
-    this.props.name = name;
+  updateProfile(params: UserProfileDetails): void {
+    this.applyProfile(params);
     this.touch();
   }
 
   changeEmail(email: string): void {
-    User.validateEmail(email);
-    this.props.email = email.trim().toLowerCase();
+    this.props.email = Email.create(email).value;
     this.touch();
   }
 
   changePasswordHash(passwordHash: string): void {
     this.props.passwordHash = passwordHash;
+    this.props.mustChangePassword = false;
     this.touch();
   }
 
-  changeRole(roleId: string): void {
-    this.props.roleId = roleId;
+  changeStatus(status: UserStatus): void {
+    this.props.status = status;
     this.touch();
   }
 
-  setPasswordResetToken(tokenHash: string, expiresAt: Date): void {
-    this.props.resetPasswordTokenHash = tokenHash;
-    this.props.resetPasswordExpiresAt = expiresAt;
+  recordLogin(): void {
+    this.props.lastLoginAt = new Date();
     this.touch();
   }
 
-  clearPasswordResetToken(): void {
-    this.props.resetPasswordTokenHash = null;
-    this.props.resetPasswordExpiresAt = null;
-    this.touch();
+  get canLogIn(): boolean {
+    return this.props.status === UserStatus.ACTIVE;
   }
 
-  hasValidPasswordResetToken(tokenHash: string): boolean {
-    return (
-      this.props.resetPasswordTokenHash === tokenHash &&
-      this.props.resetPasswordExpiresAt !== null &&
-      this.props.resetPasswordExpiresAt.getTime() > Date.now()
-    );
+  get fullName(): string {
+    return [this.props.firstName, this.props.lastName].filter(Boolean).join(' ');
+  }
+
+  private applyProfile(params: UserProfileDetails): void {
+    if (params.firstName !== undefined) {
+      this.props.firstName = requireText(params.firstName, 'El nombre', {
+        max: 100,
+      });
+    }
+    if (params.lastName !== undefined) {
+      this.props.lastName = params.lastName?.trim() || null;
+    }
+    if (params.phone !== undefined) {
+      this.props.phone = params.phone?.trim() || null;
+    }
   }
 
   private touch(): void {
@@ -105,35 +116,33 @@ export class User {
   get id(): string {
     return this.props.id;
   }
-
-  get name(): string {
-    return this.props.name;
-  }
-
   get email(): string {
     return this.props.email;
   }
-
   get passwordHash(): string {
     return this.props.passwordHash;
   }
-
-  get roleId(): string {
-    return this.props.roleId;
+  get firstName(): string {
+    return this.props.firstName;
   }
-
-  get resetPasswordTokenHash(): string | null {
-    return this.props.resetPasswordTokenHash;
+  get lastName(): string | null {
+    return this.props.lastName;
   }
-
-  get resetPasswordExpiresAt(): Date | null {
-    return this.props.resetPasswordExpiresAt;
+  get phone(): string | null {
+    return this.props.phone;
   }
-
+  get status(): UserStatus {
+    return this.props.status;
+  }
+  get mustChangePassword(): boolean {
+    return this.props.mustChangePassword;
+  }
+  get lastLoginAt(): Date | null {
+    return this.props.lastLoginAt;
+  }
   get createdAt(): Date {
     return this.props.createdAt;
   }
-
   get updatedAt(): Date {
     return this.props.updatedAt;
   }

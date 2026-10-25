@@ -1,23 +1,48 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
-import { DiningTableStatus } from '../../../../domain/entities/dining-table.entity.js';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateDiningTableDto {
-  @ApiProperty({ example: 'A1' })
-  @IsString()
-  tableNumber: string;
+  @ApiProperty({
+    example: '424590bf-8d98-41c3-8ab9-e50440292401',
+    description: 'Piso de la mesa; el restaurante se toma del piso',
+  })
+  @IsUUID()
+  floorId: string;
 
-  @ApiProperty({ example: 4 })
+  @ApiProperty({ example: 'M01', description: 'Único dentro del restaurante' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  code: string;
+
+  @ApiProperty({ example: 'Mesa 1' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  name: string;
+
+  @ApiPropertyOptional({ example: 4 })
+  @IsOptional()
   @IsInt()
   @Min(1)
-  capacity: number;
+  capacity?: number | null;
 
-  @ApiPropertyOptional({ enum: DiningTableStatus })
+  @ApiPropertyOptional({ example: 120.5, description: 'Posición en el plano del piso' })
   @IsOptional()
-  @IsEnum(DiningTableStatus)
-  status?: DiningTableStatus;
+  @IsNumber()
+  positionX?: number | null;
 
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
-  @IsUUID()
-  restaurantId: string;
+  @ApiPropertyOptional({ example: 80 })
+  @IsOptional()
+  @IsNumber()
+  positionY?: number | null;
 }

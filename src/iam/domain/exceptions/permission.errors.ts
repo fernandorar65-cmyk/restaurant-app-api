@@ -9,8 +9,8 @@ export class PermissionNotFoundError extends NotFoundDomainError {
   }
 }
 
-export class DuplicatePermissionNameError extends ConflictDomainError {
-  constructor(name: string) {
-    super(`Permission "${name}" already exists`);
+export class DuplicatePermissionCodeError extends ConflictDomainError {
+  constructor(code: string) {
+    super(`Permission "${code}" already exists`);
   }
 }

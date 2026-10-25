@@ -1,36 +1,33 @@
 import { Controller, Get, Inject, Param } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { OrdersService } from '../../../application/orders/orders.service.js';
+import { AttentionsService } from '../../../application/attentions/attentions.service.js';
 import { TABLE_QR_LOOKUP } from '../../../application/ports/table-qr-lookup.port.js';
 import type { TableQrLookupPort } from '../../../application/ports/table-qr-lookup.port.js';
-import { InvalidTableQrTokenError } from '../../../domain/exceptions/order.errors.js';
-import { TableQrResolveResponseDto } from '../dto/customer-orders/table-qr-resolve-response.dto.js';
+import { InvalidTableQrTokenError } from '../../../domain/exceptions/attention.errors.js';
+import {
+  AttentionResponseDto,
+  TableQrResolveResponseDto,
+} from '../dto/attention-responses.dto.js';
 
 @ApiTags('customer/tables')
 @Controller('api/v1/tables')
 export class TableQrController {
   constructor(
     @Inject(TABLE_QR_LOOKUP) private readonly tableQrLookup: TableQrLookupPort,
-    private readonly ordersService: OrdersService,
+    private readonly attentionsService: AttentionsService,
   ) {}
 
   @Get('qr/:token')
   @ApiOperation({
-    summary: 'Resuelve el QR: devuelve el local, la mesa y la cuenta abierta',
+    summary: 'Resuelve el QR: local, mesa y atención activa (si hay)',
   })
   @ApiOkResponse({ type: TableQrResolveResponseDto })
-  async resolve(
-    @Param('token') token: string,
-  ): Promise<TableQrResolveResponseDto> {
+  async resolve(@Param('token') token: string): Promise<TableQrResolveResponseDto> {
     const resolved = await this.tableQrLookup.resolveByToken(token);
     if (!resolved) {
       throw new InvalidTableQrTokenError();
     }
-
-    const openOrder = await this.ordersService.findOpenByDiningTable(
-      resolved.tableId,
-    );
-
+    const active = await this.attentionsService.findActiveByTable(resolved.tableId);
     return {
       restaurant: {
         id: resolved.restaurantId,
@@ -39,12 +36,10 @@ export class TableQrController {
       },
       table: {
         id: resolved.tableId,
-        number: resolved.tableNumber,
-        status: resolved.tableStatus,
+        code: resolved.tableCode,
+        name: resolved.tableName,
       },
-      openOrder: openOrder
-        ? { id: openOrder.id, code: openOrder.code, status: openOrder.status }
-        : null,
+      activeAttention: active ? AttentionResponseDto.fromDomain(active) : null,
     };
   }
 }

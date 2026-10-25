@@ -1,24 +1,49 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Restaurant } from '../../../../domain/entities/restaurant.entity.js';
+import { RestaurantStatus } from '../../../../domain/enums/restaurant-status.enum.js';
 
 export class RestaurantResponseDto {
-  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
+  @ApiProperty()
   id: string;
-
-  @ApiProperty({ example: 'Restaurante Centro' })
-  name: string;
-
-  @ApiProperty({ example: 'restaurante-centro' })
-  slug: string;
-
-  @ApiPropertyOptional({ example: 'Av. Reforma 123, CDMX' })
-  address: string | null;
-
-  @ApiPropertyOptional({ example: '+52 55 8765 4321' })
-  phone: string | null;
 
   @ApiProperty()
   organizationId: string;
+
+  @ApiProperty({ example: 'MIRAFLORES' })
+  code: string;
+
+  @ApiProperty({ example: 'sabores-miraflores' })
+  slug: string;
+
+  @ApiProperty({ example: 'Sabores Miraflores' })
+  name: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  description: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  address: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  phone: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  email: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  latitude: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  longitude: number | null;
+
+  @ApiProperty({ example: 'PEN' })
+  currencyCode: string;
+
+  @ApiProperty({ example: 'America/Lima' })
+  timezone: string;
+
+  @ApiProperty({ enum: RestaurantStatus })
+  status: RestaurantStatus;
 
   @ApiProperty()
   createdAt: Date;
@@ -29,11 +54,19 @@ export class RestaurantResponseDto {
   static fromDomain(restaurant: Restaurant): RestaurantResponseDto {
     const dto = new RestaurantResponseDto();
     dto.id = restaurant.id;
-    dto.name = restaurant.name;
+    dto.organizationId = restaurant.organizationId;
+    dto.code = restaurant.code;
     dto.slug = restaurant.slug;
+    dto.name = restaurant.name;
+    dto.description = restaurant.description;
     dto.address = restaurant.address;
     dto.phone = restaurant.phone;
-    dto.organizationId = restaurant.organizationId;
+    dto.email = restaurant.email;
+    dto.latitude = restaurant.latitude;
+    dto.longitude = restaurant.longitude;
+    dto.currencyCode = restaurant.currencyCode;
+    dto.timezone = restaurant.timezone;
+    dto.status = restaurant.status;
     dto.createdAt = restaurant.createdAt;
     dto.updatedAt = restaurant.updatedAt;
     return dto;

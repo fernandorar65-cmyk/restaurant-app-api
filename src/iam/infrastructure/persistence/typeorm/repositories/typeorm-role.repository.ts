@@ -27,8 +27,20 @@ export class TypeOrmRoleRepository
     return RoleMapper.toPersistence(domain, existing);
   }
 
-  async findByName(name: string): Promise<Role | null> {
-    const found = await this.repository.findOne({ where: { name } });
+  override async findAll(
+    filter: { organizationId?: string } = {},
+  ): Promise<Role[]> {
+    const rows = await this.repository.find({
+      where: { organizationId: filter.organizationId },
+      order: { code: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  async findByCode(organizationId: string, code: string): Promise<Role | null> {
+    const found = await this.repository.findOne({
+      where: { organizationId, code },
+    });
     return found ? this.toDomain(found) : null;
   }
 }

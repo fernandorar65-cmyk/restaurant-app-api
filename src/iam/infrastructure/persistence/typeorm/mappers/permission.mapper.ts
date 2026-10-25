@@ -5,8 +5,10 @@ export class PermissionMapper {
   static toDomain(orm: PermissionOrmEntity): Permission {
     return Permission.fromPersistence({
       id: orm.id,
+      code: orm.code,
       name: orm.name,
-      description: orm.description ?? null,
+      description: orm.description,
+      isActive: orm.isActive,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -18,8 +20,10 @@ export class PermissionMapper {
   ): PermissionOrmEntity {
     const orm = existing ?? new PermissionOrmEntity();
     orm.id = domain.id;
+    orm.code = domain.code;
     orm.name = domain.name;
     orm.description = domain.description;
+    orm.isActive = domain.isActive;
     return orm;
   }
 }

@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Organization } from '../../domain/entities/organization.entity.js';
+import { OrganizationStatus } from '../../domain/enums/organization-status.enum.js';
 import {
-  DuplicateOrganizationNameError,
+  DuplicateTaxIdentifierError,
   OrganizationNotFoundError,
 } from '../../domain/exceptions/organization.errors.js';
 import { ORGANIZATION_REPOSITORY } from '../../domain/repositories/organization.repository.js';
@@ -10,14 +11,14 @@ import type { OrganizationRepository } from '../../domain/repositories/organizat
 
 export interface CreateOrganizationInput {
   name: string;
-  email?: string;
-  phone?: string;
+  legalName?: string | null;
+  taxIdentifier?: string | null;
+  currencyCode?: string;
+  timezone?: string;
 }
 
-export interface UpdateOrganizationInput {
-  name?: string;
-  email?: string;
-  phone?: string;
+export interface UpdateOrganizationInput extends Partial<CreateOrganizationInput> {
+  status?: OrganizationStatus;
 }
 
 @Injectable()
@@ -28,11 +29,8 @@ export class OrganizationsService {
   ) {}
 
   async create(input: CreateOrganizationInput): Promise<Organization> {
-    const existing = await this.organizationRepository.findByName(input.name);
-    if (existing) {
-      throw new DuplicateOrganizationNameError(input.name);
-    }
     const organization = Organization.create({ id: randomUUID(), ...input });
+    await this.assertTaxIdentifierIsFree(organization);
     return this.organizationRepository.save(organization);
   }
 
@@ -53,15 +51,8 @@ export class OrganizationsService {
     input: UpdateOrganizationInput,
   ): Promise<Organization> {
     const organization = await this.findOne(id);
-    if (input.name) {
-      const existing = await this.organizationRepository.findByName(
-        input.name,
-      );
-      if (existing && existing.id !== organization.id) {
-        throw new DuplicateOrganizationNameError(input.name);
-      }
-    }
     organization.update(input);
+    await this.assertTaxIdentifierIsFree(organization);
     return this.organizationRepository.save(organization);
   }
 
@@ -69,6 +60,20 @@ export class OrganizationsService {
     const deleted = await this.organizationRepository.delete(id);
     if (!deleted) {
       throw new OrganizationNotFoundError(id);
+    }
+  }
+
+  private async assertTaxIdentifierIsFree(
+    organization: Organization,
+  ): Promise<void> {
+    if (!organization.taxIdentifier) {
+      return;
+    }
+    const existing = await this.organizationRepository.findByTaxIdentifier(
+      organization.taxIdentifier,
+    );
+    if (existing && existing.id !== organization.id) {
+      throw new DuplicateTaxIdentifierError(organization.taxIdentifier);
     }
   }
 }

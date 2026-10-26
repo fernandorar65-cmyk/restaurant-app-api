@@ -1,4 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import { OrderItemStatusHistory } from '../../domain/entities/order-item-status-history.entity.js';
@@ -12,6 +14,8 @@ import { ORDER_ITEM_STATUS_HISTORY_REPOSITORY } from '../../domain/repositories/
 import type { OrderItemStatusHistoryRepository } from '../../domain/repositories/order-item-status-history.repository.js';
 import { ORDER_ITEM_REPOSITORY } from '../../domain/repositories/order-item.repository.js';
 import type { OrderItemRepository } from '../../domain/repositories/order-item.repository.js';
+import { STOCK_CONSUMPTION } from '../ports/stock-consumption.port.js';
+import type { StockConsumptionPort } from '../ports/stock-consumption.port.js';
 
 export interface ChangeOrderItemStatusInput {
   status: OrderItemStatus;
@@ -26,6 +30,8 @@ export interface ChangeOrderItemStatusInput {
 
 @Injectable()
 export class OrderItemsService {
+  private readonly logger = new Logger(OrderItemsService.name);
+
   constructor(
     @Inject(ORDER_ITEM_REPOSITORY)
     private readonly itemRepository: OrderItemRepository,
@@ -33,6 +39,8 @@ export class OrderItemsService {
     private readonly historyRepository: OrderItemStatusHistoryRepository,
     @Inject(TRANSACTION_RUNNER)
     private readonly transactionRunner: TransactionRunner,
+    @Inject(STOCK_CONSUMPTION)
+    private readonly stockConsumption: StockConsumptionPort,
   ) {}
 
   async findOne(id: string): Promise<OrderItem> {
@@ -47,11 +55,15 @@ export class OrderItemsService {
     return this.itemRepository.findByAttention(attentionId);
   }
 
-  findForRestaurant(
-    restaurantId: string,
-    statuses?: OrderItemStatus[],
-  ): Promise<OrderItem[]> {
-    return this.itemRepository.findByRestaurant(restaurantId, statuses);
+  findForBoard(
+    filter: {
+      restaurantId: string;
+      statuses?: OrderItemStatus[];
+      includeClosedAttentions?: boolean;
+    },
+    page: PageRequest,
+  ): Promise<Page<OrderItem>> {
+    return this.itemRepository.findForBoard(filter, page);
   }
 
   async history(id: string): Promise<OrderItemStatusHistory[]> {
@@ -74,6 +86,7 @@ export class OrderItemsService {
         throw new StaleOrderItemVersionError(id);
       }
       const entry = item.changeStatus(input.status, {
+        historyId: randomUUID(),
         reason: input.reason,
         changedByUserId: input.changedByUserId,
       });
@@ -87,6 +100,33 @@ export class OrderItemsService {
       }
       await this.historyRepository.save(entry, tx);
     });
-    return this.findOne(id);
+    const item = await this.findOne(id);
+    if (item.currentStatus === OrderItemStatus.PREPARING) {
+      await this.consumeStock(item, input.changedByUserId);
+    }
+    return item;
+  }
+
+  /**
+   * Runs after the status change is committed: a stock problem must never
+   * undo or block the kitchen flow, so failures are logged, not thrown.
+   */
+  private async consumeStock(
+    item: OrderItem,
+    changedByUserId?: string | null,
+  ): Promise<void> {
+    try {
+      await this.stockConsumption.consumeForOrderItem({
+        orderItemId: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        changedByUserId,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Could not discount stock for order item ${item.id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 }

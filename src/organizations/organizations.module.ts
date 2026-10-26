@@ -6,6 +6,7 @@ import { DiningTablesService } from './application/dining-tables/dining-tables.s
 import { EmployeesService } from './application/employees/employees.service.js';
 import { OrganizationsService } from './application/organizations/organizations.service.js';
 import { USER_LOOKUP } from './application/ports/user-lookup.port.js';
+import { RestaurantOrderModesService } from './application/restaurant-order-modes/restaurant-order-modes.service.js';
 import { RestaurantFloorsService } from './application/restaurant-floors/restaurant-floors.service.js';
 import { RestaurantsService } from './application/restaurants/restaurants.service.js';
 import { TableQrCodesService } from './application/table-qr-codes/table-qr-codes.service.js';
@@ -13,6 +14,7 @@ import { DINING_TABLE_REPOSITORY } from './domain/repositories/dining-table.repo
 import { EMPLOYEE_REPOSITORY } from './domain/repositories/employee.repository.js';
 import { ORGANIZATION_REPOSITORY } from './domain/repositories/organization.repository.js';
 import { RESTAURANT_FLOOR_REPOSITORY } from './domain/repositories/restaurant-floor.repository.js';
+import { RESTAURANT_ORDER_MODE_REPOSITORY } from './domain/repositories/restaurant-order-mode.repository.js';
 import { RESTAURANT_REPOSITORY } from './domain/repositories/restaurant.repository.js';
 import { TABLE_QR_CODE_REPOSITORY } from './domain/repositories/table-qr-code.repository.js';
 import { DiningTablesController } from './infrastructure/http/controllers/dining-tables.controller.js';
@@ -33,6 +35,7 @@ import { TypeOrmDiningTableRepository } from './infrastructure/persistence/typeo
 import { TypeOrmEmployeeRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-employee.repository.js';
 import { TypeOrmOrganizationRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-organization.repository.js';
 import { TypeOrmRestaurantFloorRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-restaurant-floor.repository.js';
+import { TypeOrmRestaurantOrderModeRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-restaurant-order-mode.repository.js';
 import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-restaurant.repository.js';
 import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-table-qr-code.repository.js';
 
@@ -60,11 +63,16 @@ import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeo
     OrganizationsService,
     RestaurantsService,
     RestaurantFloorsService,
+    RestaurantOrderModesService,
     DiningTablesService,
     TableQrCodesService,
     EmployeesService,
     { provide: ORGANIZATION_REPOSITORY, useClass: TypeOrmOrganizationRepository },
     { provide: RESTAURANT_REPOSITORY, useClass: TypeOrmRestaurantRepository },
+    {
+      provide: RESTAURANT_ORDER_MODE_REPOSITORY,
+      useClass: TypeOrmRestaurantOrderModeRepository,
+    },
     {
       provide: RESTAURANT_FLOOR_REPOSITORY,
       useClass: TypeOrmRestaurantFloorRepository,
@@ -78,6 +86,7 @@ import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeo
   exports: [
     OrganizationsService,
     RestaurantsService,
+    RestaurantOrderModesService,
     DiningTablesService,
     TableQrCodesService,
   ],

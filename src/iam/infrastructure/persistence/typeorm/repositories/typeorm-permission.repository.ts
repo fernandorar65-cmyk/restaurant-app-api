@@ -6,6 +6,7 @@ import { Permission } from '../../../../domain/entities/permission.entity.js';
 import { PermissionRepository } from '../../../../domain/repositories/permission.repository.js';
 import { PermissionOrmEntity } from '../entities/permission.orm-entity.js';
 import { PermissionMapper } from '../mappers/permission.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmPermissionRepository
@@ -30,9 +31,8 @@ export class TypeOrmPermissionRepository
     return PermissionMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(): Promise<Permission[]> {
-    const rows = await this.repository.find({ order: { code: 'ASC' } });
-    return rows.map((row) => this.toDomain(row));
+  async findPage(page: PageRequest): Promise<Page<Permission>> {
+    return this.findPageBy({ order: { code: 'ASC' } }, page);
   }
 
   async findByCode(code: string): Promise<Permission | null> {

@@ -11,6 +11,7 @@ import {
 import { PRODUCT_REPOSITORY } from '../../domain/repositories/product.repository.js';
 import type { ProductRepository } from '../../domain/repositories/product.repository.js';
 import { ProductCategoriesService } from '../product-categories/product-categories.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateProductInput extends ProductDetails {
   categoryId: string;
@@ -44,10 +45,11 @@ export class ProductsService {
     return this.productRepository.save(product);
   }
 
-  findAll(
-    filter: { restaurantId?: string; categoryId?: string } = {},
-  ): Promise<Product[]> {
-    return this.productRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string; categoryId?: string },
+    page: PageRequest,
+  ): Promise<Page<Product>> {
+    return this.productRepository.findPage(filter, page);
   }
 
   findByIds(ids: string[]): Promise<Product[]> {
@@ -67,7 +69,7 @@ export class ProductsService {
     if (input.categoryId) {
       const category = await this.categoriesService.findOne(input.categoryId);
       if (category.restaurantId !== product.restaurantId) {
-        throw new CrossRestaurantReferenceError('The category');
+        throw new CrossRestaurantReferenceError('La categoría');
       }
     }
     product.update(input);

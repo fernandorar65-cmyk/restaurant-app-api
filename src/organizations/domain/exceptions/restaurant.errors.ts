@@ -5,18 +5,18 @@ import {
 
 export class RestaurantNotFoundError extends NotFoundDomainError {
   constructor(idOrSlug: string) {
-    super(`Restaurant "${idOrSlug}" not found`);
+    super(`No existe el restaurante "${idOrSlug}"`);
   }
 }
 
 export class DuplicateRestaurantCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`The organization already has a restaurant with code "${code}"`);
+    super(`La organización ya tiene un restaurante con el código "${code}"`);
   }
 }
 
 export class DuplicateRestaurantSlugError extends ConflictDomainError {
   constructor(slug: string) {
-    super(`A restaurant with slug "${slug}" already exists`);
+    super(`Ya existe un restaurante con el slug "${slug}"`);
   }
 }

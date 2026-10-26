@@ -19,6 +19,7 @@ import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
 import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
 import { ProductsService } from '../products/products.service.js';
 import { requireRestaurant } from '../restaurant-guard.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateMenuInput extends MenuDetails {
   restaurantId: string;
@@ -53,8 +54,11 @@ export class MenusService {
     return this.menuRepository.save(menu);
   }
 
-  findAll(filter: { restaurantId?: string } = {}): Promise<Menu[]> {
-    return this.menuRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string },
+    page: PageRequest,
+  ): Promise<Page<Menu>> {
+    return this.menuRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<Menu> {
@@ -93,7 +97,7 @@ export class MenusService {
     const menu = await this.findOne(menuId);
     const product = await this.productsService.findOne(productId);
     if (product.restaurantId !== menu.restaurantId) {
-      throw new CrossRestaurantReferenceError('The product');
+      throw new CrossRestaurantReferenceError('El producto');
     }
     if (await this.menuProductRepository.find(menuId, productId)) {
       throw new DuplicateMenuProductError();

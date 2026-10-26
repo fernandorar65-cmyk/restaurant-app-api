@@ -40,23 +40,31 @@ export interface CartValidationLine {
   subtotal: number;
 }
 
+/** Problems with the order as a whole, not with a specific product. */
+export type CartServiceIssue = 'MODE_DISABLED' | 'BELOW_MINIMUM';
+
 export interface CartValidationResult {
   valid: boolean;
   issues: CartValidationIssue[];
+  serviceIssues: CartServiceIssue[];
   lines: CartValidationLine[];
+  subtotal: number;
+  minimumAmount: number | null;
+  deliveryFee: number;
   total: number;
 }
 
 export class RestaurantNotAcceptingOrdersError extends BusinessRuleDomainError {
   constructor(slug: string) {
-    super(`Restaurant "${slug}" is not accepting orders`);
+    super(`El restaurante "${slug}" no está recibiendo pedidos`);
   }
 }
 
 /**
  * Re-checks the cart against the current catalog. Names and prices always
  * come from the server; a price sent by the browser only produces a
- * PRICE_CHANGED warning, it never replaces the real one.
+ * PRICE_CHANGED warning, it never replaces the real one. The restaurant's
+ * settings for the service mode (enabled, minimum, delivery fee) also apply.
  */
 @Injectable()
 export class CartValidationService {
@@ -115,8 +123,30 @@ export class CartValidationService {
       });
     }
 
-    const total = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
-    return { valid: issues.length === 0, issues, lines, total };
+    const subtotal = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
+    const orderMode = await this.restaurantLookup.findOrderMode(
+      restaurant.id,
+      input.serviceType,
+    );
+    const serviceIssues: CartServiceIssue[] = [];
+    if (!orderMode.isEnabled) {
+      serviceIssues.push('MODE_DISABLED');
+    }
+    if (orderMode.minimumAmount !== null && subtotal < orderMode.minimumAmount) {
+      serviceIssues.push('BELOW_MINIMUM');
+    }
+    const deliveryFee =
+      input.serviceType === 'DELIVERY' ? (orderMode.deliveryFee ?? 0) : 0;
+    return {
+      valid: issues.length === 0 && serviceIssues.length === 0,
+      issues,
+      serviceIssues,
+      lines,
+      subtotal,
+      minimumAmount: orderMode.minimumAmount,
+      deliveryFee,
+      total: roundMoney(subtotal + deliveryFee),
+    };
   }
 }
 

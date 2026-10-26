@@ -7,6 +7,7 @@ import {
 } from '../../domain/exceptions/permission.errors.js';
 import { PERMISSION_REPOSITORY } from '../../domain/repositories/permission.repository.js';
 import type { PermissionRepository } from '../../domain/repositories/permission.repository.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreatePermissionInput {
   code: string;
@@ -36,8 +37,8 @@ export class PermissionsService {
     return this.permissionRepository.save(permission);
   }
 
-  findAll(): Promise<Permission[]> {
-    return this.permissionRepository.findAll();
+  findPage(page: PageRequest): Promise<Page<Permission>> {
+    return this.permissionRepository.findPage(page);
   }
 
   findByIds(ids: string[]): Promise<Permission[]> {

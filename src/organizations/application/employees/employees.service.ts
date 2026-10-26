@@ -14,6 +14,7 @@ import type { EmployeeRepository } from '../../domain/repositories/employee.repo
 import { OrganizationsService } from '../organizations/organizations.service.js';
 import { USER_LOOKUP } from '../ports/user-lookup.port.js';
 import type { UserLookupPort } from '../ports/user-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateEmployeeInput extends EmployeeDetails {
   organizationId: string;
@@ -42,8 +43,11 @@ export class EmployeesService {
     return this.employeeRepository.save(employee);
   }
 
-  findAll(filter: { organizationId?: string } = {}): Promise<Employee[]> {
-    return this.employeeRepository.findAll(filter);
+  findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Employee>> {
+    return this.employeeRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<Employee> {

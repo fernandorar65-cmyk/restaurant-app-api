@@ -5,12 +5,12 @@ import {
 
 export class OrganizationNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Organization with id "${id}" not found`);
+    super(`No existe la organización con id "${id}"`);
   }
 }
 
 export class DuplicateTaxIdentifierError extends ConflictDomainError {
   constructor(taxIdentifier: string) {
-    super(`An organization with tax identifier "${taxIdentifier}" already exists`);
+    super(`Ya existe una organización con el identificador fiscal "${taxIdentifier}"`);
   }
 }

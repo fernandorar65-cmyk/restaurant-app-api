@@ -7,6 +7,7 @@ import { Supply } from '../../../../domain/entities/supply.entity.js';
 import { SupplyRepository } from '../../../../domain/repositories/supply.repository.js';
 import { SupplyOrmEntity } from '../entities/supply.orm-entity.js';
 import { SupplyMapper } from '../mappers/inventory.mappers.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmSupplyRepository
@@ -28,14 +29,14 @@ export class TypeOrmSupplyRepository
     return SupplyMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { restaurantId?: string; categoryId?: string } = {},
-  ): Promise<Supply[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { restaurantId?: string; categoryId?: string },
+    page: PageRequest,
+  ): Promise<Page<Supply>> {
+    return this.findPageBy({
       where: { restaurantId: filter.restaurantId, categoryId: filter.categoryId },
       order: { name: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByIdForUpdate(

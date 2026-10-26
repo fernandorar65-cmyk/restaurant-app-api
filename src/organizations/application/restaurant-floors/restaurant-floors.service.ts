@@ -8,6 +8,7 @@ import {
 import { RESTAURANT_FLOOR_REPOSITORY } from '../../domain/repositories/restaurant-floor.repository.js';
 import type { RestaurantFloorRepository } from '../../domain/repositories/restaurant-floor.repository.js';
 import { RestaurantsService } from '../restaurants/restaurants.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateRestaurantFloorInput {
   restaurantId: string;
@@ -36,8 +37,11 @@ export class RestaurantFloorsService {
     return this.floorRepository.save(floor);
   }
 
-  findAll(filter: { restaurantId?: string } = {}): Promise<RestaurantFloor[]> {
-    return this.floorRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string },
+    page: PageRequest,
+  ): Promise<Page<RestaurantFloor>> {
+    return this.floorRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<RestaurantFloor> {

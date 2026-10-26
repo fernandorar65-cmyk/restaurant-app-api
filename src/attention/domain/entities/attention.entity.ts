@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { AttentionStatus } from '../enums/attention-status.enum.js';
 import { ServiceType } from '../enums/service-type.enum.js';
 import {
@@ -37,6 +36,8 @@ export class Attention {
 
   static open(params: {
     id: string;
+    /** Short human-friendly code, unique per restaurant (e.g. "A-7KX2QF"). */
+    attentionNumber: string;
     restaurantId: string;
     serviceType: ServiceType;
     diningTableId?: string | null;
@@ -44,11 +45,11 @@ export class Attention {
   }): Attention {
     const diningTableId = params.diningTableId ?? null;
     if (params.serviceType === ServiceType.DINE_IN && !diningTableId) {
-      throw new InvalidServiceSetupError('DINE_IN requires a dining table');
+      throw new InvalidServiceSetupError('DINE_IN requiere una mesa');
     }
     if (params.serviceType !== ServiceType.DINE_IN && diningTableId) {
       throw new InvalidServiceSetupError(
-        `${params.serviceType} attentions cannot be linked to a table`,
+        `Una atención ${params.serviceType} no puede asociarse a una mesa`,
       );
     }
     const now = new Date();
@@ -57,7 +58,7 @@ export class Attention {
       restaurantId: params.restaurantId,
       diningTableId,
       customerUserId: params.customerUserId ?? null,
-      attentionNumber: generateAttentionNumber(),
+      attentionNumber: params.attentionNumber,
       serviceType: params.serviceType,
       status: AttentionStatus.OPEN,
       billRequestedAt: null,
@@ -179,11 +180,3 @@ export class Attention {
   }
 }
 
-const NUMBER_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-/** Short human-friendly code (e.g. "A-7KX2QF"), unique per restaurant. */
-function generateAttentionNumber(): string {
-  const bytes = randomBytes(6);
-  const suffix = Array.from(bytes, (byte) => NUMBER_ALPHABET[byte % NUMBER_ALPHABET.length]).join('');
-  return `A-${suffix}`;
-}

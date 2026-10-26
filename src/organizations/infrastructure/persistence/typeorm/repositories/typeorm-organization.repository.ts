@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
@@ -28,6 +29,10 @@ export class TypeOrmOrganizationRepository
     existing?: OrganizationOrmEntity,
   ): OrganizationOrmEntity {
     return OrganizationMapper.toPersistence(domain, existing);
+  }
+
+  async findPage(page: PageRequest): Promise<Page<Organization>> {
+    return this.findPageBy({ order: { name: 'ASC' } }, page);
   }
 
   async findByTaxIdentifier(taxIdentifier: string): Promise<Organization | null> {

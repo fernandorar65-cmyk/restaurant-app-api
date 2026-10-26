@@ -8,6 +8,7 @@ import {
 } from '../../domain/exceptions/organization.errors.js';
 import { ORGANIZATION_REPOSITORY } from '../../domain/repositories/organization.repository.js';
 import type { OrganizationRepository } from '../../domain/repositories/organization.repository.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateOrganizationInput {
   name: string;
@@ -34,8 +35,8 @@ export class OrganizationsService {
     return this.organizationRepository.save(organization);
   }
 
-  findAll(): Promise<Organization[]> {
-    return this.organizationRepository.findAll();
+  findPage(page: PageRequest): Promise<Page<Organization>> {
+    return this.organizationRepository.findPage(page);
   }
 
   async findOne(id: string): Promise<Organization> {

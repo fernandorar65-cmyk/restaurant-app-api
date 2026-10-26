@@ -5,24 +5,24 @@ import {
 
 export class EmployeeNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Employee with id "${id}" not found`);
+    super(`No existe el empleado con id "${id}"`);
   }
 }
 
 export class DuplicateEmployeeCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`The organization already has an employee with code "${code}"`);
+    super(`La organización ya tiene un empleado con el código "${code}"`);
   }
 }
 
 export class UserAlreadyEmployeeError extends ConflictDomainError {
   constructor() {
-    super('That user is already linked to another employee of the organization');
+    super('Ese usuario ya está vinculado a otro empleado de la organización');
   }
 }
 
 export class UserReferenceNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`User with id "${id}" not found`);
+    super(`No existe el usuario con id "${id}"`);
   }
 }

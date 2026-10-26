@@ -6,18 +6,18 @@ import {
 
 export class DiningTableNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Dining table with id "${id}" not found`);
+    super(`No existe la mesa con id "${id}"`);
   }
 }
 
 export class DuplicateDiningTableCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`The restaurant already has a table with code "${code}"`);
+    super(`La sede ya tiene una mesa con el código "${code}"`);
   }
 }
 
 export class FloorFromAnotherRestaurantError extends ValidationDomainError {
   constructor() {
-    super('The floor does not belong to the table restaurant');
+    super('El piso no pertenece a la sede de la mesa');
   }
 }

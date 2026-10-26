@@ -238,6 +238,12 @@ export class FulfillmentResponseDto {
   @ApiProperty()
   deliveryFee: number;
 
+  @ApiPropertyOptional({ nullable: true })
+  estimatedReadyAt: Date | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  deliveredAt: Date | null;
+
   static fromDomain(fulfillment: Fulfillment): FulfillmentResponseDto {
     const dto = new FulfillmentResponseDto();
     dto.type = fulfillment.type;
@@ -248,6 +254,8 @@ export class FulfillmentResponseDto {
     dto.deliveryAddress = fulfillment.deliveryAddress;
     dto.deliveryReference = fulfillment.deliveryReference;
     dto.deliveryFee = fulfillment.deliveryFee;
+    dto.estimatedReadyAt = fulfillment.estimatedReadyAt;
+    dto.deliveredAt = fulfillment.deliveredAt;
     return dto;
   }
 }

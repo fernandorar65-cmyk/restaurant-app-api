@@ -10,6 +10,7 @@ import { INVENTORY_CATEGORY_REPOSITORY } from '../../domain/repositories/invento
 import type { InventoryCategoryRepository } from '../../domain/repositories/inventory-category.repository.js';
 import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
 import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 @Injectable()
 export class InventoryCategoriesService {
@@ -32,8 +33,11 @@ export class InventoryCategoriesService {
     return this.categoryRepository.save(category);
   }
 
-  findAll(filter: { organizationId?: string } = {}): Promise<InventoryCategory[]> {
-    return this.categoryRepository.findAll(filter);
+  findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<InventoryCategory>> {
+    return this.categoryRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<InventoryCategory> {

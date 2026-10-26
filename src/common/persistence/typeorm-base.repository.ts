@@ -1,4 +1,10 @@
-import type { FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
+import type {
+  FindManyOptions,
+  FindOptionsWhere,
+  ObjectLiteral,
+  Repository,
+} from 'typeorm';
+import type { Page, PageRequest } from '../application/pagination.js';
 import { TypeOrmTransactionContext } from './typeorm-transaction-runner.js';
 
 /**
@@ -29,6 +35,24 @@ export abstract class TypeOrmBaseRepository<
       where: { id } as FindOptionsWhere<TOrm>,
     });
     return found ? this.toDomain(found) : null;
+  }
+
+  /** One page of rows plus the total count, for paginated listings. */
+  protected async findPageBy(
+    options: FindManyOptions<TOrm>,
+    request: PageRequest,
+  ): Promise<Page<TDomain>> {
+    const [rows, total] = await this.repository.findAndCount({
+      ...options,
+      skip: (request.page - 1) * request.limit,
+      take: request.limit,
+    });
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+      page: request.page,
+      limit: request.limit,
+    };
   }
 
   async findAll(): Promise<TDomain[]> {

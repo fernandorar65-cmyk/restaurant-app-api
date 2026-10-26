@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type {
+  CartServiceIssue,
   CartValidationIssueCode,
   CartValidationResult,
 } from '../../../../application/cart-validation/cart-validation.service.js';
@@ -48,10 +49,26 @@ export class CartValidateResponseDto {
   @ApiProperty({ type: [CartValidationIssueDto] })
   issues: CartValidationIssueDto[];
 
+  @ApiProperty({
+    enum: ['MODE_DISABLED', 'BELOW_MINIMUM'],
+    isArray: true,
+    description: 'Problemas del pedido completo según la modalidad de la sede',
+  })
+  serviceIssues: CartServiceIssue[];
+
   @ApiProperty({ type: [CartValidationLineDto] })
   lines: CartValidationLineDto[];
 
   @ApiProperty()
+  subtotal: number;
+
+  @ApiPropertyOptional({ nullable: true })
+  minimumAmount: number | null;
+
+  @ApiProperty({ description: 'Solo en DELIVERY' })
+  deliveryFee: number;
+
+  @ApiProperty({ description: 'subtotal + deliveryFee' })
   total: number;
 
   static fromResult(result: CartValidationResult): CartValidateResponseDto {

@@ -227,6 +227,21 @@ export class AuthService {
     await this.userRepository.save(user);
   }
 
+  /**
+   * Public entry point for other contexts and guards: resolves the user of
+   * an `Authorization: Bearer <token>` header, or null when it is missing or
+   * invalid (callers decide whether that means 401 or "guest").
+   */
+  async authenticateBearer(
+    authorizationHeader: string | undefined,
+  ): Promise<AuthenticatedUser | null> {
+    if (!authorizationHeader?.startsWith('Bearer ')) {
+      return null;
+    }
+    const token = authorizationHeader.slice('Bearer '.length).trim();
+    return token ? this.verifyAccessToken(token) : null;
+  }
+
   async verifyAccessToken(
     accessToken: string,
   ): Promise<AuthenticatedUser | null> {

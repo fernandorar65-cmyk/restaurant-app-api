@@ -1,3 +1,5 @@
+import { ProductRecipe } from '../../../../domain/entities/product-recipe.entity.js';
+import { ProductRecipeOrmEntity } from '../entities/product-recipe.orm-entity.js';
 import { InventoryCategory } from '../../../../domain/entities/inventory-category.entity.js';
 import { InventoryMovement } from '../../../../domain/entities/inventory-movement.entity.js';
 import { Supply } from '../../../../domain/entities/supply.entity.js';
@@ -95,6 +97,31 @@ export class InventoryMovementMapper {
     orm.referenceId = domain.referenceId;
     orm.notes = domain.notes;
     orm.createdByUserId = domain.createdByUserId;
+    return orm;
+  }
+}
+
+export class ProductRecipeMapper {
+  static toDomain(orm: ProductRecipeOrmEntity): ProductRecipe {
+    return ProductRecipe.fromPersistence({
+      productId: orm.productId,
+      supplyId: orm.supplyId,
+      quantityRequired: orm.quantityRequired,
+      wastePercentage: orm.wastePercentage,
+      createdAt: orm.createdAt,
+      updatedAt: orm.updatedAt,
+    });
+  }
+
+  static toPersistence(
+    domain: ProductRecipe,
+    existing?: ProductRecipeOrmEntity,
+  ): ProductRecipeOrmEntity {
+    const orm = existing ?? new ProductRecipeOrmEntity();
+    orm.productId = domain.productId;
+    orm.supplyId = domain.supplyId;
+    orm.quantityRequired = domain.quantityRequired;
+    orm.wastePercentage = domain.wastePercentage;
     return orm;
   }
 }

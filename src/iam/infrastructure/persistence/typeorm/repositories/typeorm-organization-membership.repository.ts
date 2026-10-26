@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { OrganizationMembership } from '../../../../domain/entities/organization-membership.entity.js';
@@ -37,14 +38,22 @@ export class TypeOrmOrganizationMembershipRepository
     return found ? (await this.withScope([found]))[0] : null;
   }
 
-  async findAll(
-    filter: { organizationId?: string; userId?: string } = {},
-  ): Promise<OrganizationMembership[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { organizationId?: string; userId?: string },
+    page: PageRequest,
+  ): Promise<Page<OrganizationMembership>> {
+    const [rows, total] = await this.repository.findAndCount({
       where: { organizationId: filter.organizationId, userId: filter.userId },
       order: { joinedAt: 'ASC' },
+      skip: (page.page - 1) * page.limit,
+      take: page.limit,
     });
-    return this.withScope(rows);
+    return {
+      items: await this.withScope(rows),
+      total,
+      page: page.page,
+      limit: page.limit,
+    };
   }
 
   async save(membership: OrganizationMembership): Promise<OrganizationMembership> {

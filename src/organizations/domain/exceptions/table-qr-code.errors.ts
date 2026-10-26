@@ -5,18 +5,18 @@ import {
 
 export class TableQrCodeNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Table QR code with id "${id}" not found`);
+    super(`No existe el QR con id "${id}"`);
   }
 }
 
 export class TableQrCodeAlreadyRevokedError extends BusinessRuleDomainError {
   constructor(id: string) {
-    super(`Table QR code "${id}" is already revoked`);
+    super(`El QR "${id}" ya está revocado`);
   }
 }
 
 export class InactiveDiningTableError extends BusinessRuleDomainError {
   constructor(id: string) {
-    super(`Dining table "${id}" is not active`);
+    super(`La mesa "${id}" no está activa`);
   }
 }

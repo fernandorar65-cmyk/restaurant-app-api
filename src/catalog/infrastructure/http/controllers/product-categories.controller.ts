@@ -21,6 +21,13 @@ import { ProductCategoriesService } from '../../../application/product-categorie
 import { CreateProductCategoryDto } from '../dto/product-categories/create-product-category.dto.js';
 import { ProductCategoryResponseDto } from '../dto/product-categories/product-category-response.dto.js';
 import { UpdateProductCategoryDto } from '../dto/product-categories/update-product-category.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('catalog/product-categories')
 @Controller('product-categories')
@@ -40,13 +47,14 @@ export class ProductCategoriesController {
   @Get()
   @ApiOperation({ summary: 'Listar categorías de productos' })
   @ApiQuery({ name: 'restaurantId', required: false })
-  @ApiOkResponse({ type: [ProductCategoryResponseDto] })
+  @ApiPaginatedResponse(ProductCategoryResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
-  ): Promise<ProductCategoryResponseDto[]> {
-    const categories = await this.categoriesService.findAll({ restaurantId });
-    return categories.map((category) =>
+  ): Promise<PageResponse<ProductCategoryResponseDto>> {
+    const categories = await this.categoriesService.findPage({ restaurantId }, page);
+    return toPageResponse(categories, (category) =>
       ProductCategoryResponseDto.fromDomain(category),
     );
   }

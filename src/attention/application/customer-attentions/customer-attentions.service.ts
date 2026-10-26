@@ -55,7 +55,7 @@ export interface StartAttentionResult {
 
 export class ItemAlreadyInPreparationError extends BusinessRuleDomainError {
   constructor() {
-    super('The dish is already being prepared and can no longer be cancelled');
+    super('El plato ya está en preparación y no se puede cancelar');
   }
 }
 
@@ -85,7 +85,7 @@ export class CustomerAttentionsService {
     let attention: Attention;
     if (input.serviceType === ServiceType.DINE_IN) {
       if (!input.tableToken) {
-        throw new InvalidServiceSetupError('DINE_IN requires the table QR token');
+        throw new InvalidServiceSetupError('DINE_IN requiere el token del QR de la mesa');
       }
       const table = await this.tableQrLookup.resolveByToken(input.tableToken);
       if (!table) {

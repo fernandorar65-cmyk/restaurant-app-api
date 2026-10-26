@@ -8,12 +8,16 @@ Swagger interactivo en `/docs`.
 
 - Sin prefijo global: el CRUD interno vive en la raíz (`/restaurants`, `/attentions`, ...). La autenticación vive en `/api/v1/owner/auth` y `/api/v1/customer/auth`; las rutas públicas del comensal en `/api/v1/...`.
 - Respuesta estándar: `{ "success", "statusCode", "message", "data", "timestamp", "path" }`.
+- Las respuestas de error agregan **`errorCode`**: un código estable para que el frontend decida por él y no por el texto. Ejemplos: `PRODUCT_NOT_ORDERABLE`, `INVALID_ORDER_ITEM_TRANSITION`, `STALE_ORDER_ITEM_VERSION`, `INSUFFICIENT_STOCK`, `QR_INVALID`, `MISSING_ACCESS_TOKEN`, `VALIDATION_ERROR`, `DUPLICATE_RECORD`. Los códigos de dominio se derivan del nombre del error (`XxxYyyError` → `XXX_YYY`).
+- Mensajes en español, incluidas las validaciones de formato. Los errores de validación devuelven `message` como lista e indican la ruta del campo, por ejemplo `items.0.quantity debe ser mayor o igual a 1`.
 - Errores: `400` (datos inválidos / invariante de dominio), `401`, `403` (sin acceso al recurso), `404`, `409` (duplicado, transición no permitida, conflicto de versión o de concurrencia), `422` (regla de negocio), `500`.
 - Las violaciones de restricciones de la base que se escapan de las validaciones se traducen: único → `409`, FK → `409`, CHECK → `400`.
 - Todos los `:id` son UUID (`ParseUUIDPipe`).
 - Estados y tipos en MAYÚSCULAS, igual que en la base (`OPEN`, `DINE_IN`, `PREPARING`, ...).
 - **El CRUD interno sigue sin autenticación ni permisos** (acceso libre). Las membresías y los permisos ya existen como datos, pero todavía no se aplican en los endpoints.
-- No hay paginación todavía.
+- **Paginación**: los listados aceptan `?page=` (desde 1) y `?limit=` (por defecto 20, máximo 100) y devuelven en `data`:
+  `{ "items": [...], "meta": { "page", "limit", "total", "totalPages" } }`.
+  No se paginan las sublistas acotadas: permisos de un rol, productos de un menú, alérgenos e ingredientes de un producto, receta, modalidades de una sede e historial de un plato.
 
 ---
 
@@ -56,6 +60,7 @@ Una sola identidad (`users`) para comensales y personal: el mismo usuario puede 
 | Pisos | `POST/GET /restaurant-floors?restaurantId=`, `GET/PATCH/DELETE /restaurant-floors/:id` | Nombre único por sede |
 | Mesas | `POST/GET /dining-tables?restaurantId=&floorId=`, `GET/PATCH/DELETE /dining-tables/:id` | Se crean en un piso (la sede sale del piso). `operationalStatus` ACTIVE/INACTIVE/MAINTENANCE, `serviceStatus` AVAILABLE/RESERVED/CLEANING. "Ocupada" no se guarda: es tener una atención activa |
 | QR de mesa | `POST /table-qr-codes` (`diningTableId`), `GET /table-qr-codes?diningTableId=`, `GET /table-qr-codes/:id`, `POST /table-qr-codes/:id/revoke` | Generar emite una nueva versión y revoca la anterior. **El `token` solo viene en la respuesta de generación**; en la base solo queda su hash |
+| Modalidades de la sede | `GET /restaurants/:id/order-modes`, `PUT /restaurants/:id/order-modes/:mode` | `DINE_IN`, `PICKUP`, `DELIVERY` con `isEnabled`, `minimumAmount`, `deliveryFee` (solo DELIVERY) y `configuration` libre. Sin configurar, solo `DINE_IN` está habilitada |
 | Empleados | `POST/GET /employees?organizationId=`, `GET/PATCH/DELETE /employees/:id` | `userId` opcional (empleado sin acceso al sistema); `employeeCode` único por organización |
 
 ---
@@ -68,10 +73,13 @@ Una sola identidad (`users`) para comensales y personal: el mismo usuario puede 
 | Productos | `POST/GET /products?restaurantId=&categoryId=`, `GET/PATCH/DELETE /products/:id` | La sede sale de la categoría. `status` ACTIVE/INACTIVE (catálogo) e `isAvailable` (agotado hoy). `isTakeawayAllowed` / `isDeliveryAllowed` por modalidad |
 | Menús | `POST/GET /menus?restaurantId=`, `GET/PATCH/DELETE /menus/:id` | `status` DRAFT/ACTIVE/INACTIVE, vigencia `validFrom`/`validUntil` |
 | Productos de un menú | `GET/POST /menus/:id/products`, `PATCH/DELETE /menus/:id/products/:productId` | El producto debe ser de la misma sede. `displayPrice` es solo de exhibición |
+| Alérgenos | `POST/GET /allergens`, `PATCH/DELETE /allergens/:id` | Catálogo global; `code` único en mayúsculas |
+| Alérgenos de un producto | `GET/POST /products/:id/allergens`, `DELETE /products/:id/allergens/:allergenId` | |
+| Ingredientes de un producto | `GET/POST /products/:id/ingredients`, `PATCH/DELETE /products/:id/ingredients/:ingredientId` | Ingredientes visibles en la carta (`isVisible`); no afectan el stock |
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/v1/restaurants/:slug/cart/validate` | `{ serviceType, items[{productId, quantity, unitPrice?}] }`. Devuelve `lines` con nombre y **precio del servidor**, `total` e `issues`: `PRODUCT_NOT_FOUND`, `PRODUCT_NOT_IN_RESTAURANT`, `PRODUCT_INACTIVE`, `PRODUCT_UNAVAILABLE`, `MODE_NOT_ALLOWED`, `PRICE_CHANGED` |
+| POST | `/api/v1/restaurants/:slug/cart/validate` | `{ serviceType, items[{productId, quantity, unitPrice?}] }`. Devuelve `lines` con nombre y **precio del servidor**, `subtotal`, `deliveryFee`, `total`, `minimumAmount`, `issues` por producto (`PRODUCT_NOT_FOUND`, `PRODUCT_NOT_IN_RESTAURANT`, `PRODUCT_INACTIVE`, `PRODUCT_UNAVAILABLE`, `MODE_NOT_ALLOWED`, `PRICE_CHANGED`) y `serviceIssues` del pedido (`MODE_DISABLED`, `BELOW_MINIMUM`) |
 
 ---
 
@@ -83,7 +91,7 @@ Modelo: **atención** (la visita / cuenta) → **rondas** (cada envío del carri
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/attentions` | Abre una atención: `DINE_IN` con `diningTableId`, o `PICKUP`/`DELIVERY` con `restaurantId` + `fulfillment` (contacto y dirección). Mesa con atención activa → 409 |
+| POST | `/attentions` | Abre una atención: `DINE_IN` con `diningTableId`, o `PICKUP`/`DELIVERY` con `restaurantId` + `fulfillment` (contacto y dirección). Mesa con atención activa → 409; modalidad deshabilitada en la sede → 422. En DELIVERY el costo de envío se toma de la sede |
 | GET | `/attentions?restaurantId=&status=` | Lista |
 | GET | `/attentions/:id` | Detalle: participantes, rondas con sus platos, datos de recojo/delivery |
 | POST | `/attentions/:id/rounds` | Ronda del mozo `{ requestId, items, submittedByUserId? }`. Idempotente por `requestId` |
@@ -91,10 +99,11 @@ Modelo: **atención** (la visita / cuenta) → **rondas** (cada envío del carri
 | GET | `/attentions/:id/bill` | Ítems cobrables (sin rechazados ni cancelados), total, pagado, saldo |
 | POST | `/attentions/:id/request-bill` | Marca la cuenta como pedida |
 | POST | `/attentions/:id/close` | Cierra; solo con saldo 0 (422 si no) |
-| POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos (primero reembolsar) |
-| GET | `/order-items?restaurantId=&status=SUBMITTED,PREPARING` | Tablero de cocina |
+| POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos (primero reembolsar). Cancela también el recojo/delivery pendiente |
+| PATCH | `/attentions/:id/fulfillment/status` | `{ status, estimatedReadyAt? }`. Recojo: PENDING→CONFIRMED→PREPARING→READY→COMPLETED. Delivery: …→READY→OUT_FOR_DELIVERY→COMPLETED. CANCELLED desde cualquier estado no final. Saltos → 409; COMPLETED registra `deliveredAt` |
+| GET | `/order-items?restaurantId=&status=SUBMITTED,PREPARING&includeClosed=` | Tablero de cocina (paginado). Por defecto solo platos de atenciones activas; `includeClosed=true` incluye cerradas y canceladas |
 | GET | `/order-items/:id` | Un plato |
-| PATCH | `/order-items/:id/status` | `{ status, version?, reason?, changedByUserId? }`. Transiciones: SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. `REJECTED` exige `reason`. Si `version` no coincide (otro empleado lo cambió) → 409 |
+| PATCH | `/order-items/:id/status` | `{ status, version?, reason?, changedByUserId? }`. Transiciones: SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. `REJECTED` exige `reason`. Si `version` no coincide (otro empleado lo cambió) → 409. Al pasar a `PREPARING` se descuenta el stock según la receta del producto (ver Inventario) |
 | GET | `/order-items/:id/history` | Historial de estados |
 
 ### Comensal (`/api/v1`, login opcional)
@@ -103,7 +112,7 @@ Identidad: con `Authorization: Bearer` se identifica al usuario; sin login, con 
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/api/v1/tables/qr/:token` | Resuelve el QR: sede, mesa y atención activa (si hay). QR revocado → 404 `QR_INVALID` |
+| GET | `/api/v1/tables/qr/:token` | Resuelve el QR: sede, mesa y atención activa (si hay). QR revocado → 404 con `errorCode: QR_INVALID` |
 | POST | `/api/v1/orders` | Primera ronda: `{ serviceType, tableToken? (DINE_IN), restaurantId? + fulfillment? (PICKUP/DELIVERY), requestId, items, displayName? }`. En mesa se une a la atención activa o la abre. Un invitado nuevo recibe `guestToken` en la respuesta |
 | POST | `/api/v1/orders/:id/rounds` | Otra ronda `{ requestId, items }`. Si la cuenta estaba pedida, vuelve a `OPEN` |
 | DELETE | `/api/v1/orders/:id/items/:itemId` | Cancela un plato propio mientras siga `SUBMITTED` |
@@ -121,6 +130,8 @@ Nombre y precio de cada plato se toman del catálogo **en el servidor** al momen
 |---|---|---|
 | Categorías de inventario | `POST/GET /inventory-categories?organizationId=`, `GET/PATCH/DELETE /inventory-categories/:id` | Por organización |
 | Insumos | `POST/GET /supplies?restaurantId=&categoryId=`, `GET/PATCH/DELETE /supplies/:id` | Empiezan con stock 0; `PATCH` no toca el stock. `isBelowMinimum` en la respuesta |
+| Recetas | `GET /product-recipes/:productId`, `PUT/DELETE /product-recipes/:productId/supplies/:supplyId` | `{ quantityRequired, wastePercentage? }` por unidad de producto; devuelve `effectiveQuantity` con la merma. Insumo y producto de la misma sede |
+| Consumo automático | — | Cuando un plato pasa a `PREPARING` se registra un `USAGE` por cada insumo de su receta (cantidad con merma × unidades), con referencia `ORDER_ITEM` y nota "Consumo automático". Si falta stock consume lo disponible y anota el faltante, sin bloquear la cocina. Nunca descuenta dos veces el mismo plato. No se revierte si el plato se cancela después |
 | Movimientos | `POST /supplies/:id/movements`, `GET /supplies/:id/movements` | Única forma de cambiar el stock. `PURCHASE` (suma, recalcula costo promedio con `unitCost`), `USAGE`/`WASTE` (restan; sin stock → 422), `COUNT` (`countedQuantity` fija el stock), `ADJUSTMENT` (`quantity` + `direction` INCREASE/DECREASE). Stock y movimiento se guardan en la misma transacción con bloqueo de fila |
 
 ---
@@ -131,7 +142,6 @@ Nombre y precio de cada plato se toman del catálogo **en el servidor** al momen
 - **Registro transaccional del propietario** (usuario + organización + rol OWNER + membresía + primera sede) y seeds de permisos/roles base.
 - **Pagos** (`payments`, `payment_allocations`, `refunds`): las tablas existen; la cuenta ya lee lo pagado desde ellas, pero no hay endpoints para registrar pagos.
 - **Finanzas** (gastos y cierre diario): solo tablas.
-- **Catálogo**: alérgenos e ingredientes (solo tablas), carta pública y descubrimiento de restaurantes.
-- **Recetas** (`product_recipes`) y descuento automático de insumos.
-- **Modalidades por sede** (`restaurant_order_modes`) y flujo de estados de recojo/delivery (`fulfillments.status`).
+- **Catálogo**: carta pública y descubrimiento de restaurantes.
+- **Monto mínimo** de la modalidad: se informa en la validación del carrito, pero todavía no bloquea el pedido.
 - Paginación, eventos en tiempo real, envío real de correos.

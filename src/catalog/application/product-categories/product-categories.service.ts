@@ -10,6 +10,7 @@ import type { ProductCategoryRepository } from '../../domain/repositories/produc
 import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
 import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
 import { requireRestaurant } from '../restaurant-guard.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateProductCategoryInput {
   restaurantId: string;
@@ -41,8 +42,11 @@ export class ProductCategoriesService {
     return this.categoryRepository.save(category);
   }
 
-  findAll(filter: { restaurantId?: string } = {}): Promise<ProductCategory[]> {
-    return this.categoryRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string },
+    page: PageRequest,
+  ): Promise<Page<ProductCategory>> {
+    return this.categoryRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<ProductCategory> {

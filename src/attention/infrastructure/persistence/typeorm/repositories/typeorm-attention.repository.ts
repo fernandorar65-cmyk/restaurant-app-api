@@ -9,6 +9,7 @@ import { ActiveAttentionAlreadyExistsError } from '../../../../domain/exceptions
 import { AttentionRepository } from '../../../../domain/repositories/attention.repository.js';
 import { AttentionOrmEntity } from '../entities/attention.orm-entity.js';
 import { AttentionMapper } from '../mappers/attention.mappers.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 const ACTIVE_STATUSES = [AttentionStatus.OPEN, AttentionStatus.BILL_REQUESTED];
 
@@ -35,14 +36,14 @@ export class TypeOrmAttentionRepository
     return AttentionMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { restaurantId?: string; status?: AttentionStatus } = {},
-  ): Promise<Attention[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { restaurantId?: string; status?: AttentionStatus },
+    page: PageRequest,
+  ): Promise<Page<Attention>> {
+    return this.findPageBy({
       where: { restaurantId: filter.restaurantId, status: filter.status },
       order: { openedAt: 'DESC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findActiveByDiningTable(

@@ -6,6 +6,7 @@ import { Role } from '../../../../domain/entities/role.entity.js';
 import { RoleRepository } from '../../../../domain/repositories/role.repository.js';
 import { RoleOrmEntity } from '../entities/role.orm-entity.js';
 import { RoleMapper } from '../mappers/role.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmRoleRepository
@@ -27,14 +28,14 @@ export class TypeOrmRoleRepository
     return RoleMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { organizationId?: string } = {},
-  ): Promise<Role[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Role>> {
+    return this.findPageBy({
       where: { organizationId: filter.organizationId },
       order: { code: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByCode(organizationId: string, code: string): Promise<Role | null> {

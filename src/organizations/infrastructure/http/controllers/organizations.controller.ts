@@ -19,6 +19,13 @@ import { OrganizationsService } from '../../../application/organizations/organiz
 import { CreateOrganizationDto } from '../dto/organizations/create-organization.dto.js';
 import { OrganizationResponseDto } from '../dto/organizations/organization-response.dto.js';
 import { UpdateOrganizationDto } from '../dto/organizations/update-organization.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('organizations/organizations')
 @Controller('organizations')
@@ -37,10 +44,12 @@ export class OrganizationsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar organizaciones' })
-  @ApiOkResponse({ type: [OrganizationResponseDto] })
-  async findAll(): Promise<OrganizationResponseDto[]> {
-    const organizations = await this.organizationsService.findAll();
-    return organizations.map((organization) =>
+  @ApiPaginatedResponse(OrganizationResponseDto)
+  async findAll(
+    @Pagination() page: PageRequest,
+  ): Promise<PageResponse<OrganizationResponseDto>> {
+    const organizations = await this.organizationsService.findPage(page);
+    return toPageResponse(organizations, (organization) =>
       OrganizationResponseDto.fromDomain(organization),
     );
   }

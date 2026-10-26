@@ -18,6 +18,7 @@ import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
 import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
 import { RolesService } from '../roles/roles.service.js';
 import { UsersService } from '../users/users.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateMembershipInput {
   organizationId: string;
@@ -65,10 +66,11 @@ export class MembershipsService {
     return this.membershipRepository.save(membership);
   }
 
-  findAll(
-    filter: { organizationId?: string; userId?: string } = {},
-  ): Promise<OrganizationMembership[]> {
-    return this.membershipRepository.findAll(filter);
+  findPage(
+    filter: { organizationId?: string; userId?: string },
+    page: PageRequest,
+  ): Promise<Page<OrganizationMembership>> {
+    return this.membershipRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<OrganizationMembership> {

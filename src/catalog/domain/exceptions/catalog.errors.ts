@@ -6,61 +6,91 @@ import {
 
 export class ProductCategoryNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Product category with id "${id}" not found`);
+    super(`No existe la categoría con id "${id}"`);
   }
 }
 
 export class DuplicateProductCategoryNameError extends ConflictDomainError {
   constructor(name: string) {
-    super(`The restaurant already has a category named "${name}"`);
+    super(`La sede ya tiene una categoría llamada "${name}"`);
   }
 }
 
 export class ProductNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Product with id "${id}" not found`);
+    super(`No existe el producto con id "${id}"`);
   }
 }
 
 export class DuplicateProductCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`The restaurant already has a product with code "${code}"`);
+    super(`La sede ya tiene un producto con el código "${code}"`);
   }
 }
 
 export class MenuNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Menu with id "${id}" not found`);
+    super(`No existe el menú con id "${id}"`);
   }
 }
 
 export class DuplicateMenuNameError extends ConflictDomainError {
   constructor(name: string) {
-    super(`The restaurant already has a menu named "${name}"`);
+    super(`La sede ya tiene un menú llamado "${name}"`);
   }
 }
 
 export class MenuProductNotFoundError extends NotFoundDomainError {
   constructor() {
-    super('The product is not part of that menu');
+    super('El producto no forma parte de ese menú');
   }
 }
 
 export class DuplicateMenuProductError extends ConflictDomainError {
   constructor() {
-    super('The product is already part of that menu');
+    super('El producto ya forma parte de ese menú');
   }
 }
 
 /** Categories, products and menus must all belong to the same restaurant. */
 export class CrossRestaurantReferenceError extends ValidationDomainError {
   constructor(what: string) {
-    super(`${what} belongs to another restaurant`);
+    super(`${what} pertenece a otra sede`);
   }
 }
 
 export class RestaurantReferenceNotFoundError extends NotFoundDomainError {
   constructor(idOrSlug: string) {
-    super(`Restaurant "${idOrSlug}" not found`);
+    super(`No existe el restaurante "${idOrSlug}"`);
+  }
+}
+
+export class AllergenNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe el alérgeno con id "${id}"`);
+  }
+}
+
+export class DuplicateAllergenCodeError extends ConflictDomainError {
+  constructor(code: string) {
+    super(`El alérgeno "${code}" ya existe`);
+  }
+}
+
+export class ProductAllergenNotFoundError extends NotFoundDomainError {
+  constructor() {
+    super('El producto no tiene ese alérgeno');
+  }
+}
+
+export class DuplicateProductAllergenError extends ConflictDomainError {
+  constructor() {
+    super('El producto ya tiene ese alérgeno');
+  }
+}
+
+export class ProductIngredientNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe el ingrediente "${id}" en ese producto`);
   }
 }

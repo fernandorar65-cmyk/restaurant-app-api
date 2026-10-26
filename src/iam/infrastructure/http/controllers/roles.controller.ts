@@ -24,6 +24,13 @@ import { AssignPermissionDto } from '../dto/roles/assign-permission.dto.js';
 import { CreateRoleDto } from '../dto/roles/create-role.dto.js';
 import { RoleResponseDto } from '../dto/roles/role-response.dto.js';
 import { UpdateRoleDto } from '../dto/roles/update-role.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('iam/roles')
 @Controller('roles')
@@ -44,13 +51,16 @@ export class RolesController {
   @Get()
   @ApiOperation({ summary: 'Listar roles' })
   @ApiQuery({ name: 'organizationId', required: false })
-  @ApiOkResponse({ type: [RoleResponseDto] })
+  @ApiPaginatedResponse(RoleResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
-  ): Promise<RoleResponseDto[]> {
-    const roles = await this.rolesService.findAll({ organizationId });
-    return roles.map((role) => RoleResponseDto.fromDomain(role));
+  ): Promise<PageResponse<RoleResponseDto>> {
+    const roles = await this.rolesService.findPage({ organizationId }, page);
+    return toPageResponse(roles, (role) =>
+      RoleResponseDto.fromDomain(role),
+    );
   }
 
   @Get(':id')

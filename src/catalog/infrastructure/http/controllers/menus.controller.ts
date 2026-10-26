@@ -26,6 +26,13 @@ import {
 } from '../dto/menus/menu-product.dto.js';
 import { MenuResponseDto } from '../dto/menus/menu-response.dto.js';
 import { UpdateMenuDto } from '../dto/menus/update-menu.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('catalog/menus')
 @Controller('menus')
@@ -43,13 +50,16 @@ export class MenusController {
   @Get()
   @ApiOperation({ summary: 'Listar menús' })
   @ApiQuery({ name: 'restaurantId', required: false })
-  @ApiOkResponse({ type: [MenuResponseDto] })
+  @ApiPaginatedResponse(MenuResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
-  ): Promise<MenuResponseDto[]> {
-    const menus = await this.menusService.findAll({ restaurantId });
-    return menus.map((menu) => MenuResponseDto.fromDomain(menu));
+  ): Promise<PageResponse<MenuResponseDto>> {
+    const menus = await this.menusService.findPage({ restaurantId }, page);
+    return toPageResponse(menus, (menu) =>
+      MenuResponseDto.fromDomain(menu),
+    );
   }
 
   @Get(':id')

@@ -20,6 +20,13 @@ import {
 import { TableQrCodesService } from '../../../application/table-qr-codes/table-qr-codes.service.js';
 import { GenerateTableQrCodeDto } from '../dto/table-qr-codes/generate-table-qr-code.dto.js';
 import { TableQrCodeResponseDto } from '../dto/table-qr-codes/table-qr-code-response.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('organizations/table-qr-codes')
 @Controller('table-qr-codes')
@@ -45,13 +52,16 @@ export class TableQrCodesController {
   @Get()
   @ApiOperation({ summary: 'Listar QR (historial de versiones)' })
   @ApiQuery({ name: 'diningTableId', required: false })
-  @ApiOkResponse({ type: [TableQrCodeResponseDto] })
+  @ApiPaginatedResponse(TableQrCodeResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('diningTableId', new ParseUUIDPipe({ optional: true }))
     diningTableId?: string,
-  ): Promise<TableQrCodeResponseDto[]> {
-    const qrCodes = await this.qrCodesService.findAll({ diningTableId });
-    return qrCodes.map((qrCode) => TableQrCodeResponseDto.fromDomain(qrCode));
+  ): Promise<PageResponse<TableQrCodeResponseDto>> {
+    const qrCodes = await this.qrCodesService.findPage({ diningTableId }, page);
+    return toPageResponse(qrCodes, (qrCode) =>
+      TableQrCodeResponseDto.fromDomain(qrCode),
+    );
   }
 
   @Get(':id')

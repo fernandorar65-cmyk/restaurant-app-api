@@ -6,6 +6,7 @@ import { DiningTable } from '../../../../domain/entities/dining-table.entity.js'
 import { DiningTableRepository } from '../../../../domain/repositories/dining-table.repository.js';
 import { DiningTableOrmEntity } from '../entities/dining-table.orm-entity.js';
 import { DiningTableMapper } from '../mappers/dining-table.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmDiningTableRepository
@@ -30,14 +31,14 @@ export class TypeOrmDiningTableRepository
     return DiningTableMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { restaurantId?: string; floorId?: string } = {},
-  ): Promise<DiningTable[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { restaurantId?: string; floorId?: string },
+    page: PageRequest,
+  ): Promise<Page<DiningTable>> {
+    return this.findPageBy({
       where: { restaurantId: filter.restaurantId, floorId: filter.floorId },
       order: { code: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByCode(

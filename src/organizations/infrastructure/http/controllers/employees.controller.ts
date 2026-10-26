@@ -21,6 +21,13 @@ import { EmployeesService } from '../../../application/employees/employees.servi
 import { CreateEmployeeDto } from '../dto/employees/create-employee.dto.js';
 import { EmployeeResponseDto } from '../dto/employees/employee-response.dto.js';
 import { UpdateEmployeeDto } from '../dto/employees/update-employee.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('organizations/employees')
 @Controller('employees')
@@ -38,13 +45,16 @@ export class EmployeesController {
   @Get()
   @ApiOperation({ summary: 'Listar empleados' })
   @ApiQuery({ name: 'organizationId', required: false })
-  @ApiOkResponse({ type: [EmployeeResponseDto] })
+  @ApiPaginatedResponse(EmployeeResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
-  ): Promise<EmployeeResponseDto[]> {
-    const employees = await this.employeesService.findAll({ organizationId });
-    return employees.map((employee) => EmployeeResponseDto.fromDomain(employee));
+  ): Promise<PageResponse<EmployeeResponseDto>> {
+    const employees = await this.employeesService.findPage({ organizationId }, page);
+    return toPageResponse(employees, (employee) =>
+      EmployeeResponseDto.fromDomain(employee),
+    );
   }
 
   @Get(':id')

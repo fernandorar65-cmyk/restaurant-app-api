@@ -19,6 +19,13 @@ import { PermissionsService } from '../../../application/permissions/permissions
 import { CreatePermissionDto } from '../dto/permissions/create-permission.dto.js';
 import { PermissionResponseDto } from '../dto/permissions/permission-response.dto.js';
 import { UpdatePermissionDto } from '../dto/permissions/update-permission.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('iam/permissions')
 @Controller('permissions')
@@ -35,10 +42,12 @@ export class PermissionsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar permisos' })
-  @ApiOkResponse({ type: [PermissionResponseDto] })
-  async findAll(): Promise<PermissionResponseDto[]> {
-    const permissions = await this.permissionsService.findAll();
-    return permissions.map((permission) =>
+  @ApiPaginatedResponse(PermissionResponseDto)
+  async findAll(
+    @Pagination() page: PageRequest,
+  ): Promise<PageResponse<PermissionResponseDto>> {
+    const permissions = await this.permissionsService.findPage(page);
+    return toPageResponse(permissions, (permission) =>
       PermissionResponseDto.fromDomain(permission),
     );
   }

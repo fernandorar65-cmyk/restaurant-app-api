@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
@@ -27,12 +28,14 @@ export class TypeOrmMenuRepository
     return MenuMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(filter: { restaurantId?: string } = {}): Promise<Menu[]> {
-    const rows = await this.repository.find({
-      where: { restaurantId: filter.restaurantId },
-      order: { name: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+  async findPage(
+    filter: { restaurantId?: string },
+    page: PageRequest,
+  ): Promise<Page<Menu>> {
+    return this.findPageBy(
+      { where: { restaurantId: filter.restaurantId }, order: { name: 'ASC' } },
+      page,
+    );
   }
 
   async findByName(restaurantId: string, name: string): Promise<Menu | null> {

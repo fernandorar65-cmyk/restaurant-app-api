@@ -12,6 +12,7 @@ import {
 import { DINING_TABLE_REPOSITORY } from '../../domain/repositories/dining-table.repository.js';
 import type { DiningTableRepository } from '../../domain/repositories/dining-table.repository.js';
 import { RestaurantFloorsService } from '../restaurant-floors/restaurant-floors.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateDiningTableInput extends DiningTableDetails {
   floorId: string;
@@ -45,10 +46,11 @@ export class DiningTablesService {
     return this.diningTableRepository.save(diningTable);
   }
 
-  findAll(
-    filter: { restaurantId?: string; floorId?: string } = {},
-  ): Promise<DiningTable[]> {
-    return this.diningTableRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string; floorId?: string },
+    page: PageRequest,
+  ): Promise<Page<DiningTable>> {
+    return this.diningTableRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<DiningTable> {

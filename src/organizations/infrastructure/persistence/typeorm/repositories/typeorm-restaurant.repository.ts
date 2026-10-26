@@ -6,6 +6,7 @@ import { Restaurant } from '../../../../domain/entities/restaurant.entity.js';
 import { RestaurantRepository } from '../../../../domain/repositories/restaurant.repository.js';
 import { RestaurantOrmEntity } from '../entities/restaurant.orm-entity.js';
 import { RestaurantMapper } from '../mappers/restaurant.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmRestaurantRepository
@@ -30,14 +31,14 @@ export class TypeOrmRestaurantRepository
     return RestaurantMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { organizationId?: string } = {},
-  ): Promise<Restaurant[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Restaurant>> {
+    return this.findPageBy({
       where: { organizationId: filter.organizationId },
       order: { name: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findBySlug(slug: string): Promise<Restaurant | null> {

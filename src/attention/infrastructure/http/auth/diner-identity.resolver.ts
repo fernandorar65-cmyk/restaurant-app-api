@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService } from '../../../../iam/application/auth/auth.service.js';
-import { extractBearerToken } from '../../../../iam/infrastructure/http/guards/auth.guard.js';
 import type { DinerIdentity } from '../../../application/customer-attentions/customer-attentions.service.js';
 
 const UUID_REGEX =
@@ -21,12 +20,14 @@ export class DinerIdentityResolver {
     guestToken: string | undefined,
   ): Promise<DinerIdentity> {
     if (guestToken !== undefined && !UUID_REGEX.test(guestToken)) {
-      throw new BadRequestException('X-Guest-Token must be a UUID');
+      throw new BadRequestException({
+        message: 'X-Guest-Token debe ser un UUID',
+        errorCode: 'INVALID_GUEST_TOKEN',
+      });
     }
-    const accessToken = extractBearerToken(request);
-    const user = accessToken
-      ? await this.authService.verifyAccessToken(accessToken)
-      : null;
+    const user = await this.authService.authenticateBearer(
+      request.headers.authorization,
+    );
     return { userId: user?.id ?? null, guestToken: guestToken ?? null };
   }
 }

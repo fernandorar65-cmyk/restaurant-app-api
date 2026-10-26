@@ -22,6 +22,7 @@ import type { SupplyRepository } from '../../domain/repositories/supply.reposito
 import { InventoryCategoriesService } from '../inventory-categories/inventory-categories.service.js';
 import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
 import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateSupplyInput extends SupplyDetails {
   restaurantId: string;
@@ -63,10 +64,11 @@ export class SuppliesService {
     return this.supplyRepository.save(supply);
   }
 
-  findAll(
-    filter: { restaurantId?: string; categoryId?: string } = {},
-  ): Promise<Supply[]> {
-    return this.supplyRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string; categoryId?: string },
+    page: PageRequest,
+  ): Promise<Page<Supply>> {
+    return this.supplyRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<Supply> {
@@ -120,9 +122,12 @@ export class SuppliesService {
     });
   }
 
-  async listMovements(supplyId: string): Promise<InventoryMovement[]> {
+  async listMovements(
+    supplyId: string,
+    page: PageRequest,
+  ): Promise<Page<InventoryMovement>> {
     await this.findOne(supplyId);
-    return this.movementRepository.findBySupply(supplyId);
+    return this.movementRepository.findBySupply(supplyId, page);
   }
 
   private async assertCategoryFitsRestaurant(

@@ -5,24 +5,24 @@ import {
 
 export class InvalidCredentialsError extends UnauthorizedDomainError {
   constructor() {
-    super('Invalid email or password');
+    super('Correo o contraseña incorrectos');
   }
 }
 
 export class InvalidRefreshTokenError extends UnauthorizedDomainError {
   constructor() {
-    super('Invalid or expired refresh token');
+    super('Refresh token inválido o vencido');
   }
 }
 
 export class InvalidPasswordResetTokenError extends UnauthorizedDomainError {
   constructor() {
-    super('Invalid or expired password reset token');
+    super('Token de restablecimiento inválido o vencido');
   }
 }
 
 export class AccountDisabledError extends ForbiddenDomainError {
   constructor() {
-    super('This account is inactive or blocked');
+    super('La cuenta está inactiva o bloqueada');
   }
 }

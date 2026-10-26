@@ -6,12 +6,12 @@ import { NotFoundDomainError } from '../../../common/domain/domain-error.js';
  */
 export class OrganizationReferenceNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Organization with id "${id}" not found`);
+    super(`No existe la organización con id "${id}"`);
   }
 }
 
 export class RestaurantReferenceNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Restaurant with id "${id}" not found`);
+    super(`No existe el restaurante con id "${id}"`);
   }
 }

@@ -10,6 +10,7 @@ import {
 import { RESTAURANT_REPOSITORY } from '../../domain/repositories/restaurant.repository.js';
 import type { RestaurantRepository } from '../../domain/repositories/restaurant.repository.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateRestaurantInput extends RestaurantDetails {
   organizationId: string;
@@ -55,8 +56,11 @@ export class RestaurantsService {
     return this.restaurantRepository.save(restaurant);
   }
 
-  findAll(filter: { organizationId?: string } = {}): Promise<Restaurant[]> {
-    return this.restaurantRepository.findAll(filter);
+  findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Restaurant>> {
+    return this.restaurantRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<Restaurant> {

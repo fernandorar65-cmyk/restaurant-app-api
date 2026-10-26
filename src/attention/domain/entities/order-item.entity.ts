@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import { roundMoney } from '../../../common/domain/value-objects/money.js';
 import { OrderItemStatus } from '../enums/order-item-status.enum.js';
@@ -47,6 +46,8 @@ export class OrderItem {
   /** Returns the item together with its initial history entry. */
   static create(params: {
     id: string;
+    /** Id for the initial SUBMITTED history entry. */
+    historyId: string;
     batchId: string;
     productId: string;
     productName: string;
@@ -76,7 +77,7 @@ export class OrderItem {
       updatedAt: now,
     });
     const history = OrderItemStatusHistory.record({
-      id: randomUUID(),
+      id: params.historyId,
       orderItemId: item.id,
       previousStatus: null,
       newStatus: OrderItemStatus.SUBMITTED,
@@ -97,7 +98,11 @@ export class OrderItem {
    */
   changeStatus(
     target: OrderItemStatus,
-    options: { reason?: string | null; changedByUserId?: string | null } = {},
+    options: {
+      historyId: string;
+      reason?: string | null;
+      changedByUserId?: string | null;
+    },
   ): OrderItemStatusHistory {
     const previous = this.props.currentStatus;
     if (!ALLOWED_TRANSITIONS[previous].includes(target)) {
@@ -114,7 +119,7 @@ export class OrderItem {
     }
     this.props.updatedAt = new Date();
     return OrderItemStatusHistory.record({
-      id: randomUUID(),
+      id: options.historyId,
       orderItemId: this.props.id,
       previousStatus: previous,
       newStatus: target,

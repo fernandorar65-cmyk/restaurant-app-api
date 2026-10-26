@@ -7,6 +7,7 @@ import {
   Param,
   ParseEnumPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { AttentionStatus } from '../../../domain/enums/attention-status.enum.js'
 import { OrderBatchSource } from '../../../domain/enums/order-batch-source.enum.js';
 import {
   CancelAttentionDto,
+  ChangeFulfillmentStatusDto,
   OpenAttentionDto,
   WaiterRoundDto,
 } from '../dto/attention-requests.dto.js';
@@ -31,8 +33,16 @@ import {
   AttentionBillResponseDto,
   AttentionDetailResponseDto,
   AttentionResponseDto,
+  FulfillmentResponseDto,
   OrderBatchResponseDto,
 } from '../dto/attention-responses.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 /** Staff side of an attention: open, take rounds, bill, close or cancel. */
 @ApiTags('attention/attentions')
@@ -58,15 +68,18 @@ export class AttentionsController {
   @ApiOperation({ summary: 'Listar atenciones' })
   @ApiQuery({ name: 'restaurantId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: AttentionStatus })
-  @ApiOkResponse({ type: [AttentionResponseDto] })
+  @ApiPaginatedResponse(AttentionResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
     @Query('status', new ParseEnumPipe(AttentionStatus, { optional: true }))
     status?: AttentionStatus,
-  ): Promise<AttentionResponseDto[]> {
-    const attentions = await this.attentionsService.findAll({ restaurantId, status });
-    return attentions.map((attention) => AttentionResponseDto.fromDomain(attention));
+  ): Promise<PageResponse<AttentionResponseDto>> {
+    const attentions = await this.attentionsService.findPage({ restaurantId, status }, page);
+    return toPageResponse(attentions, (attention) =>
+      AttentionResponseDto.fromDomain(attention),
+    );
   }
 
   @Get(':id')
@@ -140,6 +153,17 @@ export class AttentionsController {
   ): Promise<AttentionResponseDto> {
     const attention = await this.attentionsService.cancel(id, dto.reason);
     return AttentionResponseDto.fromDomain(attention);
+  }
+
+  @Patch(':id/fulfillment/status')
+  @ApiOperation({ summary: 'Avanzar el recojo/delivery por su flujo de estados' })
+  @ApiOkResponse({ type: FulfillmentResponseDto })
+  async changeFulfillmentStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ChangeFulfillmentStatusDto,
+  ): Promise<FulfillmentResponseDto> {
+    const fulfillment = await this.attentionsService.changeFulfillmentStatus(id, dto);
+    return FulfillmentResponseDto.fromDomain(fulfillment);
   }
 
   @Post('rounds/:batchId/confirm')

@@ -4,6 +4,7 @@ import { CatalogModule } from '../catalog/catalog.module.js';
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
 import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
 import { IamModule } from '../iam/iam.module.js';
+import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { AttentionsService } from './application/attentions/attentions.service.js';
 import { CustomerAttentionsService } from './application/customer-attentions/customer-attentions.service.js';
@@ -12,6 +13,7 @@ import { OrderRoundsService } from './application/order-rounds/order-rounds.serv
 import { DINING_TABLE_LOOKUP } from './application/ports/dining-table-lookup.port.js';
 import { PAYMENT_LEDGER } from './application/ports/payment-ledger.port.js';
 import { PRODUCT_LOOKUP } from './application/ports/product-lookup.port.js';
+import { STOCK_CONSUMPTION } from './application/ports/stock-consumption.port.js';
 import { RESTAURANT_LOOKUP } from './application/ports/restaurant-lookup.port.js';
 import { TABLE_QR_LOOKUP } from './application/ports/table-qr-lookup.port.js';
 import { ATTENTION_PARTICIPANT_REPOSITORY } from './domain/repositories/attention-participant.repository.js';
@@ -28,6 +30,7 @@ import { TableQrController } from './infrastructure/http/controllers/table-qr.co
 import { InternalDiningTableLookupAdapter } from './infrastructure/lookups/internal-dining-table-lookup.adapter.js';
 import { InternalProductLookupAdapter } from './infrastructure/lookups/internal-product-lookup.adapter.js';
 import { InternalRestaurantLookupAdapter } from './infrastructure/lookups/internal-restaurant-lookup.adapter.js';
+import { InternalStockConsumptionAdapter } from './infrastructure/lookups/internal-stock-consumption.adapter.js';
 import { InternalTableQrLookupAdapter } from './infrastructure/lookups/internal-table-qr-lookup.adapter.js';
 import { SqlPaymentLedgerAdapter } from './infrastructure/lookups/sql-payment-ledger.adapter.js';
 import { AttentionParticipantOrmEntity } from './infrastructure/persistence/typeorm/entities/attention-participant.orm-entity.js';
@@ -56,6 +59,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     OrganizationsModule,
     CatalogModule,
     IamModule,
+    InventoryModule,
   ],
   controllers: [
     AttentionsController,
@@ -85,6 +89,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     { provide: DINING_TABLE_LOOKUP, useClass: InternalDiningTableLookupAdapter },
     { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
     { provide: PRODUCT_LOOKUP, useClass: InternalProductLookupAdapter },
+    { provide: STOCK_CONSUMPTION, useClass: InternalStockConsumptionAdapter },
     { provide: PAYMENT_LEDGER, useClass: SqlPaymentLedgerAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
   ],

@@ -5,12 +5,12 @@ import {
 
 export class RoleNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Role with id "${id}" not found`);
+    super(`No existe el rol con id "${id}"`);
   }
 }
 
 export class DuplicateRoleCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`The organization already has a role with code "${code}"`);
+    super(`La organización ya tiene un rol con el código "${code}"`);
   }
 }

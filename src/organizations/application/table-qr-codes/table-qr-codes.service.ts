@@ -17,6 +17,7 @@ import { TABLE_QR_CODE_REPOSITORY } from '../../domain/repositories/table-qr-cod
 import type { TableQrCodeRepository } from '../../domain/repositories/table-qr-code.repository.js';
 import { DiningTablesService } from '../dining-tables/dining-tables.service.js';
 import { RestaurantsService } from '../restaurants/restaurants.service.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface GeneratedTableQrCode {
   qrCode: TableQrCode;
@@ -76,8 +77,11 @@ export class TableQrCodesService {
     return { qrCode, token };
   }
 
-  findAll(filter: { diningTableId?: string } = {}): Promise<TableQrCode[]> {
-    return this.qrCodeRepository.findAll(filter);
+  findPage(
+    filter: { diningTableId?: string },
+    page: PageRequest,
+  ): Promise<Page<TableQrCode>> {
+    return this.qrCodeRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<TableQrCode> {

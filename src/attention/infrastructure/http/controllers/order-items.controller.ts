@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseArrayPipe,
+  ParseBoolPipe,
   ParseUUIDPipe,
   Patch,
   Query,
@@ -16,6 +17,13 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 import { OrderItemsService } from '../../../application/order-items/order-items.service.js';
 import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
 import { ChangeOrderItemStatusDto } from '../dto/attention-requests.dto.js';
@@ -31,29 +39,41 @@ export class OrderItemsController {
   constructor(private readonly itemsService: OrderItemsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Platos de un restaurante (tablero de cocina)' })
+  @ApiOperation({
+    summary: 'Platos de un restaurante (tablero de cocina)',
+    description:
+      'Por defecto solo platos de atenciones activas (OPEN / BILL_REQUESTED). includeClosed=true incluye también las cerradas y canceladas',
+  })
   @ApiQuery({ name: 'restaurantId', required: true })
+  @ApiQuery({ name: 'includeClosed', required: false, type: Boolean })
   @ApiQuery({
     name: 'status',
     required: false,
     description: 'Uno o varios estados separados por coma, ej. SUBMITTED,PREPARING',
   })
-  @ApiOkResponse({ type: [OrderItemResponseDto] })
-  async findForRestaurant(
+  @ApiPaginatedResponse(OrderItemResponseDto)
+  async findForBoard(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Query(
       'status',
       new ParseArrayPipe({ items: String, separator: ',', optional: true }),
     )
     statuses?: string[],
-  ): Promise<OrderItemResponseDto[]> {
-    const items = await this.itemsService.findForRestaurant(
-      restaurantId,
-      statuses?.filter((status): status is OrderItemStatus =>
-        Object.values<string>(OrderItemStatus).includes(status),
-      ),
+    @Query('includeClosed', new ParseBoolPipe({ optional: true }))
+    includeClosed?: boolean,
+  ): Promise<PageResponse<OrderItemResponseDto>> {
+    const items = await this.itemsService.findForBoard(
+      {
+        restaurantId,
+        statuses: statuses?.filter((status): status is OrderItemStatus =>
+          Object.values<string>(OrderItemStatus).includes(status),
+        ),
+        includeClosedAttentions: includeClosed,
+      },
+      page,
     );
-    return items.map((item) => OrderItemResponseDto.fromDomain(item));
+    return toPageResponse(items, (item) => OrderItemResponseDto.fromDomain(item));
   }
 
   @Get(':id')

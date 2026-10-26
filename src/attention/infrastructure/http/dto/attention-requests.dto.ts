@@ -17,6 +17,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import { FulfillmentStatus } from '../../../domain/enums/fulfillment-status.enum.js';
 import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
 import { ServiceType } from '../../../domain/enums/service-type.enum.js';
 
@@ -173,6 +174,22 @@ export class ChangeOrderItemStatusDto {
   @IsOptional()
   @IsUUID()
   changedByUserId?: string | null;
+}
+
+export class ChangeFulfillmentStatusDto {
+  @ApiProperty({
+    enum: FulfillmentStatus,
+    description:
+      'PENDING→CONFIRMED→PREPARING→READY→(PICKUP: COMPLETED | DELIVERY: OUT_FOR_DELIVERY→COMPLETED); CANCELLED desde cualquier estado no final',
+  })
+  @IsEnum(FulfillmentStatus)
+  status: FulfillmentStatus;
+
+  @ApiPropertyOptional({ description: 'Hora estimada de listo (útil al confirmar)' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  estimatedReadyAt?: Date | null;
 }
 
 export class StartCustomerAttentionDto extends RoundDto {

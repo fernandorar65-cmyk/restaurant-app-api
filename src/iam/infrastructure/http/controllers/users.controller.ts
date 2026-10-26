@@ -19,6 +19,13 @@ import { UsersService } from '../../../application/users/users.service.js';
 import { CreateUserDto } from '../dto/users/create-user.dto.js';
 import { UpdateUserDto } from '../dto/users/update-user.dto.js';
 import { UserResponseDto } from '../dto/users/user-response.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('iam/users')
 @Controller('users')
@@ -35,10 +42,14 @@ export class UsersController {
 
   @Get()
   @ApiOperation({ summary: 'Listar usuarios' })
-  @ApiOkResponse({ type: [UserResponseDto] })
-  async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.usersService.findAll();
-    return users.map((user) => UserResponseDto.fromDomain(user));
+  @ApiPaginatedResponse(UserResponseDto)
+  async findAll(
+    @Pagination() page: PageRequest,
+  ): Promise<PageResponse<UserResponseDto>> {
+    const users = await this.usersService.findPage(page);
+    return toPageResponse(users, (user) =>
+      UserResponseDto.fromDomain(user),
+    );
   }
 
   @Get(':id')

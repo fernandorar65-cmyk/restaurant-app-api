@@ -10,32 +10,32 @@ import type { OrderItemStatus } from '../enums/order-item-status.enum.js';
 
 export class AttentionNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Attention with id "${id}" not found`);
+    super(`No existe la atención con id "${id}"`);
   }
 }
 
 export class AttentionNotActiveError extends BusinessRuleDomainError {
   constructor(status: AttentionStatus) {
-    super(`The attention is ${status}; it no longer accepts changes`);
+    super(`La atención está en estado ${status}; ya no admite cambios`);
   }
 }
 
 /** Raised by the repository when the one-active-attention-per-table index fires. */
 export class ActiveAttentionAlreadyExistsError extends ConflictDomainError {
   constructor(diningTableId: string) {
-    super(`Dining table "${diningTableId}" already has an active attention`);
+    super(`La mesa "${diningTableId}" ya tiene una atención activa`);
   }
 }
 
 export class OutstandingBalanceError extends BusinessRuleDomainError {
   constructor(balance: number) {
-    super(`The attention still has an outstanding balance of ${balance}`);
+    super(`La atención todavía tiene un saldo pendiente de ${balance}`);
   }
 }
 
 export class AttentionHasPaymentsError extends BusinessRuleDomainError {
   constructor() {
-    super('The attention has payments; refund them before cancelling');
+    super('La atención tiene pagos; primero deben reembolsarse para cancelarla');
   }
 }
 
@@ -43,43 +43,43 @@ export class InvalidServiceSetupError extends ValidationDomainError {}
 
 export class AttentionAccessDeniedError extends ForbiddenDomainError {
   constructor() {
-    super('You are not a participant of this attention');
+    super('No eres participante de esta atención');
   }
 }
 
 export class InvalidTableQrTokenError extends NotFoundDomainError {
   constructor() {
-    super('QR_INVALID');
+    super('El QR no es válido o fue revocado', 'QR_INVALID');
   }
 }
 
 export class OrderBatchNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Order batch with id "${id}" not found`);
+    super(`No existe la ronda con id "${id}"`);
   }
 }
 
 export class OrderBatchNotSubmittedError extends BusinessRuleDomainError {
   constructor() {
-    super('Only submitted rounds can be confirmed');
+    super('Solo se pueden confirmar rondas en estado SUBMITTED');
   }
 }
 
 export class OrderItemNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Order item with id "${id}" not found`);
+    super(`No existe el plato con id "${id}"`);
   }
 }
 
 export class InvalidOrderItemTransitionError extends ConflictDomainError {
   constructor(from: OrderItemStatus, to: OrderItemStatus) {
-    super(`Cannot move an order item from "${from}" to "${to}"`);
+    super(`Un plato no puede pasar de "${from}" a "${to}"`);
   }
 }
 
 export class RejectionReasonRequiredError extends ValidationDomainError {
   constructor() {
-    super('A reason is required to reject an order item');
+    super('Se requiere un motivo para rechazar un plato');
   }
 }
 
@@ -87,32 +87,50 @@ export class RejectionReasonRequiredError extends ValidationDomainError {
 export class StaleOrderItemVersionError extends ConflictDomainError {
   constructor(id: string) {
     super(
-      `Order item "${id}" was modified by someone else; reload it and try again`,
+      `El plato "${id}" fue modificado por otra persona; vuelve a cargarlo e inténtalo de nuevo`,
     );
   }
 }
 
 export class ProductNotOrderableError extends BusinessRuleDomainError {
   constructor(productId: string, reason: string) {
-    super(`Product "${productId}" cannot be ordered: ${reason}`);
+    super(`El producto "${productId}" no se puede pedir: ${reason}`);
   }
 }
 
 export class DiningTableReferenceNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Dining table with id "${id}" not found`);
+    super(`No existe la mesa con id "${id}"`);
   }
 }
 
 export class RestaurantReferenceNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Restaurant with id "${id}" not found`);
+    super(`No existe el restaurante con id "${id}"`);
   }
 }
 
 /** Raised by the repository when a round with the same request id already exists. */
 export class DuplicateRoundRequestError extends ConflictDomainError {
   constructor(requestId: string) {
-    super(`A round with request id "${requestId}" was already submitted`);
+    super(`Ya se envió una ronda con el requestId "${requestId}"`);
+  }
+}
+
+export class ServiceModeDisabledError extends BusinessRuleDomainError {
+  constructor(serviceType: string) {
+    super(`La sede no acepta pedidos ${serviceType}`);
+  }
+}
+
+export class FulfillmentNotFoundError extends NotFoundDomainError {
+  constructor(attentionId: string) {
+    super(`La atención "${attentionId}" no tiene datos de recojo/delivery`);
+  }
+}
+
+export class InvalidFulfillmentTransitionError extends ConflictDomainError {
+  constructor(type: string, from: string, to: string) {
+    super(`Un ${type} no puede pasar de "${from}" a "${to}"`);
   }
 }

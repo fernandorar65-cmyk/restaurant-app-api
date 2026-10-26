@@ -98,6 +98,7 @@ export class OrderRoundsService {
           const product = products.get(line.productId) as ProductForOrder;
           const { item, history } = OrderItem.create({
             id: randomUUID(),
+            historyId: randomUUID(),
             batchId: batch.id,
             productId: product.id,
             productName: product.name,

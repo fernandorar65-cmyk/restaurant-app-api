@@ -5,12 +5,12 @@ import {
 
 export class UserNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`User with id "${id}" not found`);
+    super(`No existe el usuario con id "${id}"`);
   }
 }
 
 export class DuplicateEmailError extends ConflictDomainError {
   constructor(email: string) {
-    super(`A user with email "${email}" already exists`);
+    super(`Ya existe un usuario con el correo "${email}"`);
   }
 }

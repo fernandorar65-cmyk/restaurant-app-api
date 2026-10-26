@@ -21,6 +21,13 @@ import { MembershipsService } from '../../../application/memberships/memberships
 import { CreateMembershipDto } from '../dto/memberships/create-membership.dto.js';
 import { MembershipResponseDto } from '../dto/memberships/membership-response.dto.js';
 import { UpdateMembershipDto } from '../dto/memberships/update-membership.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('iam/memberships')
 @Controller('memberships')
@@ -39,17 +46,18 @@ export class MembershipsController {
   @ApiOperation({ summary: 'Listar membresías' })
   @ApiQuery({ name: 'organizationId', required: false })
   @ApiQuery({ name: 'userId', required: false })
-  @ApiOkResponse({ type: [MembershipResponseDto] })
+  @ApiPaginatedResponse(MembershipResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
     @Query('userId', new ParseUUIDPipe({ optional: true })) userId?: string,
-  ): Promise<MembershipResponseDto[]> {
-    const memberships = await this.membershipsService.findAll({
+  ): Promise<PageResponse<MembershipResponseDto>> {
+    const memberships = await this.membershipsService.findPage({
       organizationId,
       userId,
-    });
-    return memberships.map((membership) =>
+    }, page);
+    return toPageResponse(memberships, (membership) =>
       MembershipResponseDto.fromDomain(membership),
     );
   }

@@ -5,12 +5,12 @@ import {
 
 export class PermissionNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Permission with id "${id}" not found`);
+    super(`No existe el permiso con id "${id}"`);
   }
 }
 
 export class DuplicatePermissionCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`Permission "${code}" already exists`);
+    super(`El permiso "${code}" ya existe`);
   }
 }

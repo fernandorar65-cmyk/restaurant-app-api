@@ -1,6 +1,7 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Attention } from '../entities/attention.entity.js';
 import { AttentionStatus } from '../enums/attention-status.enum.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export const ATTENTION_REPOSITORY = Symbol('ATTENTION_REPOSITORY');
 
@@ -10,10 +11,13 @@ export interface AttentionRepository {
     diningTableId: string,
     tx?: TransactionContext,
   ): Promise<Attention | null>;
-  findAll(filter?: {
+  findPage(
+    filter: {
     restaurantId?: string;
     status?: AttentionStatus;
-  }): Promise<Attention[]>;
+  },
+    page: PageRequest,
+  ): Promise<Page<Attention>>;
   /**
    * Throws ActiveAttentionAlreadyExistsError if another active attention was
    * opened for the same table concurrently.

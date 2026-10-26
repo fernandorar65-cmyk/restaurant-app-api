@@ -28,6 +28,13 @@ import {
   SupplyResponseDto,
   UpdateSupplyDto,
 } from '../dto/supply.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('inventory/supplies')
 @Controller('supplies')
@@ -46,15 +53,18 @@ export class SuppliesController {
   @ApiOperation({ summary: 'Listar insumos' })
   @ApiQuery({ name: 'restaurantId', required: false })
   @ApiQuery({ name: 'categoryId', required: false })
-  @ApiOkResponse({ type: [SupplyResponseDto] })
+  @ApiPaginatedResponse(SupplyResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
     @Query('categoryId', new ParseUUIDPipe({ optional: true }))
     categoryId?: string,
-  ): Promise<SupplyResponseDto[]> {
-    const supplies = await this.suppliesService.findAll({ restaurantId, categoryId });
-    return supplies.map((supply) => SupplyResponseDto.fromDomain(supply));
+  ): Promise<PageResponse<SupplyResponseDto>> {
+    const supplies = await this.suppliesService.findPage({ restaurantId, categoryId }, page);
+    return toPageResponse(supplies, (supply) =>
+      SupplyResponseDto.fromDomain(supply),
+    );
   }
 
   @Get(':id')
@@ -106,12 +116,13 @@ export class SuppliesController {
 
   @Get(':id/movements')
   @ApiOperation({ summary: 'Historial de movimientos del insumo' })
-  @ApiOkResponse({ type: [InventoryMovementResponseDto] })
+  @ApiPaginatedResponse(InventoryMovementResponseDto)
   async listMovements(
+    @Pagination() page: PageRequest,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<InventoryMovementResponseDto[]> {
-    const movements = await this.suppliesService.listMovements(id);
-    return movements.map((movement) =>
+  ): Promise<PageResponse<InventoryMovementResponseDto>> {
+    const movements = await this.suppliesService.listMovements(id, page);
+    return toPageResponse(movements, (movement) =>
       InventoryMovementResponseDto.fromDomain(movement),
     );
   }

@@ -6,24 +6,24 @@ import {
 
 export class MembershipNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
-    super(`Membership with id "${id}" not found`);
+    super(`No existe la membresía con id "${id}"`);
   }
 }
 
 export class DuplicateMembershipError extends ConflictDomainError {
   constructor() {
-    super('The user is already a member of that organization');
+    super('El usuario ya es miembro de esa organización');
   }
 }
 
 export class RoleFromAnotherOrganizationError extends ValidationDomainError {
   constructor() {
-    super('The role does not belong to the membership organization');
+    super('El rol no pertenece a la organización de la membresía');
   }
 }
 
 export class RestaurantFromAnotherOrganizationError extends ValidationDomainError {
   constructor(restaurantId: string) {
-    super(`Restaurant "${restaurantId}" does not belong to the membership organization`);
+    super(`El restaurante "${restaurantId}" no pertenece a la organización de la membresía`);
   }
 }

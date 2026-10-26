@@ -6,6 +6,7 @@ import { Product } from '../../../../domain/entities/product.entity.js';
 import { ProductRepository } from '../../../../domain/repositories/product.repository.js';
 import { ProductOrmEntity } from '../entities/product.orm-entity.js';
 import { ProductMapper } from '../mappers/product.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmProductRepository
@@ -30,14 +31,14 @@ export class TypeOrmProductRepository
     return ProductMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { restaurantId?: string; categoryId?: string } = {},
-  ): Promise<Product[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { restaurantId?: string; categoryId?: string },
+    page: PageRequest,
+  ): Promise<Page<Product>> {
+    return this.findPageBy({
       where: { restaurantId: filter.restaurantId, categoryId: filter.categoryId },
       order: { name: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByIds(ids: string[]): Promise<Product[]> {

@@ -7,6 +7,7 @@ import { TableQrCode } from '../../../../domain/entities/table-qr-code.entity.js
 import { TableQrCodeRepository } from '../../../../domain/repositories/table-qr-code.repository.js';
 import { TableQrCodeOrmEntity } from '../entities/table-qr-code.orm-entity.js';
 import { TableQrCodeMapper } from '../mappers/table-qr-code.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmTableQrCodeRepository
@@ -31,14 +32,14 @@ export class TypeOrmTableQrCodeRepository
     return TableQrCodeMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { diningTableId?: string } = {},
-  ): Promise<TableQrCode[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { diningTableId?: string },
+    page: PageRequest,
+  ): Promise<Page<TableQrCode>> {
+    return this.findPageBy({
       where: { diningTableId: filter.diningTableId },
       order: { generatedAt: 'DESC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findActiveByTokenHash(tokenHash: string): Promise<TableQrCode | null> {

@@ -23,6 +23,13 @@ import {
   InventoryCategoryResponseDto,
   UpdateInventoryCategoryDto,
 } from '../dto/inventory-category.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('inventory/categories')
 @Controller('inventory-categories')
@@ -42,13 +49,14 @@ export class InventoryCategoriesController {
   @Get()
   @ApiOperation({ summary: 'Listar categorías de inventario' })
   @ApiQuery({ name: 'organizationId', required: false })
-  @ApiOkResponse({ type: [InventoryCategoryResponseDto] })
+  @ApiPaginatedResponse(InventoryCategoryResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
-  ): Promise<InventoryCategoryResponseDto[]> {
-    const categories = await this.categoriesService.findAll({ organizationId });
-    return categories.map((category) =>
+  ): Promise<PageResponse<InventoryCategoryResponseDto>> {
+    const categories = await this.categoriesService.findPage({ organizationId }, page);
+    return toPageResponse(categories, (category) =>
       InventoryCategoryResponseDto.fromDomain(category),
     );
   }

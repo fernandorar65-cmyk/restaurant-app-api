@@ -10,6 +10,7 @@ import { ROLE_REPOSITORY } from '../../domain/repositories/role.repository.js';
 import type { RoleRepository } from '../../domain/repositories/role.repository.js';
 import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
 import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface CreateRoleInput {
   organizationId: string;
@@ -47,8 +48,11 @@ export class RolesService {
     return this.roleRepository.save(role);
   }
 
-  findAll(filter: { organizationId?: string } = {}): Promise<Role[]> {
-    return this.roleRepository.findAll(filter);
+  findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Role>> {
+    return this.roleRepository.findPage(filter, page);
   }
 
   async findOne(id: string): Promise<Role> {

@@ -21,6 +21,13 @@ import { ProductsService } from '../../../application/products/products.service.
 import { CreateProductDto } from '../dto/products/create-product.dto.js';
 import { ProductResponseDto } from '../dto/products/product-response.dto.js';
 import { UpdateProductDto } from '../dto/products/update-product.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('catalog/products')
 @Controller('products')
@@ -39,18 +46,21 @@ export class ProductsController {
   @ApiOperation({ summary: 'Listar productos' })
   @ApiQuery({ name: 'restaurantId', required: false })
   @ApiQuery({ name: 'categoryId', required: false })
-  @ApiOkResponse({ type: [ProductResponseDto] })
+  @ApiPaginatedResponse(ProductResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
     @Query('categoryId', new ParseUUIDPipe({ optional: true }))
     categoryId?: string,
-  ): Promise<ProductResponseDto[]> {
-    const products = await this.productsService.findAll({
+  ): Promise<PageResponse<ProductResponseDto>> {
+    const products = await this.productsService.findPage({
       restaurantId,
       categoryId,
-    });
-    return products.map((product) => ProductResponseDto.fromDomain(product));
+    }, page);
+    return toPageResponse(products, (product) =>
+      ProductResponseDto.fromDomain(product),
+    );
   }
 
   @Get(':id')

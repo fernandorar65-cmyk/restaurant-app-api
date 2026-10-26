@@ -21,6 +21,13 @@ import { DiningTablesService } from '../../../application/dining-tables/dining-t
 import { CreateDiningTableDto } from '../dto/dining-tables/create-dining-table.dto.js';
 import { DiningTableResponseDto } from '../dto/dining-tables/dining-table-response.dto.js';
 import { UpdateDiningTableDto } from '../dto/dining-tables/update-dining-table.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('organizations/dining-tables')
 @Controller('dining-tables')
@@ -41,18 +48,21 @@ export class DiningTablesController {
   @ApiOperation({ summary: 'Listar mesas' })
   @ApiQuery({ name: 'restaurantId', required: false })
   @ApiQuery({ name: 'floorId', required: false })
-  @ApiOkResponse({ type: [DiningTableResponseDto] })
+  @ApiPaginatedResponse(DiningTableResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
     @Query('floorId', new ParseUUIDPipe({ optional: true }))
     floorId?: string,
-  ): Promise<DiningTableResponseDto[]> {
-    const tables = await this.diningTablesService.findAll({
+  ): Promise<PageResponse<DiningTableResponseDto>> {
+    const tables = await this.diningTablesService.findPage({
       restaurantId,
       floorId,
-    });
-    return tables.map((table) => DiningTableResponseDto.fromDomain(table));
+    }, page);
+    return toPageResponse(tables, (table) =>
+      DiningTableResponseDto.fromDomain(table),
+    );
   }
 
   @Get(':id')

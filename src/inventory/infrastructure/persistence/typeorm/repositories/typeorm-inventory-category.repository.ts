@@ -6,6 +6,7 @@ import { InventoryCategory } from '../../../../domain/entities/inventory-categor
 import { InventoryCategoryRepository } from '../../../../domain/repositories/inventory-category.repository.js';
 import { InventoryCategoryOrmEntity } from '../entities/inventory-category.orm-entity.js';
 import { InventoryCategoryMapper } from '../mappers/inventory.mappers.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmInventoryCategoryRepository
@@ -30,14 +31,14 @@ export class TypeOrmInventoryCategoryRepository
     return InventoryCategoryMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { organizationId?: string } = {},
-  ): Promise<InventoryCategory[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<InventoryCategory>> {
+    return this.findPageBy({
       where: { organizationId: filter.organizationId },
       order: { name: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByName(

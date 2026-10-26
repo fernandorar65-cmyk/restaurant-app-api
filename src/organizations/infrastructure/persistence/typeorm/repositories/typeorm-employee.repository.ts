@@ -6,6 +6,7 @@ import { Employee } from '../../../../domain/entities/employee.entity.js';
 import { EmployeeRepository } from '../../../../domain/repositories/employee.repository.js';
 import { EmployeeOrmEntity } from '../entities/employee.orm-entity.js';
 import { EmployeeMapper } from '../mappers/employee.mapper.js';
+import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmEmployeeRepository
@@ -30,14 +31,14 @@ export class TypeOrmEmployeeRepository
     return EmployeeMapper.toPersistence(domain, existing);
   }
 
-  override async findAll(
-    filter: { organizationId?: string } = {},
-  ): Promise<Employee[]> {
-    const rows = await this.repository.find({
+  async findPage(
+    filter: { organizationId?: string },
+    page: PageRequest,
+  ): Promise<Page<Employee>> {
+    return this.findPageBy({
       where: { organizationId: filter.organizationId },
       order: { employeeCode: 'ASC' },
-    });
-    return rows.map((row) => this.toDomain(row));
+    }, page);
   }
 
   async findByCode(

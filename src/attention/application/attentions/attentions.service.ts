@@ -10,14 +10,17 @@ import type { FulfillmentDetails } from '../../domain/entities/fulfillment.entit
 import { OrderBatch } from '../../domain/entities/order-batch.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { AttentionStatus } from '../../domain/enums/attention-status.enum.js';
+import { FulfillmentStatus } from '../../domain/enums/fulfillment-status.enum.js';
 import { FulfillmentType } from '../../domain/enums/fulfillment-type.enum.js';
 import { ServiceType } from '../../domain/enums/service-type.enum.js';
 import {
   ActiveAttentionAlreadyExistsError,
   AttentionNotFoundError,
   DiningTableReferenceNotFoundError,
+  FulfillmentNotFoundError,
   InvalidServiceSetupError,
   RestaurantReferenceNotFoundError,
+  ServiceModeDisabledError,
 } from '../../domain/exceptions/attention.errors.js';
 import { ATTENTION_PARTICIPANT_REPOSITORY } from '../../domain/repositories/attention-participant.repository.js';
 import type { AttentionParticipantRepository } from '../../domain/repositories/attention-participant.repository.js';
@@ -25,6 +28,7 @@ import { ATTENTION_REPOSITORY } from '../../domain/repositories/attention.reposi
 import type { AttentionRepository } from '../../domain/repositories/attention.repository.js';
 import { FULFILLMENT_REPOSITORY } from '../../domain/repositories/fulfillment.repository.js';
 import type { FulfillmentRepository } from '../../domain/repositories/fulfillment.repository.js';
+import { generateAttentionNumber } from './attention-number.js';
 import { OrderItemsService } from '../order-items/order-items.service.js';
 import { OrderRoundsService } from '../order-rounds/order-rounds.service.js';
 import { DINING_TABLE_LOOKUP } from '../ports/dining-table-lookup.port.js';
@@ -33,6 +37,7 @@ import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
 import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
 import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
 import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
 export interface OpenAttentionInput {
   serviceType: ServiceType;
@@ -87,9 +92,11 @@ export class AttentionsService {
   async open(input: OpenAttentionInput): Promise<Attention> {
     if (input.serviceType === ServiceType.DINE_IN) {
       const table = await this.requireOperationalTable(input.diningTableId);
+      await this.requireEnabledMode(table.restaurantId, ServiceType.DINE_IN);
       return this.attentionRepository.save(
         Attention.open({
           id: randomUUID(),
+          attentionNumber: generateAttentionNumber(),
           restaurantId: table.restaurantId,
           serviceType: ServiceType.DINE_IN,
           diningTableId: table.id,
@@ -99,19 +106,21 @@ export class AttentionsService {
     }
 
     if (!input.restaurantId) {
-      throw new InvalidServiceSetupError(`${input.serviceType} requires a restaurant`);
+      throw new InvalidServiceSetupError(`${input.serviceType} requiere un restaurante`);
     }
     if (!input.fulfillment) {
       throw new InvalidServiceSetupError(
-        `${input.serviceType} requires contact (and delivery) data`,
+        `${input.serviceType} requiere datos de contacto (y de entrega)`,
       );
     }
     const restaurant = await this.restaurantLookup.findById(input.restaurantId);
     if (!restaurant || !restaurant.isActive) {
       throw new RestaurantReferenceNotFoundError(input.restaurantId);
     }
+    const orderMode = await this.requireEnabledMode(restaurant.id, input.serviceType);
     const attention = Attention.open({
       id: randomUUID(),
+      attentionNumber: generateAttentionNumber(),
       restaurantId: restaurant.id,
       serviceType: input.serviceType,
       customerUserId: input.customerUserId,
@@ -124,6 +133,9 @@ export class AttentionsService {
         input.serviceType === ServiceType.DELIVERY
           ? FulfillmentType.DELIVERY
           : FulfillmentType.PICKUP,
+      // The fee is the restaurant's, never the client's.
+      deliveryFee:
+        input.serviceType === ServiceType.DELIVERY ? (orderMode.deliveryFee ?? 0) : 0,
     });
     return this.transactionRunner.run(async (tx) => {
       const saved = await this.attentionRepository.save(attention, tx);
@@ -159,10 +171,11 @@ export class AttentionsService {
     }
   }
 
-  findAll(
-    filter: { restaurantId?: string; status?: AttentionStatus } = {},
-  ): Promise<Attention[]> {
-    return this.attentionRepository.findAll(filter);
+  findPage(
+    filter: { restaurantId?: string; status?: AttentionStatus },
+    page: PageRequest,
+  ): Promise<Page<Attention>> {
+    return this.attentionRepository.findPage(filter, page);
   }
 
   findActiveByTable(diningTableId: string): Promise<Attention | null> {
@@ -223,22 +236,59 @@ export class AttentionsService {
     return this.attentionRepository.save(bill.attention);
   }
 
+  /** Cancelling the attention also cancels its pending pickup/delivery. */
   async cancel(id: string, reason: string): Promise<Attention> {
     const attention = await this.findOne(id);
     attention.cancel(reason, await this.paymentLedger.paidAmount(id));
-    return this.attentionRepository.save(attention);
+    const fulfillment = await this.fulfillmentRepository.findByAttention(id);
+    if (fulfillment && !fulfillment.isFinal) {
+      fulfillment.changeStatus(FulfillmentStatus.CANCELLED);
+    }
+    return this.transactionRunner.run(async (tx) => {
+      if (fulfillment) {
+        await this.fulfillmentRepository.save(fulfillment, tx);
+      }
+      return this.attentionRepository.save(attention, tx);
+    });
+  }
+
+  /** Moves the pickup/delivery through its flow (see Fulfillment). */
+  async changeFulfillmentStatus(
+    attentionId: string,
+    input: { status: FulfillmentStatus; estimatedReadyAt?: Date | null },
+  ): Promise<Fulfillment> {
+    await this.findOne(attentionId);
+    const fulfillment = await this.fulfillmentRepository.findByAttention(attentionId);
+    if (!fulfillment) {
+      throw new FulfillmentNotFoundError(attentionId);
+    }
+    fulfillment.changeStatus(input.status, {
+      estimatedReadyAt: input.estimatedReadyAt,
+    });
+    return this.fulfillmentRepository.save(fulfillment);
+  }
+
+  private async requireEnabledMode(restaurantId: string, serviceType: ServiceType) {
+    const orderMode = await this.restaurantLookup.findOrderMode(
+      restaurantId,
+      serviceType,
+    );
+    if (!orderMode.isEnabled) {
+      throw new ServiceModeDisabledError(serviceType);
+    }
+    return orderMode;
   }
 
   private async requireOperationalTable(diningTableId?: string) {
     if (!diningTableId) {
-      throw new InvalidServiceSetupError('DINE_IN requires a dining table');
+      throw new InvalidServiceSetupError('DINE_IN requiere una mesa');
     }
     const table = await this.diningTableLookup.findById(diningTableId);
     if (!table) {
       throw new DiningTableReferenceNotFoundError(diningTableId);
     }
     if (!table.isOperational) {
-      throw new InvalidServiceSetupError('The dining table is not active');
+      throw new InvalidServiceSetupError('La mesa no está activa');
     }
     return table;
   }

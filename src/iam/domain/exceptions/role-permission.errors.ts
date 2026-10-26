@@ -5,12 +5,12 @@ import {
 
 export class RolePermissionNotFoundError extends NotFoundDomainError {
   constructor() {
-    super('The role does not have that permission assigned');
+    super('El rol no tiene asignado ese permiso');
   }
 }
 
 export class DuplicateRolePermissionError extends ConflictDomainError {
   constructor() {
-    super('This role already has the given permission assigned');
+    super('El rol ya tiene asignado ese permiso');
   }
 }

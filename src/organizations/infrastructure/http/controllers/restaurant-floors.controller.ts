@@ -21,6 +21,13 @@ import { RestaurantFloorsService } from '../../../application/restaurant-floors/
 import { CreateRestaurantFloorDto } from '../dto/restaurant-floors/create-restaurant-floor.dto.js';
 import { RestaurantFloorResponseDto } from '../dto/restaurant-floors/restaurant-floor-response.dto.js';
 import { UpdateRestaurantFloorDto } from '../dto/restaurant-floors/update-restaurant-floor.dto.js';
+import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
 
 @ApiTags('organizations/restaurant-floors')
 @Controller('restaurant-floors')
@@ -40,13 +47,16 @@ export class RestaurantFloorsController {
   @Get()
   @ApiOperation({ summary: 'Listar pisos' })
   @ApiQuery({ name: 'restaurantId', required: false })
-  @ApiOkResponse({ type: [RestaurantFloorResponseDto] })
+  @ApiPaginatedResponse(RestaurantFloorResponseDto)
   async findAll(
+    @Pagination() page: PageRequest,
     @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
     restaurantId?: string,
-  ): Promise<RestaurantFloorResponseDto[]> {
-    const floors = await this.floorsService.findAll({ restaurantId });
-    return floors.map((floor) => RestaurantFloorResponseDto.fromDomain(floor));
+  ): Promise<PageResponse<RestaurantFloorResponseDto>> {
+    const floors = await this.floorsService.findPage({ restaurantId }, page);
+    return toPageResponse(floors, (floor) =>
+      RestaurantFloorResponseDto.fromDomain(floor),
+    );
   }
 
   @Get(':id')

@@ -2,7 +2,38 @@ import { GeoCoordinates } from '../../../common/domain/value-objects/geo-coordin
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
 import { FulfillmentStatus } from '../enums/fulfillment-status.enum.js';
 import { FulfillmentType } from '../enums/fulfillment-type.enum.js';
-import { InvalidServiceSetupError } from '../exceptions/attention.errors.js';
+import {
+  InvalidFulfillmentTransitionError,
+  InvalidServiceSetupError,
+} from '../exceptions/attention.errors.js';
+
+const S = FulfillmentStatus;
+
+/**
+ * Pickup ends at the counter (READY -> COMPLETED); delivery goes out first
+ * (READY -> OUT_FOR_DELIVERY -> COMPLETED). Any non-final state can be
+ * cancelled; COMPLETED and CANCELLED are final.
+ */
+const TRANSITIONS: Record<FulfillmentType, Record<FulfillmentStatus, FulfillmentStatus[]>> = {
+  [FulfillmentType.PICKUP]: {
+    [S.PENDING]: [S.CONFIRMED, S.CANCELLED],
+    [S.CONFIRMED]: [S.PREPARING, S.CANCELLED],
+    [S.PREPARING]: [S.READY, S.CANCELLED],
+    [S.READY]: [S.COMPLETED, S.CANCELLED],
+    [S.OUT_FOR_DELIVERY]: [],
+    [S.COMPLETED]: [],
+    [S.CANCELLED]: [],
+  },
+  [FulfillmentType.DELIVERY]: {
+    [S.PENDING]: [S.CONFIRMED, S.CANCELLED],
+    [S.CONFIRMED]: [S.PREPARING, S.CANCELLED],
+    [S.PREPARING]: [S.READY, S.CANCELLED],
+    [S.READY]: [S.OUT_FOR_DELIVERY, S.CANCELLED],
+    [S.OUT_FOR_DELIVERY]: [S.COMPLETED, S.CANCELLED],
+    [S.COMPLETED]: [],
+    [S.CANCELLED]: [],
+  },
+};
 
 export interface FulfillmentProps {
   id: string;
@@ -48,7 +79,7 @@ export class Fulfillment {
     },
   ): Fulfillment {
     if (params.type === FulfillmentType.DELIVERY && !params.deliveryAddress?.trim()) {
-      throw new InvalidServiceSetupError('DELIVERY requires a delivery address');
+      throw new InvalidServiceSetupError('DELIVERY requiere una dirección de entrega');
     }
     const coordinates = GeoCoordinates.createOptional(
       params.latitude,
@@ -82,6 +113,28 @@ export class Fulfillment {
 
   static fromPersistence(props: FulfillmentProps): Fulfillment {
     return new Fulfillment(props);
+  }
+
+  changeStatus(
+    target: FulfillmentStatus,
+    options: { estimatedReadyAt?: Date | null } = {},
+  ): void {
+    const { type, status } = this.props;
+    if (!TRANSITIONS[type][status].includes(target)) {
+      throw new InvalidFulfillmentTransitionError(type, status, target);
+    }
+    this.props.status = target;
+    if (options.estimatedReadyAt !== undefined) {
+      this.props.estimatedReadyAt = options.estimatedReadyAt;
+    }
+    if (target === S.COMPLETED) {
+      this.props.deliveredAt = new Date();
+    }
+    this.props.updatedAt = new Date();
+  }
+
+  get isFinal(): boolean {
+    return this.props.status === S.COMPLETED || this.props.status === S.CANCELLED;
   }
 
   get id(): string {

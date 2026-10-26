@@ -1,4 +1,12 @@
+import type { ServiceMode } from '../../domain/service-mode.js';
+
 export const RESTAURANT_LOOKUP = Symbol('CATALOG_RESTAURANT_LOOKUP');
+
+export interface OrderModeSnapshot {
+  isEnabled: boolean;
+  minimumAmount: number | null;
+  deliveryFee: number | null;
+}
 
 export interface RestaurantSnapshot {
   id: string;
@@ -13,4 +21,6 @@ export interface RestaurantSnapshot {
 export interface RestaurantLookupPort {
   findById(restaurantId: string): Promise<RestaurantSnapshot | null>;
   findBySlug(slug: string): Promise<RestaurantSnapshot | null>;
+  /** Effective settings of a service mode (defaults when not configured). */
+  findOrderMode(restaurantId: string, mode: ServiceMode): Promise<OrderModeSnapshot>;
 }

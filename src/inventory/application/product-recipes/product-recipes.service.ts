@@ -1,22 +1,31 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ProductRecipe } from '../../domain/entities/product-recipe.entity.js';
 import {
+  InactiveSupplyError,
   ProductReferenceNotFoundError,
   RecipeLineNotFoundError,
-  SupplyFromAnotherRestaurantError,
+  RecipeSupplyFromAnotherOrganizationError,
 } from '../../domain/exceptions/inventory.errors.js';
 import { PRODUCT_RECIPE_REPOSITORY } from '../../domain/repositories/product-recipe.repository.js';
 import type { ProductRecipeRepository } from '../../domain/repositories/product-recipe.repository.js';
+import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
+import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
 import { PRODUCT_LOOKUP } from '../ports/product-lookup.port.js';
 import type { ProductLookupPort } from '../ports/product-lookup.port.js';
 import { SuppliesService } from '../supplies/supplies.service.js';
 
+/**
+ * Recipes reference the organization's master supplies, never the stock of
+ * one restaurant: each restaurant resolves its own stock when consuming.
+ * Optional until the automatic discount flow is confirmed.
+ */
 @Injectable()
 export class ProductRecipesService {
   constructor(
     @Inject(PRODUCT_RECIPE_REPOSITORY)
     private readonly recipeRepository: ProductRecipeRepository,
     @Inject(PRODUCT_LOOKUP) private readonly productLookup: ProductLookupPort,
+    @Inject(ORGANIZATION_LOOKUP) private readonly organizationLookup: OrganizationLookupPort,
     private readonly suppliesService: SuppliesService,
   ) {}
 
@@ -33,8 +42,12 @@ export class ProductRecipesService {
   ): Promise<ProductRecipe> {
     const restaurantId = await this.requireProductRestaurant(productId);
     const supply = await this.suppliesService.findOne(supplyId);
-    if (supply.restaurantId !== restaurantId) {
-      throw new SupplyFromAnotherRestaurantError();
+    const organizationId = await this.organizationLookup.findRestaurantOrganizationId(restaurantId);
+    if (supply.organizationId !== organizationId) {
+      throw new RecipeSupplyFromAnotherOrganizationError();
+    }
+    if (!supply.isActive) {
+      throw new InactiveSupplyError(supply.id);
     }
     const existing = await this.recipeRepository.find(productId, supplyId);
     if (existing) {

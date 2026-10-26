@@ -12,10 +12,16 @@ export class CreateInventoryCategoryDto {
   @MinLength(1)
   @MaxLength(120)
   name: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string | null;
 }
 
 export class UpdateInventoryCategoryDto extends PartialType(
-  PickType(CreateInventoryCategoryDto, ['name'] as const),
+  PickType(CreateInventoryCategoryDto, ['name', 'description'] as const),
 ) {
   @ApiPropertyOptional()
   @IsOptional()
@@ -33,6 +39,9 @@ export class InventoryCategoryResponseDto {
   @ApiProperty({ example: 'Verduras' })
   name: string;
 
+  @ApiPropertyOptional({ nullable: true })
+  description: string | null;
+
   @ApiProperty()
   isActive: boolean;
 
@@ -47,6 +56,7 @@ export class InventoryCategoryResponseDto {
     dto.id = category.id;
     dto.organizationId = category.organizationId;
     dto.name = category.name;
+    dto.description = category.description;
     dto.isActive = category.isActive;
     dto.createdAt = category.createdAt;
     dto.updatedAt = category.updatedAt;

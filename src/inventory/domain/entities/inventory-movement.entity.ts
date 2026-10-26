@@ -1,22 +1,35 @@
-import { InventoryMovementType } from '../enums/inventory-movement-type.enum.js';
+import { MovementTypeCode } from '../enums/movement-type-code.enum.js';
 
-export interface InventoryMovementProps {
+export interface MovementOrigin {
+  /** Context that generated it, e.g. ATTENTION for automatic consumption. */
+  originModule: string | null;
+  originId: string | null;
+}
+
+export interface InventoryMovementProps extends MovementOrigin {
   id: string;
-  supplyId: string;
-  movementType: InventoryMovementType;
-  /** Always positive; the direction is given by previous/resulting quantity. */
-  quantity: number;
-  unitCost: number | null;
+  restaurantSupplyId: string;
+  type: MovementTypeCode;
+  /** Signed: positive for entries, negative for exits. Never 0. */
+  quantityDelta: number;
   previousQuantity: number;
   resultingQuantity: number;
-  referenceType: string | null;
-  referenceId: string | null;
+  /** Only for counts: what was physically found. */
+  countedQuantity: number | null;
+  unitCost: number | null;
   notes: string | null;
+  /** Repeating a request with the same key returns this movement. */
+  idempotencyKey: string | null;
   createdByUserId: string | null;
+  /** Set on a REVERSAL: the movement it undoes. */
+  reversalOfMovementId: string | null;
   createdAt: Date;
 }
 
-/** Immutable record of a stock change. Created only by Supply.registerMovement. */
+/**
+ * Immutable record of why the stock of a restaurant changed. It is never
+ * edited or deleted: a wrong movement is corrected with a REVERSAL.
+ */
 export class InventoryMovement {
   private constructor(private readonly props: InventoryMovementProps) {}
 
@@ -31,17 +44,14 @@ export class InventoryMovement {
   get id(): string {
     return this.props.id;
   }
-  get supplyId(): string {
-    return this.props.supplyId;
+  get restaurantSupplyId(): string {
+    return this.props.restaurantSupplyId;
   }
-  get movementType(): InventoryMovementType {
-    return this.props.movementType;
+  get type(): MovementTypeCode {
+    return this.props.type;
   }
-  get quantity(): number {
-    return this.props.quantity;
-  }
-  get unitCost(): number | null {
-    return this.props.unitCost;
+  get quantityDelta(): number {
+    return this.props.quantityDelta;
   }
   get previousQuantity(): number {
     return this.props.previousQuantity;
@@ -49,17 +59,29 @@ export class InventoryMovement {
   get resultingQuantity(): number {
     return this.props.resultingQuantity;
   }
-  get referenceType(): string | null {
-    return this.props.referenceType;
+  get countedQuantity(): number | null {
+    return this.props.countedQuantity;
   }
-  get referenceId(): string | null {
-    return this.props.referenceId;
+  get unitCost(): number | null {
+    return this.props.unitCost;
   }
   get notes(): string | null {
     return this.props.notes;
   }
+  get originModule(): string | null {
+    return this.props.originModule;
+  }
+  get originId(): string | null {
+    return this.props.originId;
+  }
+  get idempotencyKey(): string | null {
+    return this.props.idempotencyKey;
+  }
   get createdByUserId(): string | null {
     return this.props.createdByUserId;
+  }
+  get reversalOfMovementId(): string | null {
+    return this.props.reversalOfMovementId;
   }
   get createdAt(): Date {
     return this.props.createdAt;

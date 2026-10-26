@@ -16,8 +16,8 @@ export class InternalStockConsumptionAdapter implements StockConsumptionPort {
     await this.stockConsumption.consumeForProduct({
       productId: input.productId,
       units: input.quantity,
-      referenceType: 'ORDER_ITEM',
-      referenceId: input.orderItemId,
+      originModule: 'ATTENTION',
+      originId: input.orderItemId,
       createdByUserId: input.changedByUserId,
     });
   }

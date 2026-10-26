@@ -27,6 +27,9 @@ import { RolePermissionOrmEntity } from '../../../iam/infrastructure/persistence
 import { RoleOrmEntity } from '../../../iam/infrastructure/persistence/typeorm/entities/role.orm-entity.js';
 import { UserOrmEntity } from '../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import { InventoryCategoryOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/inventory-category.orm-entity.js';
+import { InventoryMovementTypeOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/inventory-movement-type.orm-entity.js';
+import { RestaurantSupplyOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/restaurant-supply.orm-entity.js';
+import { UnitOfMeasureOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/unit-of-measure.orm-entity.js';
 import { InventoryMovementOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/inventory-movement.orm-entity.js';
 import { ProductRecipeOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/product-recipe.orm-entity.js';
 import { SupplyOrmEntity } from '../../../inventory/infrastructure/persistence/typeorm/entities/supply.orm-entity.js';
@@ -93,8 +96,11 @@ export const entities = [
   RefundAllocationOrmEntity,
   RefundProviderStatusMappingOrmEntity,
   // inventory
+  UnitOfMeasureOrmEntity,
+  InventoryMovementTypeOrmEntity,
   InventoryCategoryOrmEntity,
   SupplyOrmEntity,
+  RestaurantSupplyOrmEntity,
   InventoryMovementOrmEntity,
   ProductRecipeOrmEntity,
   // finance

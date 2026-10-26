@@ -10,8 +10,8 @@ export interface ProductRecipeProps {
 }
 
 /**
- * How much of a supply one unit of a product consumes. Used later to
- * discount stock automatically when dishes are prepared.
+ * How much of a master supply one unit of a product consumes. Used to
+ * discount stock automatically only when INVENTORY_AUTO_CONSUMPTION is on.
  */
 export class ProductRecipe {
   private constructor(private props: ProductRecipeProps) {}

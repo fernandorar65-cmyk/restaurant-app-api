@@ -1,22 +1,14 @@
-import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
-import { InventoryMovementType } from '../enums/inventory-movement-type.enum.js';
-import {
-  InsufficientStockError,
-  NoStockDifferenceError,
-} from '../exceptions/inventory.errors.js';
-import { InventoryMovement } from './inventory-movement.entity.js';
 
 export interface SupplyProps {
   id: string;
-  restaurantId: string;
+  organizationId: string;
   categoryId: string;
   code: string;
   name: string;
-  unitOfMeasure: string;
-  minimumQuantity: number;
-  currentQuantity: number;
-  averageUnitCost: number;
+  /** Code of the base unit (units_of_measure): bought, used and counted in it. */
+  unitCode: string;
+  description: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -25,37 +17,13 @@ export interface SupplyProps {
 export interface SupplyDetails {
   code?: string;
   name?: string;
-  unitOfMeasure?: string;
-  minimumQuantity?: number;
+  description?: string | null;
 }
 
-export type AdjustmentDirection = 'INCREASE' | 'DECREASE';
-
-export type MovementRequest = {
-  id: string;
-  notes?: string | null;
-  createdByUserId?: string | null;
-  referenceType?: string | null;
-  referenceId?: string | null;
-} & (
-  | { type: InventoryMovementType.PURCHASE; quantity: number; unitCost?: number | null }
-  | { type: InventoryMovementType.USAGE | InventoryMovementType.WASTE; quantity: number }
-  /** Physical count: the counted quantity replaces the current one. */
-  | { type: InventoryMovementType.COUNT; countedQuantity: number }
-  | {
-      type: InventoryMovementType.ADJUSTMENT;
-      quantity: number;
-      direction: AdjustmentDirection;
-    }
-);
-
-const QUANTITY_DECIMALS = 1000; // NUMERIC(14,3)
-const COST_DECIMALS = 10000; // NUMERIC(14,4)
-
 /**
- * A kitchen supply with its stock. current_quantity never changes directly:
- * every change goes through registerMovement, which returns the movement
- * that must be persisted in the same transaction.
+ * Master definition of a supply, registered once per organization ("Arroz",
+ * "Aceite vegetal"). It holds no stock: quantities, minimums and costs live
+ * per restaurant in RestaurantSupply.
  */
 export class Supply {
   private constructor(private props: SupplyProps) {}
@@ -63,29 +31,27 @@ export class Supply {
   static create(
     params: SupplyDetails & {
       id: string;
-      restaurantId: string;
+      organizationId: string;
       categoryId: string;
       code: string;
       name: string;
-      unitOfMeasure: string;
+      unitCode: string;
     },
   ): Supply {
     const now = new Date();
     const supply = new Supply({
       id: params.id,
-      restaurantId: params.restaurantId,
+      organizationId: params.organizationId,
       categoryId: params.categoryId,
       code: '',
       name: '',
-      unitOfMeasure: '',
-      minimumQuantity: 0,
-      currentQuantity: 0,
-      averageUnitCost: 0,
+      unitCode: params.unitCode,
+      description: null,
       isActive: true,
       createdAt: now,
       updatedAt: now,
     });
-    supply.applyDetails(params);
+    supply.update(params);
     return supply;
   }
 
@@ -93,10 +59,17 @@ export class Supply {
     return new Supply(props);
   }
 
-  update(
-    params: SupplyDetails & { categoryId?: string; isActive?: boolean },
-  ): void {
-    this.applyDetails(params);
+  /** The unit is changed only through changeUnit, after checking it has no movements. */
+  update(params: SupplyDetails & { categoryId?: string; isActive?: boolean }): void {
+    if (params.code !== undefined) {
+      this.props.code = requireText(params.code, 'El código del insumo', { max: 50 }).toUpperCase();
+    }
+    if (params.name !== undefined) {
+      this.props.name = requireText(params.name, 'El nombre del insumo', { max: 150 });
+    }
+    if (params.description !== undefined) {
+      this.props.description = params.description;
+    }
     if (params.categoryId !== undefined) {
       this.props.categoryId = params.categoryId;
     }
@@ -106,102 +79,16 @@ export class Supply {
     this.props.updatedAt = new Date();
   }
 
-  registerMovement(request: MovementRequest): InventoryMovement {
-    const previous = this.props.currentQuantity;
-    let quantity: number;
-    let resulting: number;
-    let unitCost: number | null = null;
-
-    switch (request.type) {
-      case InventoryMovementType.PURCHASE:
-        quantity = positive(request.quantity);
-        resulting = previous + quantity;
-        unitCost = request.unitCost ?? null;
-        if (unitCost !== null) {
-          this.props.averageUnitCost = round(
-            (previous * this.props.averageUnitCost + quantity * unitCost) /
-              resulting,
-            COST_DECIMALS,
-          );
-        }
-        break;
-      case InventoryMovementType.USAGE:
-      case InventoryMovementType.WASTE:
-        quantity = positive(request.quantity);
-        resulting = previous - quantity;
-        break;
-      case InventoryMovementType.ADJUSTMENT:
-        quantity = positive(request.quantity);
-        resulting =
-          request.direction === 'INCREASE' ? previous + quantity : previous - quantity;
-        break;
-      case InventoryMovementType.COUNT:
-        if (request.countedQuantity < 0) {
-          throw new ValidationDomainError('La cantidad contada no puede ser negativa');
-        }
-        resulting = request.countedQuantity;
-        quantity = Math.abs(resulting - previous);
-        if (quantity === 0) {
-          throw new NoStockDifferenceError();
-        }
-        break;
-    }
-
-    resulting = round(resulting, QUANTITY_DECIMALS);
-    if (resulting < 0) {
-      throw new InsufficientStockError(this.props.name, previous);
-    }
-    this.props.currentQuantity = resulting;
+  changeUnit(unitCode: string): void {
+    this.props.unitCode = unitCode;
     this.props.updatedAt = new Date();
-
-    return InventoryMovement.record({
-      id: request.id,
-      supplyId: this.props.id,
-      movementType: request.type,
-      quantity: round(quantity, QUANTITY_DECIMALS),
-      unitCost,
-      previousQuantity: previous,
-      resultingQuantity: resulting,
-      referenceType: request.referenceType ?? null,
-      referenceId: request.referenceId ?? null,
-      notes: request.notes ?? null,
-      createdByUserId: request.createdByUserId ?? null,
-    });
-  }
-
-  get isBelowMinimum(): boolean {
-    return this.props.currentQuantity < this.props.minimumQuantity;
-  }
-
-  private applyDetails(params: SupplyDetails): void {
-    if (params.code !== undefined) {
-      this.props.code = requireText(params.code, 'El código del insumo', { max: 50 });
-    }
-    if (params.name !== undefined) {
-      this.props.name = requireText(params.name, 'El nombre del insumo', {
-        max: 150,
-      });
-    }
-    if (params.unitOfMeasure !== undefined) {
-      this.props.unitOfMeasure = requireText(
-        params.unitOfMeasure,
-        'La unidad de medida',
-        { max: 30 },
-      );
-    }
-    if (params.minimumQuantity !== undefined) {
-      if (params.minimumQuantity < 0) {
-        throw new ValidationDomainError('El stock mínimo no puede ser negativo');
-      }
-      this.props.minimumQuantity = params.minimumQuantity;
-    }
   }
 
   get id(): string {
     return this.props.id;
   }
-  get restaurantId(): string {
-    return this.props.restaurantId;
+  get organizationId(): string {
+    return this.props.organizationId;
   }
   get categoryId(): string {
     return this.props.categoryId;
@@ -212,17 +99,11 @@ export class Supply {
   get name(): string {
     return this.props.name;
   }
-  get unitOfMeasure(): string {
-    return this.props.unitOfMeasure;
+  get unitCode(): string {
+    return this.props.unitCode;
   }
-  get minimumQuantity(): number {
-    return this.props.minimumQuantity;
-  }
-  get currentQuantity(): number {
-    return this.props.currentQuantity;
-  }
-  get averageUnitCost(): number {
-    return this.props.averageUnitCost;
+  get description(): string | null {
+    return this.props.description;
   }
   get isActive(): boolean {
     return this.props.isActive;
@@ -233,15 +114,4 @@ export class Supply {
   get updatedAt(): Date {
     return this.props.updatedAt;
   }
-}
-
-function positive(quantity: number): number {
-  if (quantity <= 0) {
-    throw new ValidationDomainError('La cantidad del movimiento debe ser mayor a 0');
-  }
-  return quantity;
-}
-
-function round(value: number, factor: number): number {
-  return Math.round(value * factor) / factor;
 }

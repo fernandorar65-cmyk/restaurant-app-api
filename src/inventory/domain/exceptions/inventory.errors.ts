@@ -25,7 +25,7 @@ export class SupplyNotFoundError extends NotFoundDomainError {
 
 export class DuplicateSupplyCodeError extends ConflictDomainError {
   constructor(code: string) {
-    super(`La sede ya tiene un insumo con el código "${code}"`);
+    super(`La organización ya tiene un insumo con el código "${code}"`);
   }
 }
 
@@ -36,20 +36,74 @@ export class CategoryFromAnotherOrganizationError extends ValidationDomainError 
 }
 
 export class InsufficientStockError extends BusinessRuleDomainError {
-  constructor(supplyName: string, available: number) {
-    super(`No hay stock suficiente de "${supplyName}" (disponible: ${available})`);
-  }
-}
-
-export class NoStockDifferenceError extends BusinessRuleDomainError {
-  constructor() {
-    super('La cantidad contada coincide con el stock actual; no hay nada que registrar');
+  constructor(available: number, requested: number) {
+    super(`No hay stock suficiente (disponible: ${available}, solicitado: ${requested})`);
   }
 }
 
 export class InactiveSupplyError extends BusinessRuleDomainError {
   constructor(id: string) {
     super(`El insumo "${id}" está inactivo`);
+  }
+}
+
+export class RestaurantSupplyNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe el insumo de sede con id "${id}"`);
+  }
+}
+
+export class DuplicateRestaurantSupplyError extends ConflictDomainError {
+  constructor() {
+    super('La sede ya tiene habilitado ese insumo (reactívalo si estaba desactivado)');
+  }
+}
+
+export class SupplyFromAnotherOrganizationError extends ValidationDomainError {
+  constructor() {
+    super('El insumo pertenece a otra organización');
+  }
+}
+
+export class UnitOfMeasureNotFoundError extends NotFoundDomainError {
+  constructor(code: string) {
+    super(`No existe la unidad de medida "${code}" o está desactivada`);
+  }
+}
+
+export class SupplyUnitLockedError extends BusinessRuleDomainError {
+  constructor() {
+    super('El insumo ya tiene movimientos: su unidad base solo puede cambiarse con una conversión controlada');
+  }
+}
+
+export class InvalidMovementQuantityError extends ValidationDomainError {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class MovementNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe el movimiento de inventario con id "${id}"`);
+  }
+}
+
+export class MovementAlreadyReversedError extends ConflictDomainError {
+  constructor() {
+    super('El movimiento ya fue revertido');
+  }
+}
+
+export class ReversalNotReversibleError extends BusinessRuleDomainError {
+  constructor() {
+    super('Una reversión no se revierte; registra un movimiento nuevo');
+  }
+}
+
+export class InventoryCatalogEntryNotFoundError extends NotFoundDomainError {
+  constructor(code: string) {
+    super(`No existe el código "${code}" en el catálogo de inventario`);
   }
 }
 
@@ -77,8 +131,8 @@ export class RecipeLineNotFoundError extends NotFoundDomainError {
   }
 }
 
-export class SupplyFromAnotherRestaurantError extends ValidationDomainError {
+export class RecipeSupplyFromAnotherOrganizationError extends ValidationDomainError {
   constructor() {
-    super('El insumo pertenece a otra sede que el producto');
+    super('El insumo pertenece a otra organización que el producto');
   }
 }

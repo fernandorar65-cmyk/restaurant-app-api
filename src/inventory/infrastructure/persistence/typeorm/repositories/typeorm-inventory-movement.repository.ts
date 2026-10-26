@@ -6,25 +6,62 @@ import type { TransactionContext } from '../../../../../common/domain/transactio
 import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { InventoryMovement } from '../../../../domain/entities/inventory-movement.entity.js';
 import { InventoryMovementRepository } from '../../../../domain/repositories/inventory-movement.repository.js';
+import { InventoryMovementTypeOrmEntity } from '../entities/inventory-movement-type.orm-entity.js';
 import { InventoryMovementOrmEntity } from '../entities/inventory-movement.orm-entity.js';
 import { InventoryMovementMapper } from '../mappers/inventory.mappers.js';
 
+/** Insert-only on purpose: there is no update or delete of movements. */
 @Injectable()
-export class TypeOrmInventoryMovementRepository
-  implements InventoryMovementRepository
-{
+export class TypeOrmInventoryMovementRepository implements InventoryMovementRepository {
   constructor(
     @InjectRepository(InventoryMovementOrmEntity)
     private readonly repository: Repository<InventoryMovementOrmEntity>,
+    @InjectRepository(InventoryMovementTypeOrmEntity)
+    private readonly types: Repository<InventoryMovementTypeOrmEntity>,
   ) {}
 
-  async findBySupply(
-    supplyId: string,
+  async insert(movement: InventoryMovement, tx: TransactionContext): Promise<void> {
+    const type = await transactionalRepository(this.types, tx).findOneOrFail({
+      where: { code: movement.type },
+    });
+    await transactionalRepository(this.repository, tx).insert(
+      InventoryMovementMapper.toPersistence(movement, type.id),
+    );
+  }
+
+  async findById(id: string, tx?: TransactionContext): Promise<InventoryMovement | null> {
+    const found = await transactionalRepository(this.repository, tx).findOne({ where: { id } });
+    return found ? InventoryMovementMapper.toDomain(found) : null;
+  }
+
+  async findByIdempotencyKey(
+    restaurantSupplyId: string,
+    idempotencyKey: string,
+    tx?: TransactionContext,
+  ): Promise<InventoryMovement | null> {
+    const found = await transactionalRepository(this.repository, tx).findOne({
+      where: { restaurantSupplyId, idempotencyKey },
+    });
+    return found ? InventoryMovementMapper.toDomain(found) : null;
+  }
+
+  async findReversalOf(
+    movementId: string,
+    tx?: TransactionContext,
+  ): Promise<InventoryMovement | null> {
+    const found = await transactionalRepository(this.repository, tx).findOne({
+      where: { reversalOfMovementId: movementId },
+    });
+    return found ? InventoryMovementMapper.toDomain(found) : null;
+  }
+
+  async findByRestaurantSupply(
+    restaurantSupplyId: string,
     page: PageRequest,
   ): Promise<Page<InventoryMovement>> {
     const [rows, total] = await this.repository.findAndCount({
-      where: { supplyId },
-      order: { createdAt: 'DESC' },
+      where: { restaurantSupplyId },
+      order: { sequence: 'DESC' },
       skip: (page.page - 1) * page.limit,
       take: page.limit,
     });
@@ -36,24 +73,7 @@ export class TypeOrmInventoryMovementRepository
     };
   }
 
-  existsForReference(
-    supplyId: string,
-    referenceType: string,
-    referenceId: string,
-    tx?: TransactionContext,
-  ): Promise<boolean> {
-    return transactionalRepository(this.repository, tx).exists({
-      where: { supplyId, referenceType, referenceId },
-    });
-  }
-
-  async save(
-    movement: InventoryMovement,
-    tx?: TransactionContext,
-  ): Promise<InventoryMovement> {
-    const saved = await transactionalRepository(this.repository, tx).save(
-      InventoryMovementMapper.toPersistence(movement),
-    );
-    return InventoryMovementMapper.toDomain(saved);
+  existsForSupply(supplyId: string): Promise<boolean> {
+    return this.repository.exists({ where: { restaurantSupply: { supplyId } } });
   }
 }

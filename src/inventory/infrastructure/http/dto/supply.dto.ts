@@ -1,59 +1,45 @@
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-  OmitType,
-  PartialType,
-} from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
+import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { Supply } from '../../../domain/entities/supply.entity.js';
 
 export class CreateSupplyDto {
   @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
   @IsUUID()
-  restaurantId: string;
+  organizationId: string;
 
   @ApiProperty({ description: 'Categoría de inventario de la misma organización' })
   @IsUUID()
   categoryId: string;
 
-  @ApiProperty({ example: 'LIM-01', description: 'Único dentro del restaurante' })
+  @ApiProperty({ example: 'ARROZ', description: 'Único por organización (se guarda en mayúsculas)' })
   @IsString()
   @MinLength(1)
   @MaxLength(50)
   code: string;
 
-  @ApiProperty({ example: 'Limón' })
+  @ApiProperty({ example: 'Arroz' })
   @IsString()
   @MinLength(1)
   @MaxLength(150)
   name: string;
 
-  @ApiProperty({ example: 'kg' })
+  @ApiProperty({ example: 'KG', description: 'Unidad base del catálogo (GET /units-of-measure)' })
   @IsString()
   @MinLength(1)
-  @MaxLength(30)
-  unitOfMeasure: string;
+  @MaxLength(10)
+  unitCode: string;
 
-  @ApiPropertyOptional({ example: 5, default: 0 })
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 3 })
-  @Min(0)
-  minimumQuantity?: number;
+  @IsString()
+  @MaxLength(500)
+  description?: string | null;
 }
 
 export class UpdateSupplyDto extends PartialType(
-  OmitType(CreateSupplyDto, ['restaurantId'] as const),
+  OmitType(CreateSupplyDto, ['organizationId'] as const),
 ) {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'false = desactivar, true = reactivar' })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
@@ -64,31 +50,22 @@ export class SupplyResponseDto {
   id: string;
 
   @ApiProperty()
-  restaurantId: string;
+  organizationId: string;
 
   @ApiProperty()
   categoryId: string;
 
-  @ApiProperty({ example: 'LIM-01' })
+  @ApiProperty({ example: 'ARROZ' })
   code: string;
 
-  @ApiProperty({ example: 'Limón' })
+  @ApiProperty({ example: 'Arroz' })
   name: string;
 
-  @ApiProperty({ example: 'kg' })
-  unitOfMeasure: string;
+  @ApiProperty({ example: 'KG' })
+  unitCode: string;
 
-  @ApiProperty()
-  minimumQuantity: number;
-
-  @ApiProperty({ description: 'Solo cambia mediante movimientos' })
-  currentQuantity: number;
-
-  @ApiProperty()
-  averageUnitCost: number;
-
-  @ApiProperty()
-  isBelowMinimum: boolean;
+  @ApiPropertyOptional({ nullable: true })
+  description: string | null;
 
   @ApiProperty()
   isActive: boolean;
@@ -102,15 +79,12 @@ export class SupplyResponseDto {
   static fromDomain(supply: Supply): SupplyResponseDto {
     const dto = new SupplyResponseDto();
     dto.id = supply.id;
-    dto.restaurantId = supply.restaurantId;
+    dto.organizationId = supply.organizationId;
     dto.categoryId = supply.categoryId;
     dto.code = supply.code;
     dto.name = supply.name;
-    dto.unitOfMeasure = supply.unitOfMeasure;
-    dto.minimumQuantity = supply.minimumQuantity;
-    dto.currentQuantity = supply.currentQuantity;
-    dto.averageUnitCost = supply.averageUnitCost;
-    dto.isBelowMinimum = supply.isBelowMinimum;
+    dto.unitCode = supply.unitCode;
+    dto.description = supply.description;
     dto.isActive = supply.isActive;
     dto.createdAt = supply.createdAt;
     dto.updatedAt = supply.updatedAt;

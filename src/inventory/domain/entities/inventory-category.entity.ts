@@ -4,6 +4,7 @@ export interface InventoryCategoryProps {
   id: string;
   organizationId: string;
   name: string;
+  description: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -17,12 +18,14 @@ export class InventoryCategory {
     id: string;
     organizationId: string;
     name: string;
+    description?: string | null;
   }): InventoryCategory {
     const now = new Date();
     return new InventoryCategory({
       id: params.id,
       organizationId: params.organizationId,
       name: requireText(params.name, 'El nombre de la categoría', { max: 120 }),
+      description: params.description ?? null,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -33,11 +36,14 @@ export class InventoryCategory {
     return new InventoryCategory(props);
   }
 
-  update(params: { name?: string; isActive?: boolean }): void {
+  update(params: { name?: string; description?: string | null; isActive?: boolean }): void {
     if (params.name !== undefined) {
       this.props.name = requireText(params.name, 'El nombre de la categoría', {
         max: 120,
       });
+    }
+    if (params.description !== undefined) {
+      this.props.description = params.description;
     }
     if (params.isActive !== undefined) {
       this.props.isActive = params.isActive;
@@ -53,6 +59,9 @@ export class InventoryCategory {
   }
   get name(): string {
     return this.props.name;
+  }
+  get description(): string | null {
+    return this.props.description;
   }
   get isActive(): boolean {
     return this.props.isActive;

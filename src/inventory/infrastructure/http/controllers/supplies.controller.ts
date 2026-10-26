@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseBoolPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -17,17 +18,6 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { SuppliesService } from '../../../application/supplies/supplies.service.js';
-import type { RegisterMovementInput } from '../../../application/supplies/supplies.service.js';
-import {
-  InventoryMovementResponseDto,
-  RegisterMovementDto,
-} from '../dto/inventory-movement.dto.js';
-import {
-  CreateSupplyDto,
-  SupplyResponseDto,
-  UpdateSupplyDto,
-} from '../dto/supply.dto.js';
 import type { PageRequest } from '../../../../common/application/pagination.js';
 import {
   ApiPaginatedResponse,
@@ -35,95 +25,70 @@ import {
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import { SuppliesService } from '../../../application/supplies/supplies.service.js';
+import { CreateSupplyDto, SupplyResponseDto, UpdateSupplyDto } from '../dto/supply.dto.js';
 
+/** Master catalog of supplies of an organization; stock lives per restaurant. */
 @ApiTags('inventory/supplies')
 @Controller('supplies')
 export class SuppliesController {
   constructor(private readonly suppliesService: SuppliesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un insumo (stock inicial 0)' })
+  @ApiOperation({ summary: 'Registrar un insumo en el catálogo de la organización' })
   @ApiCreatedResponse({ type: SupplyResponseDto })
   async create(@Body() dto: CreateSupplyDto): Promise<SupplyResponseDto> {
-    const supply = await this.suppliesService.create(dto);
-    return SupplyResponseDto.fromDomain(supply);
+    return SupplyResponseDto.fromDomain(await this.suppliesService.create(dto));
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar insumos' })
-  @ApiQuery({ name: 'restaurantId', required: false })
+  @ApiOperation({ summary: 'Listar insumos maestros' })
+  @ApiQuery({ name: 'organizationId', required: false })
   @ApiQuery({ name: 'categoryId', required: false })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiPaginatedResponse(SupplyResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
-    @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
-    restaurantId?: string,
-    @Query('categoryId', new ParseUUIDPipe({ optional: true }))
-    categoryId?: string,
+    @Query('organizationId', new ParseUUIDPipe({ optional: true })) organizationId?: string,
+    @Query('categoryId', new ParseUUIDPipe({ optional: true })) categoryId?: string,
+    @Query('isActive', new ParseBoolPipe({ optional: true })) isActive?: boolean,
   ): Promise<PageResponse<SupplyResponseDto>> {
-    const supplies = await this.suppliesService.findPage({ restaurantId, categoryId }, page);
-    return toPageResponse(supplies, (supply) =>
-      SupplyResponseDto.fromDomain(supply),
+    const supplies = await this.suppliesService.findPage(
+      { organizationId, categoryId, isActive },
+      page,
     );
+    return toPageResponse(supplies, (supply) => SupplyResponseDto.fromDomain(supply));
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un insumo' })
+  @ApiOperation({ summary: 'Obtener un insumo maestro' })
   @ApiOkResponse({ type: SupplyResponseDto })
   @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<SupplyResponseDto> {
-    const supply = await this.suppliesService.findOne(id);
-    return SupplyResponseDto.fromDomain(supply);
+    return SupplyResponseDto.fromDomain(await this.suppliesService.findOne(id));
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar datos de un insumo (no el stock)' })
+  @ApiOperation({
+    summary: 'Actualizar un insumo maestro',
+    description: 'La unidad base solo cambia si ninguna sede registró movimientos (422)',
+  })
   @ApiOkResponse({ type: SupplyResponseDto })
-  @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSupplyDto,
   ): Promise<SupplyResponseDto> {
-    const supply = await this.suppliesService.update(id, dto);
-    return SupplyResponseDto.fromDomain(supply);
+    return SupplyResponseDto.fromDomain(await this.suppliesService.update(id, dto));
   }
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Desactivar un insumo (baja lógica)',
-    description: 'No se borra: queda inactivo para conservar el historial',
+    summary: 'Desactivar un insumo maestro (baja lógica)',
+    description: 'Las sedes conservan su historial; ya no se puede habilitar en nuevas sedes',
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
-  @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
   async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.suppliesService.deactivate(id);
     return { id };
-  }
-
-  @Post(':id/movements')
-  @ApiOperation({ summary: 'Registrar compra, uso, merma, conteo o ajuste' })
-  @ApiCreatedResponse({ type: InventoryMovementResponseDto })
-  async registerMovement(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RegisterMovementDto,
-  ): Promise<InventoryMovementResponseDto> {
-    const { movement } = await this.suppliesService.registerMovement(
-      id,
-      dto as RegisterMovementInput,
-    );
-    return InventoryMovementResponseDto.fromDomain(movement);
-  }
-
-  @Get(':id/movements')
-  @ApiOperation({ summary: 'Historial de movimientos del insumo' })
-  @ApiPaginatedResponse(InventoryMovementResponseDto)
-  async listMovements(
-    @Pagination() page: PageRequest,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<PageResponse<InventoryMovementResponseDto>> {
-    const movements = await this.suppliesService.listMovements(id, page);
-    return toPageResponse(movements, (movement) =>
-      InventoryMovementResponseDto.fromDomain(movement),
-    );
   }
 }

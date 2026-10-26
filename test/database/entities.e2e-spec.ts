@@ -12,7 +12,8 @@ import { entities } from '../../src/common/persistence/database/entities.js';
 // areas and job positions added, allergens removed, organization-wide
 // categories linked to products and menu sections, order_batches renamed
 // to orders, payments with status catalogs, gateway mappings and events
-// (refund tables modeled, refunds not enabled yet).
+// (refund tables modeled, refunds not enabled yet), and inventory split into
+// master supplies, stock per restaurant and signed, immutable movements.
 const EXPECTED_TABLES = [
   // iam
   'users',
@@ -57,8 +58,11 @@ const EXPECTED_TABLES = [
   'refund_allocations',
   'refund_provider_status_mappings',
   // inventory
+  'units_of_measure',
+  'inventory_movement_types',
   'inventory_categories',
   'supplies',
+  'restaurant_supplies',
   'inventory_movements',
   'product_recipes',
   // finance
@@ -269,6 +273,55 @@ describe('Database model (TypeORM entities)', () => {
          VALUES ('paid', 'x', false, false, false)`,
       ),
     ).rejects.toThrow(/chk_payment_statuses_code/);
+  });
+
+  it('keeps inventory movements consistent with the balance', async () => {
+    const [organization] = await dataSource.query(
+      `INSERT INTO organizations (name) VALUES ('Org Inv') RETURNING id`,
+    );
+    const [restaurant] = await dataSource.query(
+      `INSERT INTO restaurants (organization_id, code, slug, name)
+       VALUES ($1, 'INV', 'inv', 'Sede Inv') RETURNING id`,
+      [organization.id],
+    );
+    const [category] = await dataSource.query(
+      `INSERT INTO inventory_categories (organization_id, name) VALUES ($1, 'Abarrotes') RETURNING id`,
+      [organization.id],
+    );
+    const [unit] = await dataSource.query(
+      `INSERT INTO units_of_measure (code, name, dimension, conversion_factor_to_base)
+       VALUES ('KG', 'Kilogramo', 'MASS', 1) RETURNING id`,
+    );
+    const [type] = await dataSource.query(
+      `INSERT INTO inventory_movement_types (code, name, effect)
+       VALUES ('PURCHASE', 'Compra', 'INCREASE') RETURNING id`,
+    );
+    const [supply] = await dataSource.query(
+      `INSERT INTO supplies (organization_id, category_id, code, name, base_unit_id)
+       VALUES ($1, $2, 'ARROZ', 'Arroz', $3) RETURNING id`,
+      [organization.id, category.id, unit.id],
+    );
+    const [stock] = await dataSource.query(
+      `INSERT INTO restaurant_supplies (restaurant_id, supply_id) VALUES ($1, $2) RETURNING id`,
+      [restaurant.id, supply.id],
+    );
+    const move = (previous: number, delta: number, resulting: number, key: string | null = null) =>
+      dataSource.query(
+        `INSERT INTO inventory_movements (restaurant_supply_id, movement_type_id, quantity_delta,
+           previous_quantity, resulting_quantity, idempotency_key)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [stock.id, type.id, delta, previous, resulting, key],
+      );
+    await expect(move(0, 10, 9)).rejects.toThrow(/chk_inventory_movements_balance/);
+    await expect(move(0, 0, 0)).rejects.toThrow(/chk_inventory_movements_delta/);
+    await move(0, 10, 10, 'k1');
+    await expect(move(10, 1, 11, 'k1')).rejects.toThrow(/uq_inventory_movements_idempotency/);
+    await expect(
+      dataSource.query(
+        `INSERT INTO restaurant_supplies (restaurant_id, supply_id) VALUES ($1, $2)`,
+        [restaurant.id, supply.id],
+      ),
+    ).rejects.toThrow(/uq_restaurant_supplies_restaurant_supply/);
   });
 
   it('enforces the check constraints on status values', async () => {

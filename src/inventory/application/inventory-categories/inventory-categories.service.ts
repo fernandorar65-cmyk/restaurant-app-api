@@ -24,6 +24,7 @@ export class InventoryCategoriesService {
   async create(input: {
     organizationId: string;
     name: string;
+    description?: string | null;
   }): Promise<InventoryCategory> {
     if (!(await this.organizationLookup.organizationExists(input.organizationId))) {
       throw new OrganizationReferenceNotFoundError(input.organizationId);
@@ -50,7 +51,7 @@ export class InventoryCategoriesService {
 
   async update(
     id: string,
-    input: { name?: string; isActive?: boolean },
+    input: { name?: string; description?: string | null; isActive?: boolean },
   ): Promise<InventoryCategory> {
     const category = await this.findOne(id);
     category.update(input);

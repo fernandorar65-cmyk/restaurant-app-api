@@ -24,7 +24,7 @@ export class ProductRecipesController {
   @Put('supplies/:supplyId')
   @ApiOperation({
     summary: 'Agregar o actualizar un insumo de la receta',
-    description: 'El insumo debe ser de la misma sede que el producto',
+    description: 'Insumo maestro de la misma organización que el producto. El descuento automático solo corre con INVENTORY_AUTO_CONSUMPTION=true',
   })
   @ApiOkResponse({ type: RecipeLineResponseDto })
   async setLine(

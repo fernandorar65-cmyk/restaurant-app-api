@@ -4,18 +4,20 @@ import { InventoryMovement } from '../entities/inventory-movement.entity.js';
 
 export const INVENTORY_MOVEMENT_REPOSITORY = Symbol('INVENTORY_MOVEMENT_REPOSITORY');
 
+/** Insert-only: movements are never updated or deleted. */
 export interface InventoryMovementRepository {
-  /** Most recent first. */
-  findBySupply(supplyId: string, page: PageRequest): Promise<Page<InventoryMovement>>;
-  /** Whether the reference (e.g. an order item) already moved this supply. */
-  existsForReference(
-    supplyId: string,
-    referenceType: string,
-    referenceId: string,
+  insert(movement: InventoryMovement, tx: TransactionContext): Promise<void>;
+  findById(id: string, tx?: TransactionContext): Promise<InventoryMovement | null>;
+  findByIdempotencyKey(
+    restaurantSupplyId: string,
+    idempotencyKey: string,
     tx?: TransactionContext,
-  ): Promise<boolean>;
-  save(
-    movement: InventoryMovement,
-    tx?: TransactionContext,
-  ): Promise<InventoryMovement>;
+  ): Promise<InventoryMovement | null>;
+  findReversalOf(movementId: string, tx?: TransactionContext): Promise<InventoryMovement | null>;
+  findByRestaurantSupply(
+    restaurantSupplyId: string,
+    page: PageRequest,
+  ): Promise<Page<InventoryMovement>>;
+  /** Whether any restaurant already moved stock of this master supply. */
+  existsForSupply(supplyId: string): Promise<boolean>;
 }

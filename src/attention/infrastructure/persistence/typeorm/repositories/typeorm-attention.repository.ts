@@ -39,6 +39,17 @@ export class TypeOrmAttentionRepository
     return AttentionMapper.toPersistence(domain, existing);
   }
 
+  async findByIdForUpdate(
+    id: string,
+    tx: TransactionContext,
+  ): Promise<Attention | null> {
+    const found = await this.getRepository(tx).findOne({
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    return found ? this.toDomain(found) : null;
+  }
+
   async findPage(
     filter: { restaurantId?: string; status?: AttentionStatus },
     page: PageRequest,

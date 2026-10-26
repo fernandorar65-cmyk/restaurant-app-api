@@ -13,6 +13,11 @@ export interface DailyAttentionCounts {
 
 export interface AttentionRepository {
   findById(id: string, tx?: TransactionContext): Promise<Attention | null>;
+  /**
+   * Reads the attention locking its row until the transaction ends, so state
+   * changes (new orders, bill request, close, cancel) apply one after the other.
+   */
+  findByIdForUpdate(id: string, tx: TransactionContext): Promise<Attention | null>;
   /** Attentions opened / closed / cancelled on a business date (restaurant time zone). */
   countDaily(
     restaurantId: string,

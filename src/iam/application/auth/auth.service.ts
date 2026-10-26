@@ -295,14 +295,12 @@ export class AuthService {
     }
   }
 
+  // Presence is checked at startup (validateEnvironment); no defaults here.
   private accessSecret(): string {
-    return this.configService.get<string>('JWT_ACCESS_SECRET', 'dev-access-secret');
+    return this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
   }
 
   private refreshSecret(): string {
-    return this.configService.get<string>(
-      'JWT_REFRESH_SECRET',
-      'dev-refresh-secret',
-    );
+    return this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
   }
 }

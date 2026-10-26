@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import { BusinessRuleDomainError } from '../../../common/domain/domain-error.js';
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { AttentionParticipant } from '../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../domain/entities/attention.entity.js';
 import type { FulfillmentDetails } from '../../domain/entities/fulfillment.entity.js';
@@ -9,7 +12,9 @@ import { OrderSource } from '../../domain/enums/order-source.enum.js';
 import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
 import { ServiceType } from '../../domain/enums/service-type.enum.js';
 import {
+  ActiveAttentionAlreadyExistsError,
   AttentionAccessDeniedError,
+  DuplicateOrderRequestError,
   InvalidServiceSetupError,
   InvalidTableQrTokenError,
 } from '../../domain/exceptions/attention.errors.js';
@@ -19,6 +24,8 @@ import {
   AttentionsService,
   type AttentionBill,
   type AttentionDetail,
+  type AttentionOpening,
+  type OpenAttentionInput,
 } from '../attentions/attentions.service.js';
 import { OrderItemsService } from '../order-items/order-items.service.js';
 import {
@@ -26,6 +33,7 @@ import {
   type OrderLineInput,
   type OrderResult,
 } from '../orders/orders.service.js';
+import type { ProductForOrder } from '../ports/product-lookup.port.js';
 import { TABLE_QR_LOOKUP } from '../ports/table-qr-lookup.port.js';
 import type { TableQrLookupPort } from '../ports/table-qr-lookup.port.js';
 
@@ -69,6 +77,8 @@ export class CustomerAttentionsService {
     @Inject(ATTENTION_PARTICIPANT_REPOSITORY)
     private readonly participantRepository: AttentionParticipantRepository,
     @Inject(TABLE_QR_LOOKUP) private readonly tableQrLookup: TableQrLookupPort,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
     private readonly attentionsService: AttentionsService,
     private readonly ordersService: OrdersService,
     private readonly itemsService: OrderItemsService,
@@ -76,48 +86,34 @@ export class CustomerAttentionsService {
 
   /**
    * First order of a diner: joins (or opens) the table's attention, or opens
-   * a pickup/delivery one, registers the diner and submits the order.
+   * a pickup/delivery one, registers the diner and submits the order. The
+   * cart is validated before anything is saved, and the three writes share
+   * one transaction, so a rejected order never leaves an empty attention.
    */
   async start(
     input: StartAttentionInput,
     identity: DinerIdentity,
   ): Promise<StartAttentionResult> {
-    let attention: Attention;
-    if (input.serviceType === ServiceType.DINE_IN) {
-      if (!input.tableToken) {
-        throw new InvalidServiceSetupError('DINE_IN requiere el token del QR de la mesa');
-      }
-      const table = await this.tableQrLookup.resolveByToken(input.tableToken);
-      if (!table) {
-        throw new InvalidTableQrTokenError();
-      }
-      attention = await this.attentionsService.openOrReuseForTable(table.tableId);
-    } else {
-      attention = await this.attentionsService.open({
-        serviceType: input.serviceType,
-        restaurantId: input.restaurantId,
-        customerUserId: identity.userId,
-        fulfillment: input.fulfillment,
-      });
-    }
-
-    const participant = await this.joinOrGet(
-      attention.id,
-      identity,
-      input.displayName,
+    const opening = await this.attentionsService.prepareOpening(
+      await this.openingInput(input, identity),
     );
-    const order = await this.ordersService.submitOrder({
-      attentionId: attention.id,
-      requestId: input.requestId,
-      source: OrderSource.CUSTOMER,
-      items: input.items,
-      participantId: participant.id,
-    });
-    return {
-      attention: await this.attentionsService.findOne(attention.id),
-      participant,
-      order,
-    };
+    const products = await this.ordersService.validateItems(
+      opening.attention,
+      input.items,
+    );
+    try {
+      return await this.startInTransaction(opening, products, input, identity);
+    } catch (error) {
+      // Another diner opened the table's attention (or sent the same order)
+      // at the same time: the retry joins theirs.
+      if (
+        error instanceof ActiveAttentionAlreadyExistsError ||
+        error instanceof DuplicateOrderRequestError
+      ) {
+        return this.startInTransaction(opening, products, input, identity);
+      }
+      throw error;
+    }
   }
 
   async addOrder(
@@ -184,14 +180,74 @@ export class CustomerAttentionsService {
     return this.attentionsService.requestBill(attentionId);
   }
 
+  private async openingInput(
+    input: StartAttentionInput,
+    identity: DinerIdentity,
+  ): Promise<OpenAttentionInput> {
+    if (input.serviceType !== ServiceType.DINE_IN) {
+      return {
+        serviceType: input.serviceType,
+        restaurantId: input.restaurantId,
+        customerUserId: identity.userId,
+        fulfillment: input.fulfillment,
+      };
+    }
+    if (!input.tableToken) {
+      throw new InvalidServiceSetupError('DINE_IN requiere el token del QR de la mesa');
+    }
+    const table = await this.tableQrLookup.resolveByToken(input.tableToken);
+    if (!table) {
+      throw new InvalidTableQrTokenError();
+    }
+    return { serviceType: ServiceType.DINE_IN, diningTableId: table.tableId };
+  }
+
+  private async startInTransaction(
+    opening: AttentionOpening,
+    products: Map<string, ProductForOrder>,
+    input: StartAttentionInput,
+    identity: DinerIdentity,
+  ): Promise<StartAttentionResult> {
+    const { attentionId, participant, order } = await this.transactionRunner.run(
+      async (tx) => {
+        const attention = await this.attentionsService.openOrJoin(opening, tx);
+        const participant = await this.joinOrGet(
+          attention.id,
+          identity,
+          input.displayName,
+          tx,
+        );
+        const order = await this.ordersService.placeOrder(
+          {
+            attentionId: attention.id,
+            requestId: input.requestId,
+            source: OrderSource.CUSTOMER,
+            items: input.items,
+            participantId: participant.id,
+          },
+          products,
+          tx,
+        );
+        return { attentionId: attention.id, participant, order };
+      },
+    );
+    return {
+      attention: await this.attentionsService.findOne(attentionId),
+      participant,
+      order,
+    };
+  }
+
   private async joinOrGet(
     attentionId: string,
     identity: DinerIdentity,
     displayName?: string | null,
+    tx?: TransactionContext,
   ): Promise<AttentionParticipant> {
     const existing = await this.participantRepository.findByIdentity(
       attentionId,
       identity,
+      tx,
     );
     if (existing) {
       return existing;
@@ -205,6 +261,7 @@ export class CustomerAttentionsService {
         guestToken: identity.userId ? null : (identity.guestToken ?? randomUUID()),
         displayName,
       }),
+      tx,
     );
   }
 

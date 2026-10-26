@@ -84,42 +84,12 @@ export class OrdersService {
     if (!attention) {
       throw new AttentionNotFoundError(input.attentionId);
     }
-    attention.acceptOrder();
-    const products = await this.productsFor(attention, input.items);
+    const products = await this.validateItems(attention, input.items);
 
     try {
-      return await this.transactionRunner.run(async (tx) => {
-        await this.attentionRepository.save(attention, tx);
-        const order = await this.orderRepository.save(
-          Order.submit({
-            id: randomUUID(),
-            attentionId: attention.id,
-            requestId: input.requestId,
-            source: input.source,
-            submittedByUserId: input.submittedByUserId,
-            submittedByParticipantId: input.participantId,
-          }),
-          tx,
-        );
-        const items: OrderItem[] = [];
-        for (const line of input.items) {
-          const product = products.get(line.productId) as ProductForOrder;
-          const { item, history } = OrderItem.create({
-            id: randomUUID(),
-            historyId: randomUUID(),
-            orderId: order.id,
-            productId: product.id,
-            productName: product.name,
-            unitPrice: product.price,
-            quantity: line.quantity,
-            customerNote: line.customerNote,
-            requestedByParticipantId: input.participantId,
-          });
-          items.push(await this.itemRepository.insert(item, tx));
-          await this.historyRepository.save(history, tx);
-        }
-        return { order, items, created: true };
-      });
+      return await this.transactionRunner.run((tx) =>
+        this.placeOrder(input, products, tx),
+      );
     } catch (error) {
       // A concurrent request with the same id won the race: return its order.
       if (error instanceof DuplicateOrderRequestError) {
@@ -130,6 +100,68 @@ export class OrdersService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Records the order within the caller's transaction. The attention row is
+   * locked first, so an attention closed or cancelled meanwhile rejects the
+   * order instead of being re-opened, and a repeated requestId is detected.
+   */
+  async placeOrder(
+    input: SubmitOrderInput,
+    products: Map<string, ProductForOrder>,
+    tx: TransactionContext,
+  ): Promise<OrderResult> {
+    const attention = await this.attentionRepository.findByIdForUpdate(
+      input.attentionId,
+      tx,
+    );
+    if (!attention) {
+      throw new AttentionNotFoundError(input.attentionId);
+    }
+    const previous = await this.orderRepository.findByRequestId(
+      attention.id,
+      input.requestId,
+      tx,
+    );
+    if (previous) {
+      return {
+        order: previous,
+        items: await this.itemRepository.findByOrder(previous.id, tx),
+        created: false,
+      };
+    }
+    attention.acceptOrder();
+    await this.attentionRepository.save(attention, tx);
+    const order = await this.orderRepository.save(
+      Order.submit({
+        id: randomUUID(),
+        attentionId: attention.id,
+        requestId: input.requestId,
+        source: input.source,
+        submittedByUserId: input.submittedByUserId,
+        submittedByParticipantId: input.participantId,
+      }),
+      tx,
+    );
+    const items: OrderItem[] = [];
+    for (const line of input.items) {
+      const product = products.get(line.productId) as ProductForOrder;
+      const { item, history } = OrderItem.create({
+        id: randomUUID(),
+        historyId: randomUUID(),
+        orderId: order.id,
+        productId: product.id,
+        productName: product.name,
+        unitPrice: product.price,
+        quantity: line.quantity,
+        customerNote: line.customerNote,
+        requestedByParticipantId: input.participantId,
+      });
+      items.push(await this.itemRepository.insert(item, tx));
+      await this.historyRepository.save(history, tx);
+    }
+    return { order, items, created: true };
   }
 
   async confirmOrder(orderId: string): Promise<Order> {
@@ -234,9 +266,12 @@ export class OrdersService {
     return { order, items, created: false };
   }
 
-  /** Validates every line against the current catalog of the restaurant. */
-  private async productsFor(
-    attention: Attention,
+  /**
+   * Validates every line against the current catalog of the restaurant,
+   * before anything is saved.
+   */
+  async validateItems(
+    attention: Pick<Attention, 'restaurantId' | 'serviceType'>,
     items: OrderLineInput[],
   ): Promise<Map<string, ProductForOrder>> {
     const products = await this.productLookup.findForOrder(

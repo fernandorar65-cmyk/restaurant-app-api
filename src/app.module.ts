@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { validateEnvironment } from './common/infrastructure/config/environment.validation.js';
 import { buildTypeOrmOptions } from './common/persistence/database/typeorm.config.js';
 import { IamModule } from './iam/iam.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
@@ -14,7 +15,7 @@ import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: buildTypeOrmOptions,

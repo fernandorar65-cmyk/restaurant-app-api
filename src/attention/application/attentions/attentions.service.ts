@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { roundMoney } from '../../../common/domain/value-objects/money.js';
 import { AttentionParticipant } from '../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../domain/entities/attention.entity.js';
@@ -14,7 +15,6 @@ import { FulfillmentStatus } from '../../domain/enums/fulfillment-status.enum.js
 import { FulfillmentType } from '../../domain/enums/fulfillment-type.enum.js';
 import { ServiceType } from '../../domain/enums/service-type.enum.js';
 import {
-  ActiveAttentionAlreadyExistsError,
   AttentionNotFoundError,
   DiningTableReferenceNotFoundError,
   FulfillmentNotFoundError,
@@ -68,6 +68,15 @@ export interface AttentionBill {
   balance: number;
 }
 
+/**
+ * A validated attention ready to be saved, together with its pickup/delivery
+ * data. Preparing runs the lookups; saving it is left to a transaction.
+ */
+export interface AttentionOpening {
+  attention: Attention;
+  fulfillment: Fulfillment | null;
+}
+
 @Injectable()
 export class AttentionsService {
   constructor(
@@ -90,11 +99,17 @@ export class AttentionsService {
 
   /** Opens a new attention; a table that already has an active one is a conflict. */
   async open(input: OpenAttentionInput): Promise<Attention> {
+    const opening = await this.prepareOpening(input);
+    return this.transactionRunner.run((tx) => this.saveOpening(opening, tx));
+  }
+
+  /** Validates the table / restaurant and service mode; saves nothing. */
+  async prepareOpening(input: OpenAttentionInput): Promise<AttentionOpening> {
     if (input.serviceType === ServiceType.DINE_IN) {
       const table = await this.requireOperationalTable(input.diningTableId);
       await this.requireEnabledMode(table.restaurantId, ServiceType.DINE_IN);
-      return this.attentionRepository.save(
-        Attention.open({
+      return {
+        attention: Attention.open({
           id: randomUUID(),
           attentionNumber: generateAttentionNumber(),
           restaurantId: table.restaurantId,
@@ -102,7 +117,8 @@ export class AttentionsService {
           diningTableId: table.id,
           customerUserId: input.customerUserId,
         }),
-      );
+        fulfillment: null,
+      };
     }
 
     if (!input.restaurantId) {
@@ -137,38 +153,38 @@ export class AttentionsService {
       deliveryFee:
         input.serviceType === ServiceType.DELIVERY ? (orderMode.deliveryFee ?? 0) : 0,
     });
-    return this.transactionRunner.run(async (tx) => {
-      const saved = await this.attentionRepository.save(attention, tx);
-      await this.fulfillmentRepository.save(fulfillment, tx);
-      return saved;
-    });
+    return { attention, fulfillment };
   }
 
   /**
-   * Returns the table's active attention or opens one. Two diners scanning
-   * the same QR at once end up in the same attention: the unique index
-   * rejects the second insert and we read the winner instead.
+   * Saves a prepared attention within the caller's transaction. Throws
+   * ActiveAttentionAlreadyExistsError if the table got one concurrently.
    */
-  async openOrReuseForTable(diningTableId: string): Promise<Attention> {
-    const active = await this.attentionRepository.findActiveByDiningTable(diningTableId);
-    if (active) {
-      return active;
+  async saveOpening(opening: AttentionOpening, tx: TransactionContext): Promise<Attention> {
+    const saved = await this.attentionRepository.save(opening.attention, tx);
+    if (opening.fulfillment) {
+      await this.fulfillmentRepository.save(opening.fulfillment, tx);
     }
-    try {
-      return await this.open({
-        serviceType: ServiceType.DINE_IN,
+    return saved;
+  }
+
+  /**
+   * Within the caller's transaction: joins the table's active attention
+   * (locking it) or saves the prepared one. Pickup and delivery always open
+   * their own attention.
+   */
+  async openOrJoin(opening: AttentionOpening, tx: TransactionContext): Promise<Attention> {
+    const diningTableId = opening.attention.diningTableId;
+    if (diningTableId) {
+      const active = await this.attentionRepository.findActiveByDiningTable(
         diningTableId,
-      });
-    } catch (error) {
-      if (error instanceof ActiveAttentionAlreadyExistsError) {
-        const winner =
-          await this.attentionRepository.findActiveByDiningTable(diningTableId);
-        if (winner) {
-          return winner;
-        }
+        tx,
+      );
+      if (active) {
+        return this.lockActive(active.id, tx);
       }
-      throw error;
     }
+    return this.saveOpening(opening, tx);
   }
 
   findPage(
@@ -203,49 +219,38 @@ export class AttentionsService {
 
   /** Rejected and cancelled items are never charged. */
   async getBill(id: string): Promise<AttentionBill> {
-    const attention = await this.findOne(id);
-    const [items, fulfillment, paid] = await Promise.all([
-      this.itemsService.findByAttention(id),
-      this.fulfillmentRepository.findByAttention(id),
-      this.paymentLedger.paidAmount(id),
-    ]);
-    const billable = items.filter((item) => item.isBillable);
-    const subtotal = roundMoney(billable.reduce((sum, item) => sum + item.subtotal, 0));
-    const deliveryFee = fulfillment?.deliveryFee ?? 0;
-    const total = roundMoney(subtotal + deliveryFee);
-    return {
-      attention,
-      items: billable,
-      subtotal,
-      deliveryFee,
-      total,
-      paid,
-      balance: roundMoney(total - paid),
-    };
+    return this.billFor(await this.findOne(id));
   }
 
   async requestBill(id: string): Promise<Attention> {
-    const attention = await this.findOne(id);
-    attention.requestBill();
-    return this.attentionRepository.save(attention);
+    return this.transactionRunner.run(async (tx) => {
+      const attention = await this.lockActive(id, tx);
+      attention.requestBill();
+      return this.attentionRepository.save(attention, tx);
+    });
   }
 
+  /**
+   * The balance is computed after taking the lock, so an order placed
+   * concurrently is either included or rejected because the attention closed.
+   */
   async close(id: string): Promise<Attention> {
-    const bill = await this.getBill(id);
-    bill.attention.close(bill.balance);
-    return this.attentionRepository.save(bill.attention);
+    return this.transactionRunner.run(async (tx) => {
+      const attention = await this.lockActive(id, tx);
+      const bill = await this.billFor(attention);
+      attention.close(bill.balance);
+      return this.attentionRepository.save(attention, tx);
+    });
   }
 
   /** Cancelling the attention also cancels its pending pickup/delivery. */
   async cancel(id: string, reason: string): Promise<Attention> {
-    const attention = await this.findOne(id);
-    attention.cancel(reason, await this.paymentLedger.paidAmount(id));
-    const fulfillment = await this.fulfillmentRepository.findByAttention(id);
-    if (fulfillment && !fulfillment.isFinal) {
-      fulfillment.changeStatus(FulfillmentStatus.CANCELLED);
-    }
     return this.transactionRunner.run(async (tx) => {
-      if (fulfillment) {
+      const attention = await this.lockActive(id, tx);
+      attention.cancel(reason, await this.paymentLedger.paidAmount(id));
+      const fulfillment = await this.fulfillmentRepository.findByAttention(id);
+      if (fulfillment && !fulfillment.isFinal) {
+        fulfillment.changeStatus(FulfillmentStatus.CANCELLED);
         await this.fulfillmentRepository.save(fulfillment, tx);
       }
       return this.attentionRepository.save(attention, tx);
@@ -266,6 +271,36 @@ export class AttentionsService {
       estimatedReadyAt: input.estimatedReadyAt,
     });
     return this.fulfillmentRepository.save(fulfillment);
+  }
+
+  /** Locks the attention row until the transaction ends. */
+  private async lockActive(id: string, tx: TransactionContext): Promise<Attention> {
+    const attention = await this.attentionRepository.findByIdForUpdate(id, tx);
+    if (!attention) {
+      throw new AttentionNotFoundError(id);
+    }
+    return attention;
+  }
+
+  private async billFor(attention: Attention): Promise<AttentionBill> {
+    const [items, fulfillment, paid] = await Promise.all([
+      this.itemsService.findByAttention(attention.id),
+      this.fulfillmentRepository.findByAttention(attention.id),
+      this.paymentLedger.paidAmount(attention.id),
+    ]);
+    const billable = items.filter((item) => item.isBillable);
+    const subtotal = roundMoney(billable.reduce((sum, item) => sum + item.subtotal, 0));
+    const deliveryFee = fulfillment?.deliveryFee ?? 0;
+    const total = roundMoney(subtotal + deliveryFee);
+    return {
+      attention,
+      items: billable,
+      subtotal,
+      deliveryFee,
+      total,
+      paid,
+      balance: roundMoney(total - paid),
+    };
   }
 
   private async requireEnabledMode(restaurantId: string, serviceType: ServiceType) {

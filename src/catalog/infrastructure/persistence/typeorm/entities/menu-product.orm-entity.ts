@@ -9,11 +9,13 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
+import type { MenuSectionOrmEntity } from './menu-section.orm-entity.js';
 import type { MenuOrmEntity } from './menu.orm-entity.js';
 import type { ProductOrmEntity } from './product.orm-entity.js';
 
 @Entity('menu_products')
 @Index('idx_menu_products_product', ['productId'])
+@Index('idx_menu_products_section', ['menuSectionId'])
 @Check(
   'chk_menu_products_price',
   'display_price IS NULL OR display_price >= 0',
@@ -32,6 +34,14 @@ export class MenuProductOrmEntity {
   @ManyToOne('ProductOrmEntity', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'product_id' })
   product?: ProductOrmEntity;
+
+  // Deleting a section only ungroups its products, it doesn't remove them.
+  @Column({ name: 'menu_section_id', type: 'uuid', nullable: true })
+  menuSectionId: string | null;
+
+  @ManyToOne('MenuSectionOrmEntity', { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'menu_section_id' })
+  menuSection?: MenuSectionOrmEntity;
 
   @Column({
     name: 'display_price',

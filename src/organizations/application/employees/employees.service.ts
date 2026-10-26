@@ -9,8 +9,13 @@ import {
   UserAlreadyEmployeeError,
   UserReferenceNotFoundError,
 } from '../../domain/exceptions/employee.errors.js';
+import {
+  InactiveJobPositionError,
+  JobPositionFromAnotherOrganizationError,
+} from '../../domain/exceptions/work-structure.errors.js';
 import { EMPLOYEE_REPOSITORY } from '../../domain/repositories/employee.repository.js';
 import type { EmployeeRepository } from '../../domain/repositories/employee.repository.js';
+import { JobPositionsService } from '../job-positions/job-positions.service.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
 import { USER_LOOKUP } from '../ports/user-lookup.port.js';
 import type { UserLookupPort } from '../ports/user-lookup.port.js';
@@ -34,11 +39,13 @@ export class EmployeesService {
     private readonly employeeRepository: EmployeeRepository,
     @Inject(USER_LOOKUP) private readonly userLookup: UserLookupPort,
     private readonly organizationsService: OrganizationsService,
+    private readonly jobPositionsService: JobPositionsService,
   ) {}
 
   async create(input: CreateEmployeeInput): Promise<Employee> {
     await this.organizationsService.findOne(input.organizationId);
     const employee = Employee.create({ id: randomUUID(), ...input });
+    await this.assertAssignablePosition(employee.organizationId, employee.jobPositionId);
     await this.assertConsistent(employee);
     return this.employeeRepository.save(employee);
   }
@@ -60,6 +67,14 @@ export class EmployeesService {
 
   async update(id: string, input: UpdateEmployeeInput): Promise<Employee> {
     const employee = await this.findOne(id);
+    // Only a newly assigned position is checked: keeping a position that was
+    // deactivated later is fine.
+    if (
+      input.jobPositionId !== undefined &&
+      input.jobPositionId !== employee.jobPositionId
+    ) {
+      await this.assertAssignablePosition(employee.organizationId, input.jobPositionId);
+    }
     employee.update(input);
     await this.assertConsistent(employee);
     return this.employeeRepository.save(employee);
@@ -73,6 +88,22 @@ export class EmployeesService {
     const employee = await this.findOne(id);
     employee.update({ status: EmployeeStatus.INACTIVE });
     await this.employeeRepository.save(employee);
+  }
+
+  private async assertAssignablePosition(
+    organizationId: string,
+    jobPositionId: string | null | undefined,
+  ): Promise<void> {
+    if (!jobPositionId) {
+      return;
+    }
+    const jobPosition = await this.jobPositionsService.findOne(jobPositionId);
+    if (jobPosition.organizationId !== organizationId) {
+      throw new JobPositionFromAnotherOrganizationError();
+    }
+    if (!jobPosition.isActive) {
+      throw new InactiveJobPositionError();
+    }
   }
 
   private async assertConsistent(employee: Employee): Promise<void> {

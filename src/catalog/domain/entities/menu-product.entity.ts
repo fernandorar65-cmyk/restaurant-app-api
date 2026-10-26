@@ -3,6 +3,8 @@ import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 export interface MenuProductProps {
   menuId: string;
   productId: string;
+  /** Section of this menu where the product is shown; null = no section. */
+  menuSectionId: string | null;
   /** Price shown in this menu; the order always uses the product price. */
   displayPrice: number | null;
   sortOrder: number;
@@ -16,6 +18,7 @@ export class MenuProduct {
   static create(params: {
     menuId: string;
     productId: string;
+    menuSectionId?: string | null;
     displayPrice?: number | null;
     sortOrder?: number;
     isVisible?: boolean;
@@ -23,6 +26,7 @@ export class MenuProduct {
     const menuProduct = new MenuProduct({
       menuId: params.menuId,
       productId: params.productId,
+      menuSectionId: null,
       displayPrice: null,
       sortOrder: 0,
       isVisible: true,
@@ -37,10 +41,14 @@ export class MenuProduct {
   }
 
   update(params: {
+    menuSectionId?: string | null;
     displayPrice?: number | null;
     sortOrder?: number;
     isVisible?: boolean;
   }): void {
+    if (params.menuSectionId !== undefined) {
+      this.props.menuSectionId = params.menuSectionId;
+    }
     if (params.displayPrice !== undefined) {
       if (params.displayPrice !== null && params.displayPrice < 0) {
         throw new ValidationDomainError('El precio mostrado no puede ser negativo');
@@ -60,6 +68,9 @@ export class MenuProduct {
   }
   get productId(): string {
     return this.props.productId;
+  }
+  get menuSectionId(): string | null {
+    return this.props.menuSectionId;
   }
   get displayPrice(): number | null {
     return this.props.displayPrice;

@@ -4,13 +4,13 @@
 import { AttentionParticipantOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/attention-participant.orm-entity.js';
 import { AttentionOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/attention.orm-entity.js';
 import { FulfillmentOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/fulfillment.orm-entity.js';
-import { OrderBatchOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-batch.orm-entity.js';
+import { OrderOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order.orm-entity.js';
 import { OrderItemStatusHistoryOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-item-status-history.orm-entity.js';
 import { OrderItemOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-item.orm-entity.js';
-import { AllergenOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/allergen.orm-entity.js';
+import { CategoryOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/category.orm-entity.js';
 import { MenuProductOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/menu-product.orm-entity.js';
 import { MenuOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/menu.orm-entity.js';
-import { ProductAllergenOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/product-allergen.orm-entity.js';
+import { MenuSectionOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/menu-section.orm-entity.js';
 import { ProductCategoryOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/product-category.orm-entity.js';
 import { ProductIngredientOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/product-ingredient.orm-entity.js';
 import { ProductOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
@@ -37,7 +37,14 @@ import { OrganizationOrmEntity } from '../../../organizations/infrastructure/per
 import { RestaurantFloorOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant-floor.orm-entity.js';
 import { RestaurantOrderModeOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant-order-mode.orm-entity.js';
 import { RestaurantOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
-import { TableQrCodeOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/table-qr-code.orm-entity.js';
+import { JobPositionOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/job-position.orm-entity.js';
+import { WorkAreaOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/work-area.orm-entity.js';
+import { PaymentProviderEventOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment-provider-event.orm-entity.js';
+import { PaymentProviderStatusMappingOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment-provider-status-mapping.orm-entity.js';
+import { PaymentStatusOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment-status.orm-entity.js';
+import { RefundAllocationOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/refund-allocation.orm-entity.js';
+import { RefundProviderStatusMappingOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/refund-provider-status-mapping.orm-entity.js';
+import { RefundStatusOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/refund-status.orm-entity.js';
 import { PaymentAllocationOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment-allocation.orm-entity.js';
 import { PaymentOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment.orm-entity.js';
 import { RefundOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/refund.orm-entity.js';
@@ -58,26 +65,33 @@ export const entities = [
   RestaurantOrderModeOrmEntity,
   RestaurantFloorOrmEntity,
   DiningTableOrmEntity,
-  TableQrCodeOrmEntity,
+  WorkAreaOrmEntity,
+  JobPositionOrmEntity,
   // catalog
   ProductCategoryOrmEntity,
   ProductOrmEntity,
   MenuOrmEntity,
   MenuProductOrmEntity,
-  AllergenOrmEntity,
-  ProductAllergenOrmEntity,
+  CategoryOrmEntity,
+  MenuSectionOrmEntity,
   ProductIngredientOrmEntity,
   // attention
   AttentionOrmEntity,
   AttentionParticipantOrmEntity,
-  OrderBatchOrmEntity,
+  OrderOrmEntity,
   OrderItemOrmEntity,
   OrderItemStatusHistoryOrmEntity,
   FulfillmentOrmEntity,
   // payments
+  PaymentStatusOrmEntity,
   PaymentOrmEntity,
   PaymentAllocationOrmEntity,
+  PaymentProviderStatusMappingOrmEntity,
+  PaymentProviderEventOrmEntity,
+  RefundStatusOrmEntity,
   RefundOrmEntity,
+  RefundAllocationOrmEntity,
+  RefundProviderStatusMappingOrmEntity,
   // inventory
   InventoryCategoryOrmEntity,
   SupplyOrmEntity,

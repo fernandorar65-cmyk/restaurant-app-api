@@ -8,11 +8,15 @@ import {
   CrossRestaurantReferenceError,
   DuplicateMenuNameError,
   DuplicateMenuProductError,
+  InactiveMenuSectionError,
   MenuNotFoundError,
   MenuProductNotFoundError,
+  MenuSectionNotFoundError,
 } from '../../domain/exceptions/catalog.errors.js';
 import { MENU_PRODUCT_REPOSITORY } from '../../domain/repositories/menu-product.repository.js';
 import type { MenuProductRepository } from '../../domain/repositories/menu-product.repository.js';
+import { MENU_SECTION_REPOSITORY } from '../../domain/repositories/menu-section.repository.js';
+import type { MenuSectionRepository } from '../../domain/repositories/menu-section.repository.js';
 import { MENU_REPOSITORY } from '../../domain/repositories/menu.repository.js';
 import type { MenuRepository } from '../../domain/repositories/menu.repository.js';
 import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
@@ -31,6 +35,8 @@ export interface UpdateMenuInput extends MenuDetails {
 }
 
 export interface MenuProductInput {
+  /** Section of the same menu; null removes the product from its section. */
+  menuSectionId?: string | null;
   displayPrice?: number | null;
   sortOrder?: number;
   isVisible?: boolean;
@@ -42,6 +48,8 @@ export class MenusService {
     @Inject(MENU_REPOSITORY) private readonly menuRepository: MenuRepository,
     @Inject(MENU_PRODUCT_REPOSITORY)
     private readonly menuProductRepository: MenuProductRepository,
+    @Inject(MENU_SECTION_REPOSITORY)
+    private readonly sectionRepository: MenuSectionRepository,
     @Inject(RESTAURANT_LOOKUP)
     private readonly restaurantLookup: RestaurantLookupPort,
     private readonly productsService: ProductsService,
@@ -105,6 +113,7 @@ export class MenusService {
     if (await this.menuProductRepository.find(menuId, productId)) {
       throw new DuplicateMenuProductError();
     }
+    await this.assertSectionOfMenu(menuId, input.menuSectionId);
     return this.menuProductRepository.save(
       MenuProduct.create({ menuId, productId, ...input }),
     );
@@ -119,6 +128,9 @@ export class MenusService {
     if (!menuProduct) {
       throw new MenuProductNotFoundError();
     }
+    if (input.menuSectionId !== menuProduct.menuSectionId) {
+      await this.assertSectionOfMenu(menuId, input.menuSectionId);
+    }
     menuProduct.update(input);
     return this.menuProductRepository.save(menuProduct);
   }
@@ -127,6 +139,23 @@ export class MenusService {
     const deleted = await this.menuProductRepository.delete(menuId, productId);
     if (!deleted) {
       throw new MenuProductNotFoundError();
+    }
+  }
+
+  /** The section must be an active section of this same menu. */
+  private async assertSectionOfMenu(
+    menuId: string,
+    sectionId: string | null | undefined,
+  ): Promise<void> {
+    if (!sectionId) {
+      return;
+    }
+    const section = await this.sectionRepository.findById(sectionId);
+    if (!section || section.menuId !== menuId) {
+      throw new MenuSectionNotFoundError(sectionId);
+    }
+    if (!section.isActive) {
+      throw new InactiveMenuSectionError();
     }
   }
 

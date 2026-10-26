@@ -9,8 +9,7 @@ export class EmployeeMapper {
       userId: orm.userId,
       employeeCode: orm.employeeCode,
       documentNumber: orm.documentNumber,
-      positionName: orm.positionName,
-      area: orm.area,
+      jobPositionId: orm.jobPositionId,
       status: orm.status,
       hiredAt: orm.hiredAt,
       terminatedAt: orm.terminatedAt,
@@ -29,8 +28,7 @@ export class EmployeeMapper {
     orm.userId = domain.userId;
     orm.employeeCode = domain.employeeCode;
     orm.documentNumber = domain.documentNumber;
-    orm.positionName = domain.positionName;
-    orm.area = domain.area;
+    orm.jobPositionId = domain.jobPositionId;
     orm.status = domain.status;
     orm.hiredAt = domain.hiredAt;
     orm.terminatedAt = domain.terminatedAt;

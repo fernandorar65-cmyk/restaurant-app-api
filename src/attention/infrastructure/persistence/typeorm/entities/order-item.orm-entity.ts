@@ -15,12 +15,12 @@ import {
 import { OrderItemStatus } from '../../../../domain/enums/order-item-status.enum.js';
 import type { ProductOrmEntity } from '../../../../../catalog/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
 import type { AttentionParticipantOrmEntity } from './attention-participant.orm-entity.js';
-import type { OrderBatchOrmEntity } from './order-batch.orm-entity.js';
+import type { OrderOrmEntity } from './order.orm-entity.js';
 
 // Name and price are snapshotted at order time so later catalog changes never
 // alter past orders.
 @Entity('order_items')
-@Index('idx_order_items_batch', ['batchId'])
+@Index('idx_order_items_order', ['orderId'])
 @Index('idx_order_items_product', ['productId'])
 @Index('idx_order_items_status', ['currentStatus', 'createdAt'])
 @Check('chk_order_items_price', 'unit_price >= 0')
@@ -36,12 +36,12 @@ import type { OrderBatchOrmEntity } from './order-batch.orm-entity.js';
 )
 @Check('chk_order_items_version', 'version >= 0')
 export class OrderItemOrmEntity extends BaseOrmEntity {
-  @Column({ name: 'batch_id', type: 'uuid' })
-  batchId: string;
+  @Column({ name: 'order_id', type: 'uuid' })
+  orderId: string;
 
-  @ManyToOne('OrderBatchOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'batch_id' })
-  batch?: OrderBatchOrmEntity;
+  @ManyToOne('OrderOrmEntity', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'order_id' })
+  order?: OrderOrmEntity;
 
   @Column({ name: 'product_id', type: 'uuid' })
   productId: string;

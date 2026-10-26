@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -17,8 +19,13 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { DiningTablesService } from '../../../application/dining-tables/dining-tables.service.js';
 import { CreateDiningTableDto } from '../dto/dining-tables/create-dining-table.dto.js';
+import {
+  GeneratedQrResponseDto,
+  GenerateQrDto,
+} from '../dto/dining-tables/dining-table-qr.dto.js';
 import { DiningTableResponseDto } from '../dto/dining-tables/dining-table-response.dto.js';
 import { UpdateDiningTableDto } from '../dto/dining-tables/update-dining-table.dto.js';
 import type { PageRequest } from '../../../../common/application/pagination.js';
@@ -32,7 +39,42 @@ import {
 @ApiTags('organizations/dining-tables')
 @Controller('dining-tables')
 export class DiningTablesController {
-  constructor(private readonly diningTablesService: DiningTablesService) {}
+  constructor(
+    private readonly diningTablesService: DiningTablesService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Post(':id/qr-code')
+  @ApiOperation({
+    summary: 'Generar o regenerar el QR de la mesa',
+    description:
+      'Emite un token nuevo e incrementa la versión; el QR anterior deja de funcionar. El token solo se devuelve en esta respuesta',
+  })
+  @ApiCreatedResponse({ type: GeneratedQrResponseDto })
+  async generateQr(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GenerateQrDto,
+  ): Promise<GeneratedQrResponseDto> {
+    const { table, token } = await this.diningTablesService.generateQr(id, dto);
+    const appUrl = this.configService
+      .get<string>('PUBLIC_APP_URL', 'http://localhost:5173')
+      .replace(/\/+$/, '');
+    return {
+      table: DiningTableResponseDto.fromDomain(table),
+      token,
+      qrUrl: `${appUrl}/t/${token}`,
+    };
+  }
+
+  @Delete(':id/qr-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revocar el QR de la mesa (queda sin QR válido)' })
+  @ApiOkResponse({ type: DiningTableResponseDto })
+  async revokeQr(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<DiningTableResponseDto> {
+    return DiningTableResponseDto.fromDomain(await this.diningTablesService.revokeQr(id));
+  }
 
   @Post()
   @ApiOperation({ summary: 'Crear una mesa en un piso' })

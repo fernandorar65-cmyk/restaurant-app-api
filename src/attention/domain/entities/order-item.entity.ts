@@ -9,7 +9,7 @@ import { OrderItemStatusHistory } from './order-item-status-history.entity.js';
 
 export interface OrderItemProps {
   id: string;
-  batchId: string;
+  orderId: string;
   productId: string;
   requestedByParticipantId: string | null;
   /** Name and price are frozen at order time: catalog edits never alter them. */
@@ -48,7 +48,7 @@ export class OrderItem {
     id: string;
     /** Id for the initial SUBMITTED history entry. */
     historyId: string;
-    batchId: string;
+    orderId: string;
     productId: string;
     productName: string;
     unitPrice: number;
@@ -62,7 +62,7 @@ export class OrderItem {
     const now = new Date();
     const item = new OrderItem({
       id: params.id,
-      batchId: params.batchId,
+      orderId: params.orderId,
       productId: params.productId,
       requestedByParticipantId: params.requestedByParticipantId ?? null,
       productNameSnapshot: params.productName,
@@ -136,8 +136,8 @@ export class OrderItem {
   get id(): string {
     return this.props.id;
   }
-  get batchId(): string {
-    return this.props.batchId;
+  get orderId(): string {
+    return this.props.orderId;
   }
   get productId(): string {
     return this.props.productId;

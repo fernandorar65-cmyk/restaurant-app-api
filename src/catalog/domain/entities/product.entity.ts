@@ -6,7 +6,6 @@ import type { ServiceMode } from '../service-mode.js';
 export interface ProductProps {
   id: string;
   restaurantId: string;
-  categoryId: string;
   code: string;
   name: string;
   description: string | null;
@@ -39,7 +38,8 @@ export type ProductOrderIssue =
   | 'MODE_NOT_ALLOWED';
 
 /**
- * A dish or drink offered by a restaurant. "status" is the catalog lifecycle
+ * A dish or drink offered by a restaurant. Its categories live in the
+ * product_categories link (a product can be in several). "status" is the catalog lifecycle
  * (INACTIVE = retired); "isAvailable" is the day-to-day switch (sold out).
  */
 export class Product {
@@ -49,7 +49,6 @@ export class Product {
     params: ProductDetails & {
       id: string;
       restaurantId: string;
-      categoryId: string;
       code: string;
       name: string;
       price: number;
@@ -59,7 +58,6 @@ export class Product {
     const product = new Product({
       id: params.id,
       restaurantId: params.restaurantId,
-      categoryId: params.categoryId,
       code: '',
       name: '',
       description: null,
@@ -82,12 +80,9 @@ export class Product {
   }
 
   update(
-    params: ProductDetails & { categoryId?: string; status?: ProductStatus },
+    params: ProductDetails & { status?: ProductStatus },
   ): void {
     this.applyDetails(params);
-    if (params.categoryId !== undefined) {
-      this.props.categoryId = params.categoryId;
-    }
     if (params.status !== undefined) {
       this.props.status = params.status;
     }
@@ -159,9 +154,6 @@ export class Product {
   }
   get restaurantId(): string {
     return this.props.restaurantId;
-  }
-  get categoryId(): string {
-    return this.props.categoryId;
   }
   get code(): string {
     return this.props.code;

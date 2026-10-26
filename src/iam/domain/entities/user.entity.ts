@@ -11,6 +11,11 @@ export interface UserProps {
   phone: string | null;
   status: UserStatus;
   mustChangePassword: boolean;
+  /**
+   * ACMR staff that administers platform-wide catalogs (payment statuses,
+   * gateway mappings). Never set through the API: only in the database.
+   */
+  isPlatformAdmin: boolean;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +54,7 @@ export class User {
       phone: null,
       status: UserStatus.ACTIVE,
       mustChangePassword: params.mustChangePassword ?? false,
+      isPlatformAdmin: false,
       lastLoginAt: null,
       createdAt: now,
       updatedAt: now,
@@ -136,6 +142,9 @@ export class User {
   }
   get mustChangePassword(): boolean {
     return this.props.mustChangePassword;
+  }
+  get isPlatformAdmin(): boolean {
+    return this.props.isPlatformAdmin;
   }
   get lastLoginAt(): Date | null {
     return this.props.lastLoginAt;

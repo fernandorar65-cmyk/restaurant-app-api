@@ -25,9 +25,9 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
     return found ? OrderItemMapper.toDomain(found) : null;
   }
 
-  async findByBatch(batchId: string): Promise<OrderItem[]> {
-    const rows = await this.repository.find({
-      where: { batchId },
+  async findByOrder(orderId: string, tx?: TransactionContext): Promise<OrderItem[]> {
+    const rows = await transactionalRepository(this.repository, tx).find({
+      where: { orderId },
       order: { createdAt: 'ASC' },
     });
     return rows.map((row) => OrderItemMapper.toDomain(row));
@@ -36,8 +36,8 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
   async findByAttention(attentionId: string): Promise<OrderItem[]> {
     const rows = await this.repository
       .createQueryBuilder('item')
-      .innerJoin('item.batch', 'batch')
-      .where('batch.attention_id = :attentionId', { attentionId })
+      .innerJoin('item.order', 'ord')
+      .where('ord.attention_id = :attentionId', { attentionId })
       .orderBy('item.created_at', 'ASC')
       .getMany();
     return rows.map((row) => OrderItemMapper.toDomain(row));
@@ -53,8 +53,8 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
   ): Promise<Page<OrderItem>> {
     const query = this.repository
       .createQueryBuilder('item')
-      .innerJoin('item.batch', 'batch')
-      .innerJoin('batch.attention', 'attention')
+      .innerJoin('item.order', 'ord')
+      .innerJoin('ord.attention', 'attention')
       .where('attention.restaurant_id = :restaurantId', {
         restaurantId: filter.restaurantId,
       })

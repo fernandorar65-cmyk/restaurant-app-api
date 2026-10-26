@@ -9,9 +9,6 @@ export class ProductResponseDto {
   @ApiProperty()
   restaurantId: string;
 
-  @ApiProperty()
-  categoryId: string;
-
   @ApiProperty({ example: 'CEV-01' })
   code: string;
 
@@ -52,7 +49,6 @@ export class ProductResponseDto {
     const dto = new ProductResponseDto();
     dto.id = product.id;
     dto.restaurantId = product.restaurantId;
-    dto.categoryId = product.categoryId;
     dto.code = product.code;
     dto.name = product.name;
     dto.description = product.description;

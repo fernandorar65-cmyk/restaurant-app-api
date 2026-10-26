@@ -9,19 +9,16 @@ import {
 } from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
 import { inValues } from '../../../../../common/persistence/column-options.js';
-import { EmployeeArea } from '../../../../domain/enums/employee-area.enum.js';
 import { EmployeeStatus } from '../../../../domain/enums/employee-status.enum.js';
 import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
+import type { JobPositionOrmEntity } from './job-position.orm-entity.js';
 import type { OrganizationOrmEntity } from './organization.orm-entity.js';
 
 @Entity('employees')
 @Unique('uq_employees_organization_code', ['organizationId', 'employeeCode'])
 @Unique('uq_employees_organization_user', ['organizationId', 'userId'])
 @Index('idx_employees_user', ['userId'])
-@Check(
-  'chk_employees_area',
-  inValues('area', Object.values(EmployeeArea), { nullable: true }),
-)
+@Index('idx_employees_job_position', ['jobPositionId'])
 @Check(
   'chk_employees_status',
   inValues('status', Object.values(EmployeeStatus)),
@@ -57,16 +54,13 @@ export class EmployeeOrmEntity extends BaseOrmEntity {
   })
   documentNumber: string | null;
 
-  @Column({
-    name: 'position_name',
-    type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
-  positionName: string | null;
+  // The job position replaces the old free-text position_name and area.
+  @Column({ name: 'job_position_id', type: 'uuid', nullable: true })
+  jobPositionId: string | null;
 
-  @Column({ type: 'varchar', length: 30, nullable: true })
-  area: EmployeeArea | null;
+  @ManyToOne('JobPositionOrmEntity')
+  @JoinColumn({ name: 'job_position_id' })
+  jobPosition?: JobPositionOrmEntity;
 
   @Column({ type: 'varchar', length: 20, default: EmployeeStatus.ACTIVE })
   status: EmployeeStatus;

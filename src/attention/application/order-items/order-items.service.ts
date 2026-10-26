@@ -7,6 +7,7 @@ import { OrderItemStatusHistory } from '../../domain/entities/order-item-status-
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
 import {
+  OrderItemHasPaymentsError,
   OrderItemNotFoundError,
   StaleOrderItemVersionError,
 } from '../../domain/exceptions/attention.errors.js';
@@ -14,8 +15,14 @@ import { ORDER_ITEM_STATUS_HISTORY_REPOSITORY } from '../../domain/repositories/
 import type { OrderItemStatusHistoryRepository } from '../../domain/repositories/order-item-status-history.repository.js';
 import { ORDER_ITEM_REPOSITORY } from '../../domain/repositories/order-item.repository.js';
 import type { OrderItemRepository } from '../../domain/repositories/order-item.repository.js';
+import { OrdersService } from '../orders/orders.service.js';
+import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
+import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
 import { STOCK_CONSUMPTION } from '../ports/stock-consumption.port.js';
 import type { StockConsumptionPort } from '../ports/stock-consumption.port.js';
+
+/** Leaving the bill: not allowed once the item is covered by a payment. */
+const DROPPING_STATUSES = [OrderItemStatus.REJECTED, OrderItemStatus.CANCELLED];
 
 export interface ChangeOrderItemStatusInput {
   status: OrderItemStatus;
@@ -41,6 +48,8 @@ export class OrderItemsService {
     private readonly transactionRunner: TransactionRunner,
     @Inject(STOCK_CONSUMPTION)
     private readonly stockConsumption: StockConsumptionPort,
+    private readonly ordersService: OrdersService,
+    @Inject(PAYMENT_LEDGER) private readonly paymentLedger: PaymentLedgerPort,
   ) {}
 
   async findOne(id: string): Promise<OrderItem> {
@@ -71,16 +80,26 @@ export class OrderItemsService {
     return this.historyRepository.findByItem(id);
   }
 
-  /** Applies a transition and writes its history entry atomically. */
+  /**
+   * Applies a transition and writes its history entry atomically, keeping the
+   * status of its order in sync. The attention status is never touched.
+   */
   async changeStatus(
     id: string,
     input: ChangeOrderItemStatusInput,
   ): Promise<OrderItem> {
+    if (
+      DROPPING_STATUSES.includes(input.status) &&
+      (await this.paymentLedger.itemsWithPayments([id])).length > 0
+    ) {
+      throw new OrderItemHasPaymentsError();
+    }
     await this.transactionRunner.run(async (tx) => {
       const item = await this.itemRepository.findById(id, tx);
       if (!item) {
         throw new OrderItemNotFoundError(id);
       }
+      await this.ordersService.lock(item.orderId, tx);
       const expectedVersion = input.expectedVersion ?? item.version;
       if (expectedVersion !== item.version) {
         throw new StaleOrderItemVersionError(id);
@@ -99,6 +118,7 @@ export class OrderItemsService {
         throw new StaleOrderItemVersionError(id);
       }
       await this.historyRepository.save(entry, tx);
+      await this.ordersService.syncStatus(item.orderId, tx);
     });
     const item = await this.findOne(id);
     if (item.currentStatus === OrderItemStatus.PREPARING) {

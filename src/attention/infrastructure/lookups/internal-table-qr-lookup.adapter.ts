@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { TableQrCodesService } from '../../../organizations/application/table-qr-codes/table-qr-codes.service.js';
+import { DiningTablesService } from '../../../organizations/application/dining-tables/dining-tables.service.js';
 import {
   TableQrLookupPort,
   TableQrResolution,
 } from '../../application/ports/table-qr-lookup.port.js';
 
-/** In-process adapter over organizations' TableQrCodesService. */
+/** In-process adapter: the QR lives on the dining table (organizations). */
 @Injectable()
 export class InternalTableQrLookupAdapter implements TableQrLookupPort {
-  constructor(private readonly qrCodesService: TableQrCodesService) {}
+  constructor(private readonly diningTablesService: DiningTablesService) {}
 
   async resolveByToken(token: string): Promise<TableQrResolution | null> {
-    const resolved = await this.qrCodesService.resolveToken(token);
+    const resolved = await this.diningTablesService.resolveQrToken(token);
     if (!resolved) {
       return null;
     }

@@ -16,6 +16,7 @@ import { PASSWORD_RESET_TOKEN_REPOSITORY } from './domain/repositories/password-
 import { REFRESH_TOKEN_REPOSITORY } from './domain/repositories/refresh-token.repository.js';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.js';
 import { AuthGuard } from './infrastructure/http/guards/auth.guard.js';
+import { PlatformAdminGuard } from './infrastructure/http/guards/platform-admin.guard.js';
 import { CustomerProfileOrmEntity } from './infrastructure/persistence/typeorm/entities/customer-profile.orm-entity.js';
 import { PasswordResetTokenOrmEntity } from './infrastructure/persistence/typeorm/entities/password-reset-token.orm-entity.js';
 import { RefreshTokenOrmEntity } from './infrastructure/persistence/typeorm/entities/refresh-token.orm-entity.js';
@@ -48,6 +49,8 @@ import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repo
     AuthGuard,
     // Session required everywhere unless the route is marked @Public().
     { provide: APP_GUARD, useExisting: AuthGuard },
+    // Then @PlatformAdmin() routes also require an ACMR administrator.
+    { provide: APP_GUARD, useClass: PlatformAdminGuard },
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
     {
       provide: CUSTOMER_PROFILE_REPOSITORY,

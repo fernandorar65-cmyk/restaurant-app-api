@@ -5,7 +5,7 @@ import { AttentionParticipant } from '../../domain/entities/attention-participan
 import { Attention } from '../../domain/entities/attention.entity.js';
 import type { FulfillmentDetails } from '../../domain/entities/fulfillment.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
-import { OrderBatchSource } from '../../domain/enums/order-batch-source.enum.js';
+import { OrderSource } from '../../domain/enums/order-source.enum.js';
 import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
 import { ServiceType } from '../../domain/enums/service-type.enum.js';
 import {
@@ -22,10 +22,10 @@ import {
 } from '../attentions/attentions.service.js';
 import { OrderItemsService } from '../order-items/order-items.service.js';
 import {
-  OrderRoundsService,
-  type RoundItemInput,
-  type RoundResult,
-} from '../order-rounds/order-rounds.service.js';
+  OrdersService,
+  type OrderLineInput,
+  type OrderResult,
+} from '../orders/orders.service.js';
 import { TABLE_QR_LOOKUP } from '../ports/table-qr-lookup.port.js';
 import type { TableQrLookupPort } from '../ports/table-qr-lookup.port.js';
 
@@ -42,7 +42,7 @@ export interface StartAttentionInput {
   /** Required for PICKUP / DELIVERY. */
   restaurantId?: string;
   requestId: string;
-  items: RoundItemInput[];
+  items: OrderLineInput[];
   displayName?: string | null;
   fulfillment?: FulfillmentDetails;
 }
@@ -50,7 +50,7 @@ export interface StartAttentionInput {
 export interface StartAttentionResult {
   attention: Attention;
   participant: AttentionParticipant;
-  round: RoundResult;
+  order: OrderResult;
 }
 
 export class ItemAlreadyInPreparationError extends BusinessRuleDomainError {
@@ -70,13 +70,13 @@ export class CustomerAttentionsService {
     private readonly participantRepository: AttentionParticipantRepository,
     @Inject(TABLE_QR_LOOKUP) private readonly tableQrLookup: TableQrLookupPort,
     private readonly attentionsService: AttentionsService,
-    private readonly roundsService: OrderRoundsService,
+    private readonly ordersService: OrdersService,
     private readonly itemsService: OrderItemsService,
   ) {}
 
   /**
-   * First round of a diner: joins (or opens) the table's attention, or opens
-   * a pickup/delivery one, registers the diner and submits the round.
+   * First order of a diner: joins (or opens) the table's attention, or opens
+   * a pickup/delivery one, registers the diner and submits the order.
    */
   async start(
     input: StartAttentionInput,
@@ -106,30 +106,30 @@ export class CustomerAttentionsService {
       identity,
       input.displayName,
     );
-    const round = await this.roundsService.submitRound({
+    const order = await this.ordersService.submitOrder({
       attentionId: attention.id,
       requestId: input.requestId,
-      source: OrderBatchSource.CUSTOMER,
+      source: OrderSource.CUSTOMER,
       items: input.items,
       participantId: participant.id,
     });
     return {
       attention: await this.attentionsService.findOne(attention.id),
       participant,
-      round,
+      order,
     };
   }
 
-  async addRound(
+  async addOrder(
     attentionId: string,
     identity: DinerIdentity,
-    input: { requestId: string; items: RoundItemInput[] },
-  ): Promise<RoundResult> {
+    input: { requestId: string; items: OrderLineInput[] },
+  ): Promise<OrderResult> {
     const participant = await this.requireParticipant(attentionId, identity);
-    return this.roundsService.submitRound({
+    return this.ordersService.submitOrder({
       attentionId,
       requestId: input.requestId,
-      source: OrderBatchSource.CUSTOMER,
+      source: OrderSource.CUSTOMER,
       items: input.items,
       participantId: participant.id,
     });
@@ -143,9 +143,9 @@ export class CustomerAttentionsService {
   ): Promise<OrderItem> {
     const participant = await this.requireParticipant(attentionId, identity);
     const item = await this.itemsService.findOne(itemId);
-    const batch = await this.roundsService.findBatch(item.batchId);
+    const order = await this.ordersService.findOrder(item.orderId);
     if (
-      batch.attentionId !== attentionId ||
+      order.attentionId !== attentionId ||
       item.requestedByParticipantId !== participant.id
     ) {
       throw new AttentionAccessDeniedError();
@@ -196,7 +196,7 @@ export class CustomerAttentionsService {
     if (existing) {
       return existing;
     }
-    // Guests keep their token across rounds; a new guest gets a fresh one.
+    // Guests keep their token across orders; a new guest gets a fresh one.
     return this.participantRepository.save(
       AttentionParticipant.join({
         id: randomUUID(),

@@ -1,51 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
-import { ProductCategory } from '../../../../domain/entities/product-category.entity.js';
 import { ProductCategoryRepository } from '../../../../domain/repositories/product-category.repository.js';
 import { ProductCategoryOrmEntity } from '../entities/product-category.orm-entity.js';
-import { ProductCategoryMapper } from '../mappers/product-category.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 
 @Injectable()
-export class TypeOrmProductCategoryRepository
-  extends TypeOrmBaseRepository<ProductCategory, ProductCategoryOrmEntity>
-  implements ProductCategoryRepository
-{
+export class TypeOrmProductCategoryRepository implements ProductCategoryRepository {
   constructor(
     @InjectRepository(ProductCategoryOrmEntity)
-    repository: Repository<ProductCategoryOrmEntity>,
-  ) {
-    super(repository);
+    private readonly repository: Repository<ProductCategoryOrmEntity>,
+  ) {}
+
+  async findCategoryIds(productId: string): Promise<string[]> {
+    const rows = await this.repository.find({ where: { productId } });
+    return rows.map((row) => row.categoryId);
   }
 
-  protected toDomain(orm: ProductCategoryOrmEntity): ProductCategory {
-    return ProductCategoryMapper.toDomain(orm);
+  exists(productId: string, categoryId: string): Promise<boolean> {
+    return this.repository.exists({ where: { productId, categoryId } });
   }
 
-  protected toPersistence(
-    domain: ProductCategory,
-    existing?: ProductCategoryOrmEntity,
-  ): ProductCategoryOrmEntity {
-    return ProductCategoryMapper.toPersistence(domain, existing);
+  async add(productId: string, categoryId: string): Promise<void> {
+    await this.repository.insert({ productId, categoryId });
   }
 
-  async findPage(
-    filter: { restaurantId?: string },
-    page: PageRequest,
-  ): Promise<Page<ProductCategory>> {
-    return this.findPageBy({
-      where: { restaurantId: filter.restaurantId },
-      order: { sortOrder: 'ASC', name: 'ASC' },
-    }, page);
-  }
-
-  async findByName(
-    restaurantId: string,
-    name: string,
-  ): Promise<ProductCategory | null> {
-    const found = await this.repository.findOne({ where: { restaurantId, name } });
-    return found ? this.toDomain(found) : null;
+  async remove(productId: string, categoryId: string): Promise<boolean> {
+    const result = await this.repository.delete({ productId, categoryId });
+    return (result.affected ?? 0) > 0;
   }
 }

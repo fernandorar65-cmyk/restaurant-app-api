@@ -6,14 +6,14 @@ import type {
 import { AttentionParticipant } from '../../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../../domain/entities/attention.entity.js';
 import { Fulfillment } from '../../../domain/entities/fulfillment.entity.js';
-import { OrderBatch } from '../../../domain/entities/order-batch.entity.js';
+import { Order } from '../../../domain/entities/order.entity.js';
 import { OrderItemStatusHistory } from '../../../domain/entities/order-item-status-history.entity.js';
 import { OrderItem } from '../../../domain/entities/order-item.entity.js';
 import { AttentionStatus } from '../../../domain/enums/attention-status.enum.js';
 import { FulfillmentStatus } from '../../../domain/enums/fulfillment-status.enum.js';
 import { FulfillmentType } from '../../../domain/enums/fulfillment-type.enum.js';
-import { OrderBatchSource } from '../../../domain/enums/order-batch-source.enum.js';
-import { OrderBatchStatus } from '../../../domain/enums/order-batch-status.enum.js';
+import { OrderSource } from '../../../domain/enums/order-source.enum.js';
+import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
 import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
 import { ServiceType } from '../../../domain/enums/service-type.enum.js';
 
@@ -81,7 +81,7 @@ export class OrderItemResponseDto {
   id: string;
 
   @ApiProperty()
-  batchId: string;
+  orderId: string;
 
   @ApiProperty()
   productId: string;
@@ -124,7 +124,7 @@ export class OrderItemResponseDto {
   static fromDomain(item: OrderItem): OrderItemResponseDto {
     const dto = new OrderItemResponseDto();
     dto.id = item.id;
-    dto.batchId = item.batchId;
+    dto.orderId = item.orderId;
     dto.productId = item.productId;
     dto.requestedByParticipantId = item.requestedByParticipantId;
     dto.productName = item.productNameSnapshot;
@@ -141,7 +141,7 @@ export class OrderItemResponseDto {
   }
 }
 
-export class OrderBatchResponseDto {
+export class OrderResponseDto {
   @ApiProperty()
   id: string;
 
@@ -151,8 +151,8 @@ export class OrderBatchResponseDto {
   @ApiProperty()
   requestId: string;
 
-  @ApiProperty({ enum: OrderBatchSource })
-  source: OrderBatchSource;
+  @ApiProperty({ enum: OrderSource })
+  source: OrderSource;
 
   @ApiPropertyOptional({ nullable: true })
   submittedByUserId: string | null;
@@ -160,8 +160,8 @@ export class OrderBatchResponseDto {
   @ApiPropertyOptional({ nullable: true })
   submittedByParticipantId: string | null;
 
-  @ApiProperty({ enum: OrderBatchStatus })
-  status: OrderBatchStatus;
+  @ApiProperty({ enum: OrderStatus })
+  status: OrderStatus;
 
   @ApiProperty()
   submittedAt: Date;
@@ -172,19 +172,19 @@ export class OrderBatchResponseDto {
   @ApiProperty({ type: [OrderItemResponseDto] })
   items: OrderItemResponseDto[];
 
-  static fromDomain(batch: OrderBatch, items: OrderItem[]): OrderBatchResponseDto {
-    const dto = new OrderBatchResponseDto();
-    dto.id = batch.id;
-    dto.attentionId = batch.attentionId;
-    dto.requestId = batch.requestId;
-    dto.source = batch.source;
-    dto.submittedByUserId = batch.submittedByUserId;
-    dto.submittedByParticipantId = batch.submittedByParticipantId;
-    dto.status = batch.status;
-    dto.submittedAt = batch.submittedAt;
-    dto.confirmedAt = batch.confirmedAt;
+  static fromDomain(order: Order, items: OrderItem[]): OrderResponseDto {
+    const dto = new OrderResponseDto();
+    dto.id = order.id;
+    dto.attentionId = order.attentionId;
+    dto.requestId = order.requestId;
+    dto.source = order.source;
+    dto.submittedByUserId = order.submittedByUserId;
+    dto.submittedByParticipantId = order.submittedByParticipantId;
+    dto.status = order.status;
+    dto.submittedAt = order.submittedAt;
+    dto.confirmedAt = order.confirmedAt;
     dto.items = items
-      .filter((item) => item.batchId === batch.id)
+      .filter((item) => item.orderId === order.id)
       .map((item) => OrderItemResponseDto.fromDomain(item));
     return dto;
   }
@@ -265,10 +265,10 @@ export class AttentionDetailResponseDto extends AttentionResponseDto {
   participants: ParticipantResponseDto[];
 
   @ApiProperty({
-    type: [OrderBatchResponseDto],
+    type: [OrderResponseDto],
     description: 'Rondas con sus platos y el estado de cada uno',
   })
-  rounds: OrderBatchResponseDto[];
+  orders: OrderResponseDto[];
 
   @ApiPropertyOptional({ type: FulfillmentResponseDto, nullable: true })
   fulfillment: FulfillmentResponseDto | null;
@@ -287,8 +287,8 @@ export class AttentionDetailResponseDto extends AttentionResponseDto {
     dto.participants = detail.participants.map((participant) =>
       ParticipantResponseDto.fromDomain(participant),
     );
-    dto.rounds = detail.batches.map((batch) =>
-      OrderBatchResponseDto.fromDomain(batch, detail.items),
+    dto.orders = detail.orders.map((order) =>
+      OrderResponseDto.fromDomain(order, detail.items),
     );
     dto.fulfillment = detail.fulfillment
       ? FulfillmentResponseDto.fromDomain(detail.fulfillment)

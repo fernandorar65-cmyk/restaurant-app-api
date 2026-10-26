@@ -6,6 +6,7 @@ export const DINING_TABLE_REPOSITORY = Symbol('DINING_TABLE_REPOSITORY');
 export interface DiningTableRepository {
   findById(id: string): Promise<DiningTable | null>;
   findByCode(restaurantId: string, code: string): Promise<DiningTable | null>;
+  findByQrTokenHash(tokenHash: string): Promise<DiningTable | null>;
   findPage(
     filter: {
     restaurantId?: string;

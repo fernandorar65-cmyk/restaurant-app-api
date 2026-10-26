@@ -29,7 +29,7 @@ const ACTIVE_STATUSES = [AttentionStatus.OPEN, AttentionStatus.BILL_REQUESTED];
 
 /**
  * A whole visit / commercial account. For a table it starts with the first
- * round and ends when it is paid (CLOSED) or CANCELLED.
+ * order and ends when it is paid (CLOSED) or CANCELLED.
  */
 export class Attention {
   private constructor(private props: AttentionProps) {}
@@ -80,8 +80,8 @@ export class Attention {
     return ACTIVE_STATUSES.includes(this.props.status);
   }
 
-  /** A new round after asking for the bill re-opens the account. */
-  acceptRound(): void {
+  /** A new order after asking for the bill re-opens the account. */
+  acceptOrder(): void {
     this.assertActive();
     if (this.props.status === AttentionStatus.BILL_REQUESTED) {
       this.props.status = AttentionStatus.OPEN;

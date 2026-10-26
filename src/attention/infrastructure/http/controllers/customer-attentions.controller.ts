@@ -23,14 +23,14 @@ import { AttentionsService } from '../../../application/attentions/attentions.se
 import { CustomerAttentionsService } from '../../../application/customer-attentions/customer-attentions.service.js';
 import { DinerIdentityResolver } from '../auth/diner-identity.resolver.js';
 import {
-  RoundDto,
+  SubmitOrderDto,
   StartCustomerAttentionDto,
 } from '../dto/attention-requests.dto.js';
 import {
   AttentionBillResponseDto,
   AttentionDetailResponseDto,
   AttentionResponseDto,
-  OrderBatchResponseDto,
+  OrderResponseDto,
 } from '../dto/attention-responses.dto.js';
 import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
 
@@ -41,10 +41,10 @@ const GUEST_TOKEN_HEADER = 'x-guest-token';
  * X-Guest-Token identifies a guest. Only participants of the attention can
  * read or modify it.
  */
-@ApiTags('customer/orders')
+@ApiTags('customer/attentions')
 @ApiHeader({ name: 'X-Guest-Token', required: false, description: 'UUID del invitado' })
 @Public()
-@Controller('api/v1/orders')
+@Controller('api/v1/attentions')
 export class CustomerAttentionsController {
   constructor(
     private readonly customerAttentionsService: CustomerAttentionsService,
@@ -54,7 +54,7 @@ export class CustomerAttentionsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Primera ronda del comensal',
+    summary: 'Primera orden del comensal',
     description:
       'En mesa (DINE_IN) se une a la atención activa de la mesa o la abre. Un invitado nuevo recibe guestToken en la respuesta',
   })
@@ -78,25 +78,25 @@ export class CustomerAttentionsController {
     return response;
   }
 
-  @Post(':id/rounds')
+  @Post(':id/orders')
   @ApiOperation({
-    summary: 'Enviar otra ronda',
+    summary: 'Enviar otra orden',
     description: 'Idempotente por requestId; si la cuenta estaba pedida vuelve a OPEN',
   })
-  @ApiCreatedResponse({ type: OrderBatchResponseDto })
-  async addRound(
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  async addOrder(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: RoundDto,
+    @Body() dto: SubmitOrderDto,
     @Req() request: Request,
     @Headers(GUEST_TOKEN_HEADER) guestToken: string | undefined,
-  ): Promise<OrderBatchResponseDto> {
+  ): Promise<OrderResponseDto> {
     const identity = await this.identityResolver.resolve(request, guestToken);
-    const { batch, items } = await this.customerAttentionsService.addRound(
+    const { order, items } = await this.customerAttentionsService.addOrder(
       id,
       identity,
       dto,
     );
-    return OrderBatchResponseDto.fromDomain(batch, items);
+    return OrderResponseDto.fromDomain(order, items);
   }
 
   @Delete(':id/items/:itemId')
@@ -113,7 +113,7 @@ export class CustomerAttentionsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Atención con sus rondas y el estado de cada plato' })
+  @ApiOperation({ summary: 'Atención con sus órdenes y el estado de cada plato' })
   @ApiOkResponse({ type: AttentionDetailResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,

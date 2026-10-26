@@ -1,4 +1,5 @@
 import {
+  BusinessRuleDomainError,
   ConflictDomainError,
   NotFoundDomainError,
   ValidationDomainError,
@@ -13,6 +14,12 @@ export class DiningTableNotFoundError extends NotFoundDomainError {
 export class DuplicateDiningTableCodeError extends ConflictDomainError {
   constructor(code: string) {
     super(`La sede ya tiene una mesa con el código "${code}"`);
+  }
+}
+
+export class InactiveDiningTableError extends BusinessRuleDomainError {
+  constructor(id: string) {
+    super(`La mesa "${id}" no está activa`);
   }
 }
 

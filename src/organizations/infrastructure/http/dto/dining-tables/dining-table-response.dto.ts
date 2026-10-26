@@ -3,6 +3,20 @@ import { DiningTable } from '../../../../domain/entities/dining-table.entity.js'
 import { TableOperationalStatus } from '../../../../domain/enums/table-operational-status.enum.js';
 import { TableServiceStatus } from '../../../../domain/enums/table-service-status.enum.js';
 
+export class DiningTableQrDto {
+  @ApiProperty({ description: 'Hay un QR vigente para la mesa' })
+  active: boolean;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Aumenta en cada regeneración' })
+  version: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  generatedAt: Date | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Imagen del QR, si se almacena afuera' })
+  assetUrl: string | null;
+}
+
 export class DiningTableResponseDto {
   @ApiProperty()
   id: string;
@@ -34,6 +48,9 @@ export class DiningTableResponseDto {
   @ApiPropertyOptional({ nullable: true })
   positionY: number | null;
 
+  @ApiProperty({ type: DiningTableQrDto, description: 'Nunca incluye el token ni su hash' })
+  qr: DiningTableQrDto;
+
   @ApiProperty()
   createdAt: Date;
 
@@ -52,6 +69,12 @@ export class DiningTableResponseDto {
     dto.serviceStatus = table.serviceStatus;
     dto.positionX = table.positionX;
     dto.positionY = table.positionY;
+    dto.qr = {
+      active: table.hasActiveQr,
+      version: table.qrVersion,
+      generatedAt: table.qrGeneratedAt,
+      assetUrl: table.qrAssetUrl,
+    };
     dto.createdAt = table.createdAt;
     dto.updatedAt = table.updatedAt;
     return dto;

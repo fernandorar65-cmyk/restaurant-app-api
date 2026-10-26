@@ -12,6 +12,7 @@ export class UserMapper {
       phone: orm.phone,
       status: orm.status,
       mustChangePassword: orm.mustChangePassword,
+      isPlatformAdmin: orm.isPlatformAdmin,
       lastLoginAt: orm.lastLoginAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,

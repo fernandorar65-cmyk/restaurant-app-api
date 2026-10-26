@@ -1,6 +1,5 @@
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
-import { EmployeeArea } from '../enums/employee-area.enum.js';
 import { EmployeeStatus } from '../enums/employee-status.enum.js';
 
 export interface EmployeeProps {
@@ -9,8 +8,8 @@ export interface EmployeeProps {
   userId: string | null;
   employeeCode: string;
   documentNumber: string | null;
-  positionName: string | null;
-  area: EmployeeArea | null;
+  /** Current job position (its work area comes through the position). */
+  jobPositionId: string | null;
   status: EmployeeStatus;
   /** Business dates as 'YYYY-MM-DD'. */
   hiredAt: string | null;
@@ -22,8 +21,7 @@ export interface EmployeeProps {
 export interface EmployeeDetails {
   employeeCode?: string;
   documentNumber?: string | null;
-  positionName?: string | null;
-  area?: EmployeeArea | null;
+  jobPositionId?: string | null;
   hiredAt?: string | null;
   terminatedAt?: string | null;
 }
@@ -50,8 +48,7 @@ export class Employee {
       userId: params.userId ?? null,
       employeeCode: '',
       documentNumber: null,
-      positionName: null,
-      area: null,
+      jobPositionId: null,
       status: EmployeeStatus.ACTIVE,
       hiredAt: null,
       terminatedAt: null,
@@ -93,11 +90,8 @@ export class Employee {
     if (params.documentNumber !== undefined) {
       this.props.documentNumber = params.documentNumber;
     }
-    if (params.positionName !== undefined) {
-      this.props.positionName = params.positionName;
-    }
-    if (params.area !== undefined) {
-      this.props.area = params.area;
+    if (params.jobPositionId !== undefined) {
+      this.props.jobPositionId = params.jobPositionId;
     }
     if (params.hiredAt !== undefined) {
       this.props.hiredAt = params.hiredAt;
@@ -128,11 +122,8 @@ export class Employee {
   get documentNumber(): string | null {
     return this.props.documentNumber;
   }
-  get positionName(): string | null {
-    return this.props.positionName;
-  }
-  get area(): EmployeeArea | null {
-    return this.props.area;
+  get jobPositionId(): string | null {
+    return this.props.jobPositionId;
   }
   get status(): EmployeeStatus {
     return this.props.status;

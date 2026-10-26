@@ -10,4 +10,8 @@ export class InternalPaymentLedgerAdapter implements PaymentLedgerPort {
   paidAmount(attentionId: string): Promise<number> {
     return this.ledger.paidAmount(attentionId);
   }
+
+  itemsWithPayments(orderItemIds: string[]): Promise<string[]> {
+    return this.ledger.itemsWithPayments(orderItemIds);
+  }
 }

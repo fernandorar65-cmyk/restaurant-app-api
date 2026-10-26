@@ -18,6 +18,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ProductsService } from '../../../application/products/products.service.js';
+import {
+  AddProductCategoryDto,
+  CategoryResponseDto,
+} from '../dto/categories/category.dto.js';
 import { CreateProductDto } from '../dto/products/create-product.dto.js';
 import { ProductResponseDto } from '../dto/products/product-response.dto.js';
 import { UpdateProductDto } from '../dto/products/update-product.dto.js';
@@ -45,7 +49,7 @@ export class ProductsController {
   @Get()
   @ApiOperation({ summary: 'Listar productos' })
   @ApiQuery({ name: 'restaurantId', required: false })
-  @ApiQuery({ name: 'categoryId', required: false })
+  @ApiQuery({ name: 'categoryId', required: false, description: 'Productos de esa categoría' })
   @ApiPaginatedResponse(ProductResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
@@ -94,5 +98,38 @@ export class ProductsController {
   async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.productsService.deactivate(id);
     return { id };
+  }
+
+  @Get(':id/categories')
+  @ApiOperation({ summary: 'Categorías del producto' })
+  @ApiOkResponse({ type: [CategoryResponseDto] })
+  async listCategories(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CategoryResponseDto[]> {
+    const categories = await this.productsService.listCategories(id);
+    return categories.map((category) => CategoryResponseDto.fromDomain(category));
+  }
+
+  @Post(':id/categories')
+  @ApiOperation({ summary: 'Agregar el producto a una categoría de su organización' })
+  @ApiCreatedResponse({ type: CategoryResponseDto })
+  async addCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddProductCategoryDto,
+  ): Promise<CategoryResponseDto> {
+    return CategoryResponseDto.fromDomain(
+      await this.productsService.addCategory(id, dto.categoryId),
+    );
+  }
+
+  @Delete(':id/categories/:categoryId')
+  @ApiOperation({ summary: 'Quitar el producto de una categoría' })
+  @ApiOkResponse({ description: 'Producto quitado de la categoría' })
+  async removeCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('categoryId', ParseUUIDPipe) categoryId: string,
+  ): Promise<{ productId: string; categoryId: string }> {
+    await this.productsService.removeCategory(id, categoryId);
+    return { productId: id, categoryId };
   }
 }

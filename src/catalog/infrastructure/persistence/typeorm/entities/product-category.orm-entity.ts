@@ -1,27 +1,25 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
+import { CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import type { CategoryOrmEntity } from './category.orm-entity.js';
+import type { ProductOrmEntity } from './product.orm-entity.js';
 
+/** A product can belong to several categories. */
 @Entity('product_categories')
-@Unique('uq_product_categories_restaurant_name', ['restaurantId', 'name'])
-@Index('idx_product_categories_restaurant', ['restaurantId'])
-export class ProductCategoryOrmEntity extends BaseOrmEntity {
-  @Column({ name: 'restaurant_id', type: 'uuid' })
-  restaurantId: string;
+@Index('idx_product_categories_category', ['categoryId'])
+export class ProductCategoryOrmEntity {
+  @PrimaryColumn({ name: 'product_id', type: 'uuid' })
+  productId: string;
 
-  @ManyToOne('RestaurantOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
+  @PrimaryColumn({ name: 'category_id', type: 'uuid' })
+  categoryId: string;
 
-  @Column({ type: 'varchar', length: 120 })
-  name: string;
+  @ManyToOne('ProductOrmEntity', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'product_id' })
+  product?: ProductOrmEntity;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  description: string | null;
+  @ManyToOne('CategoryOrmEntity', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'category_id' })
+  category?: CategoryOrmEntity;
 
-  @Column({ name: 'sort_order', type: 'int', default: 0 })
-  sortOrder: number;
-
-  @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive: boolean;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 }

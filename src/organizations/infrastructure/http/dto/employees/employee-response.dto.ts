@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Employee } from '../../../../domain/entities/employee.entity.js';
-import { EmployeeArea } from '../../../../domain/enums/employee-area.enum.js';
 import { EmployeeStatus } from '../../../../domain/enums/employee-status.enum.js';
 
 export class EmployeeResponseDto {
@@ -20,10 +19,7 @@ export class EmployeeResponseDto {
   documentNumber: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  positionName: string | null;
-
-  @ApiPropertyOptional({ enum: EmployeeArea, nullable: true })
-  area: EmployeeArea | null;
+  jobPositionId: string | null;
 
   @ApiProperty({ enum: EmployeeStatus })
   status: EmployeeStatus;
@@ -47,8 +43,7 @@ export class EmployeeResponseDto {
     dto.userId = employee.userId;
     dto.employeeCode = employee.employeeCode;
     dto.documentNumber = employee.documentNumber;
-    dto.positionName = employee.positionName;
-    dto.area = employee.area;
+    dto.jobPositionId = employee.jobPositionId;
     dto.status = employee.status;
     dto.hiredAt = employee.hiredAt;
     dto.terminatedAt = employee.terminatedAt;

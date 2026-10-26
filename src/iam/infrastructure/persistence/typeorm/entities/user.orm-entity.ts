@@ -28,6 +28,11 @@ export class UserOrmEntity extends BaseOrmEntity {
   @Column({ name: 'must_change_password', type: 'boolean', default: false })
   mustChangePassword: boolean;
 
+  // Set by hand in the database; the mapper never writes it, so no API
+  // request can grant it.
+  @Column({ name: 'is_platform_admin', type: 'boolean', default: false })
+  isPlatformAdmin: boolean;
+
   @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
   lastLoginAt: Date | null;
 }

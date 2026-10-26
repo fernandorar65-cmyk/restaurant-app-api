@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Raw, Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Product } from '../../../../domain/entities/product.entity.js';
 import { ProductRepository } from '../../../../domain/repositories/product.repository.js';
@@ -36,7 +36,16 @@ export class TypeOrmProductRepository
     page: PageRequest,
   ): Promise<Page<Product>> {
     return this.findPageBy({
-      where: { restaurantId: filter.restaurantId, categoryId: filter.categoryId },
+      where: {
+        restaurantId: filter.restaurantId,
+        id: filter.categoryId
+          ? Raw(
+              (column) =>
+                `${column} IN (SELECT product_id FROM product_categories WHERE category_id = :categoryId)`,
+              { categoryId: filter.categoryId },
+            )
+          : undefined,
+      },
       order: { name: 'ASC' },
     }, page);
   }

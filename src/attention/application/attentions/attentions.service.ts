@@ -7,7 +7,7 @@ import { AttentionParticipant } from '../../domain/entities/attention-participan
 import { Attention } from '../../domain/entities/attention.entity.js';
 import { Fulfillment } from '../../domain/entities/fulfillment.entity.js';
 import type { FulfillmentDetails } from '../../domain/entities/fulfillment.entity.js';
-import { OrderBatch } from '../../domain/entities/order-batch.entity.js';
+import { Order } from '../../domain/entities/order.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { AttentionStatus } from '../../domain/enums/attention-status.enum.js';
 import { FulfillmentStatus } from '../../domain/enums/fulfillment-status.enum.js';
@@ -30,7 +30,7 @@ import { FULFILLMENT_REPOSITORY } from '../../domain/repositories/fulfillment.re
 import type { FulfillmentRepository } from '../../domain/repositories/fulfillment.repository.js';
 import { generateAttentionNumber } from './attention-number.js';
 import { OrderItemsService } from '../order-items/order-items.service.js';
-import { OrderRoundsService } from '../order-rounds/order-rounds.service.js';
+import { OrdersService } from '../orders/orders.service.js';
 import { DINING_TABLE_LOOKUP } from '../ports/dining-table-lookup.port.js';
 import type { DiningTableLookupPort } from '../ports/dining-table-lookup.port.js';
 import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
@@ -53,7 +53,7 @@ export interface OpenAttentionInput {
 export interface AttentionDetail {
   attention: Attention;
   participants: AttentionParticipant[];
-  batches: OrderBatch[];
+  orders: Order[];
   items: OrderItem[];
   fulfillment: Fulfillment | null;
 }
@@ -84,7 +84,7 @@ export class AttentionsService {
     @Inject(PAYMENT_LEDGER) private readonly paymentLedger: PaymentLedgerPort,
     @Inject(TRANSACTION_RUNNER)
     private readonly transactionRunner: TransactionRunner,
-    private readonly roundsService: OrderRoundsService,
+    private readonly ordersService: OrdersService,
     private readonly itemsService: OrderItemsService,
   ) {}
 
@@ -192,13 +192,13 @@ export class AttentionsService {
 
   async getDetail(id: string): Promise<AttentionDetail> {
     const attention = await this.findOne(id);
-    const [participants, batches, items, fulfillment] = await Promise.all([
+    const [participants, orders, items, fulfillment] = await Promise.all([
       this.participantRepository.findByAttention(id),
-      this.roundsService.findBatches(id),
+      this.ordersService.findOrders(id),
       this.itemsService.findByAttention(id),
       this.fulfillmentRepository.findByAttention(id),
     ]);
-    return { attention, participants, batches, items, fulfillment };
+    return { attention, participants, orders, items, fulfillment };
   }
 
   /** Rejected and cancelled items are never charged. */

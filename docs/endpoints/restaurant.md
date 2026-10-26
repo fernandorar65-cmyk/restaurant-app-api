@@ -144,13 +144,12 @@ Ruta del front: `/owner/sede/:slug/menu`.
 |---|---|---|---|
 | GET | `/restaurants/:restaurantId/products` | `menu.manage` | Productos de la sede (`?categoryId=`, `?q=`, `?isActive=`) |
 | POST | `/categories/:categoryId/products` | `menu.manage` | Crea un producto |
-| GET | `/products/:productId` | `menu.manage` | Detalle con alérgenos y receta |
+| GET | `/products/:productId` | `menu.manage` | Detalle con categorías y receta |
 | PATCH | `/products/:productId` | `menu.manage` | Edita un producto |
 | PATCH | `/products/:productId/availability` | `menu.manage` `orders.manage` | Marca como agotado o disponible (lo usa también el salón) |
 | PUT | `/categories/:categoryId/products/order` | `menu.manage` | Reordena los productos de una categoría |
 | POST | `/products/:productId/image` | `menu.manage` | Sube la imagen (multipart). Reemplaza el data URL que usa hoy el front |
 | DELETE | `/products/:productId` | `menu.manage` | Elimina un producto (soft delete) |
-| GET | `/allergens` | sesión | Catálogo de alérgenos `[F2]` |
 | PUT | `/products/:productId/recipe` | `menu.manage` | Guarda la receta: `[{ "supplyId", "quantity" }]` `[F2]` |
 
 ---

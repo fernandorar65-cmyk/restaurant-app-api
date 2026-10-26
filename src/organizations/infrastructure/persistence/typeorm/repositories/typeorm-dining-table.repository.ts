@@ -41,6 +41,11 @@ export class TypeOrmDiningTableRepository
     }, page);
   }
 
+  async findByQrTokenHash(tokenHash: string): Promise<DiningTable | null> {
+    const found = await this.repository.findOne({ where: { qrTokenHash: tokenHash } });
+    return found ? this.toDomain(found) : null;
+  }
+
   async findByCode(
     restaurantId: string,
     code: string,

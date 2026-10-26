@@ -14,6 +14,13 @@ export interface DiningTableProps {
   serviceStatus: TableServiceStatus;
   positionX: number | null;
   positionY: number | null;
+  /** SHA-256 of the token printed in the QR; null when the table has no active QR. */
+  qrTokenHash: string | null;
+  /** Starts at 1 and grows on every rotation; kept after a revocation. */
+  qrVersion: number | null;
+  qrGeneratedAt: Date | null;
+  /** Optional location of the QR image (blob storage); never proof of validity. */
+  qrAssetUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +61,10 @@ export class DiningTable {
       serviceStatus: TableServiceStatus.AVAILABLE,
       positionX: null,
       positionY: null,
+      qrTokenHash: null,
+      qrVersion: null,
+      qrGeneratedAt: null,
+      qrAssetUrl: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -110,6 +121,30 @@ export class DiningTable {
     }
   }
 
+  /**
+   * Issues a new QR version. The previous token stops matching as soon as
+   * its hash is replaced, so rotating also revokes the old QR.
+   */
+  rotateQr(tokenHash: string, assetUrl?: string | null): void {
+    this.props.qrTokenHash = tokenHash;
+    this.props.qrVersion = (this.props.qrVersion ?? 0) + 1;
+    this.props.qrGeneratedAt = new Date();
+    this.props.qrAssetUrl = assetUrl ?? null;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Leaves the table without a valid QR (e.g. a printed QR was lost). */
+  revokeQr(): void {
+    this.props.qrTokenHash = null;
+    this.props.qrGeneratedAt = null;
+    this.props.qrAssetUrl = null;
+    this.props.updatedAt = new Date();
+  }
+
+  get hasActiveQr(): boolean {
+    return this.props.qrTokenHash !== null;
+  }
+
   /** Only operationally active tables can receive diners. */
   get isOperational(): boolean {
     return this.props.operationalStatus === TableOperationalStatus.ACTIVE;
@@ -144,6 +179,18 @@ export class DiningTable {
   }
   get positionY(): number | null {
     return this.props.positionY;
+  }
+  get qrTokenHash(): string | null {
+    return this.props.qrTokenHash;
+  }
+  get qrVersion(): number | null {
+    return this.props.qrVersion;
+  }
+  get qrGeneratedAt(): Date | null {
+    return this.props.qrGeneratedAt;
+  }
+  get qrAssetUrl(): string | null {
+    return this.props.qrAssetUrl;
   }
   get createdAt(): Date {
     return this.props.createdAt;

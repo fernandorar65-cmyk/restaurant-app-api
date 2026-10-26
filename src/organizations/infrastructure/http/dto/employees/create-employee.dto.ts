@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsEnum,
   IsOptional,
   IsString,
   IsUUID,
@@ -8,7 +7,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { EmployeeArea } from '../../../../domain/enums/employee-area.enum.js';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -36,16 +34,13 @@ export class CreateEmployeeDto {
   @MaxLength(50)
   documentNumber?: string | null;
 
-  @ApiPropertyOptional({ example: 'Mozo' })
+  @ApiPropertyOptional({
+    description:
+      'Puesto vigente (de la misma organización y activo). El área se obtiene del puesto',
+  })
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  positionName?: string | null;
-
-  @ApiPropertyOptional({ enum: EmployeeArea })
-  @IsOptional()
-  @IsEnum(EmployeeArea)
-  area?: EmployeeArea | null;
+  @IsUUID()
+  jobPositionId?: string | null;
 
   @ApiPropertyOptional({ example: '2026-01-15' })
   @IsOptional()

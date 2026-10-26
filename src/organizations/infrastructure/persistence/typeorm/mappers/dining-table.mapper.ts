@@ -14,6 +14,10 @@ export class DiningTableMapper {
       serviceStatus: orm.serviceStatus,
       positionX: orm.positionX,
       positionY: orm.positionY,
+      qrTokenHash: orm.qrTokenHash,
+      qrVersion: orm.qrVersion,
+      qrGeneratedAt: orm.qrGeneratedAt,
+      qrAssetUrl: orm.qrAssetUrl,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -34,6 +38,10 @@ export class DiningTableMapper {
     orm.serviceStatus = domain.serviceStatus;
     orm.positionX = domain.positionX;
     orm.positionY = domain.positionY;
+    orm.qrTokenHash = domain.qrTokenHash;
+    orm.qrVersion = domain.qrVersion;
+    orm.qrGeneratedAt = domain.qrGeneratedAt;
+    orm.qrAssetUrl = domain.qrAssetUrl;
     return orm;
   }
 }

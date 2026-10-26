@@ -6,7 +6,6 @@ export class ProductMapper {
     return Product.fromPersistence({
       id: orm.id,
       restaurantId: orm.restaurantId,
-      categoryId: orm.categoryId,
       code: orm.code,
       name: orm.name,
       description: orm.description,
@@ -29,7 +28,6 @@ export class ProductMapper {
     const orm = existing ?? new ProductOrmEntity();
     orm.id = domain.id;
     orm.restaurantId = domain.restaurantId;
-    orm.categoryId = domain.categoryId;
     orm.code = domain.code;
     orm.name = domain.name;
     orm.description = domain.description;

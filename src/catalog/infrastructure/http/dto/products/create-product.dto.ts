@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsInt,
   IsNumber,
@@ -13,12 +15,19 @@ import {
 } from 'class-validator';
 
 export class CreateProductDto {
-  @ApiProperty({
-    example: '424590bf-8d98-41c3-8ab9-e50440292401',
-    description: 'Categoría; el restaurante se toma de la categoría',
-  })
+  @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
   @IsUUID()
-  categoryId: string;
+  restaurantId: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Categorías de la organización de la sede (puede tener varias o ninguna)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('all', { each: true })
+  categoryIds?: string[];
 
   @ApiProperty({ example: 'CEV-01', description: 'Único dentro del restaurante' })
   @IsString()

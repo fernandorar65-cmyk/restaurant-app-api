@@ -20,6 +20,10 @@ export class PaymentLedgerService {
     return this.ledgerRepository.paidAmount(attentionId);
   }
 
+  itemsWithPayments(orderItemIds: string[]): Promise<string[]> {
+    return this.ledgerRepository.itemsWithPayments(orderItemIds);
+  }
+
   dailyTotals(
     restaurantId: string,
     businessDate: string,

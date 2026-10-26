@@ -120,7 +120,7 @@ export class MenusController {
   }
 
   @Patch(':id/products/:productId')
-  @ApiOperation({ summary: 'Cambiar precio mostrado, orden o visibilidad' })
+  @ApiOperation({ summary: 'Cambiar sección, precio mostrado, orden o visibilidad' })
   @ApiOkResponse({ type: MenuProductResponseDto })
   async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,

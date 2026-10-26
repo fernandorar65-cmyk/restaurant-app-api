@@ -104,7 +104,7 @@ Respuesta resumida:
       "products": [
         { "id": "…", "name": "Causa limeña", "description": "…", "price": 28.00,
           "imageUrl": "…", "prepMinutes": 10, "isAvailable": true,
-          "tags": ["recomendado"], "allergens": ["Mariscos"] }
+          "tags": ["recomendado"] }
       ]
     }
   ]

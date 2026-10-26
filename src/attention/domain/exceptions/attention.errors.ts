@@ -53,15 +53,23 @@ export class InvalidTableQrTokenError extends NotFoundDomainError {
   }
 }
 
-export class OrderBatchNotFoundError extends NotFoundDomainError {
-  constructor(id: string) {
-    super(`No existe la ronda con id "${id}"`);
+export class OrderAlreadyFinishedError extends BusinessRuleDomainError {
+  constructor(status: string) {
+    super(
+      `La orden no se puede cancelar (estado ${status} o con productos ya servidos); cancela los productos pendientes uno por uno`,
+    );
   }
 }
 
-export class OrderBatchNotSubmittedError extends BusinessRuleDomainError {
+export class OrderNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe la orden con id "${id}"`);
+  }
+}
+
+export class OrderNotSubmittedError extends BusinessRuleDomainError {
   constructor() {
-    super('Solo se pueden confirmar rondas en estado SUBMITTED');
+    super('Solo se pueden confirmar órdenes en estado SUBMITTED');
   }
 }
 
@@ -110,10 +118,10 @@ export class RestaurantReferenceNotFoundError extends NotFoundDomainError {
   }
 }
 
-/** Raised by the repository when a round with the same request id already exists. */
-export class DuplicateRoundRequestError extends ConflictDomainError {
+/** Raised by the repository when a order with the same request id already exists. */
+export class DuplicateOrderRequestError extends ConflictDomainError {
   constructor(requestId: string) {
-    super(`Ya se envió una ronda con el requestId "${requestId}"`);
+    super(`Ya se envió una orden con el requestId "${requestId}"`);
   }
 }
 
@@ -132,5 +140,12 @@ export class FulfillmentNotFoundError extends NotFoundDomainError {
 export class InvalidFulfillmentTransitionError extends ConflictDomainError {
   constructor(type: string, from: string, to: string) {
     super(`Un ${type} no puede pasar de "${from}" a "${to}"`);
+  }
+}
+
+/** Paid products can't be dropped from the bill: the payment would exceed it. */
+export class OrderItemHasPaymentsError extends BusinessRuleDomainError {
+  constructor() {
+    super('El producto ya tiene pagos asignados y no se puede cancelar ni rechazar');
   }
 }

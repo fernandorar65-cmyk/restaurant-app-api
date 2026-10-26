@@ -21,7 +21,7 @@ import { FulfillmentStatus } from '../../../domain/enums/fulfillment-status.enum
 import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
 import { ServiceType } from '../../../domain/enums/service-type.enum.js';
 
-export class RoundItemDto {
+export class OrderLineDto {
   @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
   @IsUUID()
   productId: string;
@@ -38,25 +38,25 @@ export class RoundItemDto {
   customerNote?: string | null;
 }
 
-export class RoundDto {
+export class SubmitOrderDto {
   @ApiProperty({
     example: '0b6f8c1e-3c1a-4b8e-9d6a-2f1e7c9a5b10',
     description:
-      'UUID generado por el cliente para esta ronda. Reenviarlo no duplica productos',
+      'UUID generado por el cliente para esta orden. Reenviarlo no duplica productos',
   })
   @IsUUID()
   requestId: string;
 
-  @ApiProperty({ type: [RoundItemDto] })
+  @ApiProperty({ type: [OrderLineDto] })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => RoundItemDto)
-  items: RoundItemDto[];
+  @Type(() => OrderLineDto)
+  items: OrderLineDto[];
 }
 
-export class WaiterRoundDto extends RoundDto {
-  @ApiPropertyOptional({ description: 'Mozo que registra la ronda' })
+export class WaiterOrderDto extends SubmitOrderDto {
+  @ApiPropertyOptional({ description: 'Mozo que registra la orden' })
   @IsOptional()
   @IsUUID()
   submittedByUserId?: string | null;
@@ -150,6 +150,14 @@ export class CancelAttentionDto {
   reason: string;
 }
 
+export class CancelOrderDto {
+  @ApiProperty({ example: 'La mesa cambió de pedido' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  reason: string;
+}
+
 export class ChangeOrderItemStatusDto {
   @ApiProperty({ enum: OrderItemStatus })
   @IsEnum(OrderItemStatus)
@@ -192,7 +200,7 @@ export class ChangeFulfillmentStatusDto {
   estimatedReadyAt?: Date | null;
 }
 
-export class StartCustomerAttentionDto extends RoundDto {
+export class StartCustomerAttentionDto extends SubmitOrderDto {
   @ApiProperty({ enum: ServiceType, example: ServiceType.DINE_IN })
   @IsEnum(ServiceType)
   serviceType: ServiceType;

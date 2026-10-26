@@ -20,23 +20,28 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AttentionsService } from '../../../application/attentions/attentions.service.js';
-import { OrderRoundsService } from '../../../application/order-rounds/order-rounds.service.js';
+import { OrdersService } from '../../../application/orders/orders.service.js';
 import { AttentionStatus } from '../../../domain/enums/attention-status.enum.js';
-import { OrderBatchSource } from '../../../domain/enums/order-batch-source.enum.js';
+import { OrderSource } from '../../../domain/enums/order-source.enum.js';
 import {
   CancelAttentionDto,
+  CancelOrderDto,
   ChangeFulfillmentStatusDto,
   OpenAttentionDto,
-  WaiterRoundDto,
+  WaiterOrderDto,
 } from '../dto/attention-requests.dto.js';
 import {
   AttentionBillResponseDto,
   AttentionDetailResponseDto,
   AttentionResponseDto,
   FulfillmentResponseDto,
-  OrderBatchResponseDto,
+  OrderResponseDto,
 } from '../dto/attention-responses.dto.js';
 import type { PageRequest } from '../../../../common/application/pagination.js';
+import {
+  CurrentUser,
+  type RequestUser,
+} from '../../../../common/infrastructure/http/current-user.decorator.js';
 import {
   ApiPaginatedResponse,
   Pagination,
@@ -44,13 +49,13 @@ import {
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
 
-/** Staff side of an attention: open, take rounds, bill, close or cancel. */
+/** Staff side of an attention: open, take orders, bill, close or cancel. */
 @ApiTags('attention/attentions')
 @Controller('attentions')
 export class AttentionsController {
   constructor(
     private readonly attentionsService: AttentionsService,
-    private readonly roundsService: OrderRoundsService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   @Post()
@@ -83,7 +88,7 @@ export class AttentionsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detalle: participantes, rondas y estado de cada plato' })
+  @ApiOperation({ summary: 'Detalle: participantes, órdenes y estado de cada plato' })
   @ApiOkResponse({ type: AttentionDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Atención no encontrada' })
   async findOne(
@@ -93,24 +98,24 @@ export class AttentionsController {
     return AttentionDetailResponseDto.fromDetail(detail);
   }
 
-  @Post(':id/rounds')
+  @Post(':id/orders')
   @ApiOperation({
-    summary: 'Registrar una ronda tomada por el mozo',
+    summary: 'Registrar una orden tomada por el mozo',
     description: 'Idempotente por requestId; si la cuenta estaba pedida vuelve a OPEN',
   })
-  @ApiCreatedResponse({ type: OrderBatchResponseDto })
-  async submitRound(
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  async submitOrder(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: WaiterRoundDto,
-  ): Promise<OrderBatchResponseDto> {
-    const { batch, items } = await this.roundsService.submitRound({
+    @Body() dto: WaiterOrderDto,
+  ): Promise<OrderResponseDto> {
+    const { order, items } = await this.ordersService.submitOrder({
       attentionId: id,
       requestId: dto.requestId,
-      source: OrderBatchSource.WAITER,
+      source: OrderSource.WAITER,
       items: dto.items,
       submittedByUserId: dto.submittedByUserId,
     });
-    return OrderBatchResponseDto.fromDomain(batch, items);
+    return OrderResponseDto.fromDomain(order, items);
   }
 
   @Get(':id/bill')
@@ -166,14 +171,34 @@ export class AttentionsController {
     return FulfillmentResponseDto.fromDomain(fulfillment);
   }
 
-  @Post('rounds/:batchId/confirm')
+  @Post('orders/:orderId/confirm')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirmar una ronda recibida' })
-  @ApiOkResponse({ type: OrderBatchResponseDto })
-  async confirmRound(
-    @Param('batchId', ParseUUIDPipe) batchId: string,
-  ): Promise<OrderBatchResponseDto> {
-    const batch = await this.roundsService.confirmBatch(batchId);
-    return OrderBatchResponseDto.fromDomain(batch, []);
+  @ApiOperation({ summary: 'Confirmar una orden recibida' })
+  @ApiOkResponse({ type: OrderResponseDto })
+  async confirmOrder(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ): Promise<OrderResponseDto> {
+    const order = await this.ordersService.confirmOrder(orderId);
+    return OrderResponseDto.fromDomain(order, []);
+  }
+
+  @Post('orders/:orderId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancelar una orden completa',
+    description:
+      'Solo si ningún producto se sirvió. Cancela sus productos pendientes; la atención y sus otras órdenes no cambian',
+  })
+  @ApiOkResponse({ type: OrderResponseDto })
+  async cancelOrder(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() dto: CancelOrderDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<OrderResponseDto> {
+    const { order, items } = await this.ordersService.cancelOrder(orderId, {
+      reason: dto.reason,
+      changedByUserId: user.id,
+    });
+    return OrderResponseDto.fromDomain(order, items);
   }
 }

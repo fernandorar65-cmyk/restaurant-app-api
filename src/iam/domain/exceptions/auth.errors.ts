@@ -26,3 +26,9 @@ export class AccountDisabledError extends ForbiddenDomainError {
     super('La cuenta está inactiva o bloqueada');
   }
 }
+
+export class PlatformAdminRequiredError extends ForbiddenDomainError {
+  constructor() {
+    super('Esta operación es exclusiva de los administradores de ACMR');
+  }
+}

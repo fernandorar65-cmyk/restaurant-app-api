@@ -6,6 +6,7 @@ export class MenuProductMapper {
     return MenuProduct.fromPersistence({
       menuId: orm.menuId,
       productId: orm.productId,
+      menuSectionId: orm.menuSectionId,
       displayPrice: orm.displayPrice,
       sortOrder: orm.sortOrder,
       isVisible: orm.isVisible,
@@ -20,6 +21,7 @@ export class MenuProductMapper {
     const orm = existing ?? new MenuProductOrmEntity();
     orm.menuId = domain.menuId;
     orm.productId = domain.productId;
+    orm.menuSectionId = domain.menuSectionId;
     orm.displayPrice = domain.displayPrice;
     orm.sortOrder = domain.sortOrder;
     orm.isVisible = domain.isVisible;

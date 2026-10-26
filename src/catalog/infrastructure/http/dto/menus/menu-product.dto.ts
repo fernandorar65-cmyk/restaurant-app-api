@@ -8,6 +8,14 @@ export class AddMenuProductDto {
   productId: string;
 
   @ApiPropertyOptional({
+    description: 'Sección del mismo menú (null = sin sección)',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsUUID()
+  menuSectionId?: string | null;
+
+  @ApiPropertyOptional({
     example: 29.9,
     description: 'Precio a mostrar en este menú (el pedido usa el precio del producto)',
   })
@@ -39,6 +47,9 @@ export class MenuProductResponseDto {
   productId: string;
 
   @ApiPropertyOptional({ nullable: true })
+  menuSectionId: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
   displayPrice: number | null;
 
   @ApiProperty()
@@ -54,6 +65,7 @@ export class MenuProductResponseDto {
     const dto = new MenuProductResponseDto();
     dto.menuId = menuProduct.menuId;
     dto.productId = menuProduct.productId;
+    dto.menuSectionId = menuProduct.menuSectionId;
     dto.displayPrice = menuProduct.displayPrice;
     dto.sortOrder = menuProduct.sortOrder;
     dto.isVisible = menuProduct.isVisible;

@@ -1,13 +1,13 @@
 import { AttentionParticipant } from '../../../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../../../domain/entities/attention.entity.js';
 import { Fulfillment } from '../../../../domain/entities/fulfillment.entity.js';
-import { OrderBatch } from '../../../../domain/entities/order-batch.entity.js';
+import { Order } from '../../../../domain/entities/order.entity.js';
 import { OrderItemStatusHistory } from '../../../../domain/entities/order-item-status-history.entity.js';
 import { OrderItem } from '../../../../domain/entities/order-item.entity.js';
 import { AttentionParticipantOrmEntity } from '../entities/attention-participant.orm-entity.js';
 import { AttentionOrmEntity } from '../entities/attention.orm-entity.js';
 import { FulfillmentOrmEntity } from '../entities/fulfillment.orm-entity.js';
-import { OrderBatchOrmEntity } from '../entities/order-batch.orm-entity.js';
+import { OrderOrmEntity } from '../entities/order.orm-entity.js';
 import { OrderItemStatusHistoryOrmEntity } from '../entities/order-item-status-history.orm-entity.js';
 import { OrderItemOrmEntity } from '../entities/order-item.orm-entity.js';
 
@@ -80,9 +80,9 @@ export class AttentionParticipantMapper {
   }
 }
 
-export class OrderBatchMapper {
-  static toDomain(orm: OrderBatchOrmEntity): OrderBatch {
-    return OrderBatch.fromPersistence({
+export class OrderMapper {
+  static toDomain(orm: OrderOrmEntity): Order {
+    return Order.fromPersistence({
       id: orm.id,
       attentionId: orm.attentionId,
       requestId: orm.requestId,
@@ -98,10 +98,10 @@ export class OrderBatchMapper {
   }
 
   static toPersistence(
-    domain: OrderBatch,
-    existing?: OrderBatchOrmEntity,
-  ): OrderBatchOrmEntity {
-    const orm = existing ?? new OrderBatchOrmEntity();
+    domain: Order,
+    existing?: OrderOrmEntity,
+  ): OrderOrmEntity {
+    const orm = existing ?? new OrderOrmEntity();
     orm.id = domain.id;
     orm.attentionId = domain.attentionId;
     orm.requestId = domain.requestId;
@@ -119,7 +119,7 @@ export class OrderItemMapper {
   static toDomain(orm: OrderItemOrmEntity): OrderItem {
     return OrderItem.fromPersistence({
       id: orm.id,
-      batchId: orm.batchId,
+      orderId: orm.orderId,
       productId: orm.productId,
       requestedByParticipantId: orm.requestedByParticipantId,
       productNameSnapshot: orm.productNameSnapshot,
@@ -138,7 +138,7 @@ export class OrderItemMapper {
   static toPersistence(domain: OrderItem): OrderItemOrmEntity {
     const orm = new OrderItemOrmEntity();
     orm.id = domain.id;
-    orm.batchId = domain.batchId;
+    orm.orderId = domain.orderId;
     orm.productId = domain.productId;
     orm.requestedByParticipantId = domain.requestedByParticipantId;
     orm.productNameSnapshot = domain.productNameSnapshot;

@@ -14,11 +14,9 @@ import {
 } from '../../../../../common/persistence/column-options.js';
 import { ProductStatus } from '../../../../domain/enums/product-status.enum.js';
 import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
-import type { ProductCategoryOrmEntity } from './product-category.orm-entity.js';
 
 @Entity('products')
 @Unique('uq_products_restaurant_code', ['restaurantId', 'code'])
-@Index('idx_products_restaurant_category', ['restaurantId', 'categoryId'])
 @Index('idx_products_available', ['restaurantId', 'isAvailable', 'status'])
 @Check('chk_products_price', 'price >= 0')
 @Check(
@@ -33,13 +31,6 @@ export class ProductOrmEntity extends BaseOrmEntity {
   @ManyToOne('RestaurantOrmEntity', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'restaurant_id' })
   restaurant?: RestaurantOrmEntity;
-
-  @Column({ name: 'category_id', type: 'uuid' })
-  categoryId: string;
-
-  @ManyToOne('ProductCategoryOrmEntity')
-  @JoinColumn({ name: 'category_id' })
-  category?: ProductCategoryOrmEntity;
 
   @Column({ type: 'varchar', length: 50 })
   code: string;

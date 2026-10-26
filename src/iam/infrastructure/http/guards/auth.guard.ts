@@ -4,22 +4,34 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
+import { IS_PUBLIC_ROUTE } from '../../../../common/infrastructure/http/public.decorator.js';
 import { AuthService } from '../../../application/auth/auth.service.js';
 import type { AuthenticatedUser } from '../../../application/auth/auth.service.js';
 
 export type { AuthenticatedUser };
 
 /**
- * Requires a valid access token and attaches the user to the request. Routes
- * where login is optional (e.g. guest diners) must not use this guard; they
- * resolve the user through AuthService.authenticateBearer instead.
+ * Global guard: every route requires a valid access token, except the ones
+ * marked @Public(). Diner routes are public and resolve the (optional) user
+ * themselves through AuthService.authenticateBearer.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_ROUTE, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest<Request>();
     const header = request.headers.authorization;
     if (!header?.startsWith('Bearer ')) {

@@ -8,8 +8,10 @@ import {
   AttentionResponseDto,
   TableQrResolveResponseDto,
 } from '../dto/attention-responses.dto.js';
+import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
 
 @ApiTags('customer/tables')
+@Public()
 @Controller('api/v1/tables')
 export class TableQrController {
   constructor(

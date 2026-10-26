@@ -6,7 +6,10 @@ import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm
 import { Attention } from '../../../../domain/entities/attention.entity.js';
 import { AttentionStatus } from '../../../../domain/enums/attention-status.enum.js';
 import { ActiveAttentionAlreadyExistsError } from '../../../../domain/exceptions/attention.errors.js';
-import { AttentionRepository } from '../../../../domain/repositories/attention.repository.js';
+import {
+  AttentionRepository,
+  DailyAttentionCounts,
+} from '../../../../domain/repositories/attention.repository.js';
 import { AttentionOrmEntity } from '../entities/attention.orm-entity.js';
 import { AttentionMapper } from '../mappers/attention.mappers.js';
 import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
@@ -44,6 +47,28 @@ export class TypeOrmAttentionRepository
       where: { restaurantId: filter.restaurantId, status: filter.status },
       order: { openedAt: 'DESC' },
     }, page);
+  }
+
+  async countDaily(
+    restaurantId: string,
+    businessDate: string,
+    timeZone: string,
+  ): Promise<DailyAttentionCounts> {
+    const onDate = (column: string) =>
+      `COUNT(*) FILTER (WHERE (attention.${column} AT TIME ZONE :timeZone)::date = :businessDate)`;
+    const row = await this.repository
+      .createQueryBuilder('attention')
+      .select(onDate('opened_at'), 'opened')
+      .addSelect(onDate('closed_at'), 'closed')
+      .addSelect(onDate('cancelled_at'), 'cancelled')
+      .where('attention.restaurant_id = :restaurantId', { restaurantId })
+      .setParameters({ timeZone, businessDate })
+      .getRawOne<{ opened: string; closed: string; cancelled: string }>();
+    return {
+      opened: Number(row?.opened ?? 0),
+      closed: Number(row?.closed ?? 0),
+      cancelled: Number(row?.cancelled ?? 0),
+    };
   }
 
   async findActiveByDiningTable(

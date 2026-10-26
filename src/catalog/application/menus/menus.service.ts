@@ -76,11 +76,14 @@ export class MenusService {
     return this.menuRepository.save(menu);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.menuRepository.delete(id);
-    if (!deleted) {
-      throw new MenuNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const menu = await this.findOne(id);
+    menu.update({ status: MenuStatus.INACTIVE });
+    await this.menuRepository.save(menu);
   }
 
   async listProducts(menuId: string): Promise<MenuProduct[]> {

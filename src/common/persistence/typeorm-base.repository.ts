@@ -44,6 +44,7 @@ export abstract class TypeOrmBaseRepository<
   ): Promise<Page<TDomain>> {
     const [rows, total] = await this.repository.findAndCount({
       ...options,
+      where: options.where && withoutUndefined(options.where),
       skip: (request.page - 1) * request.limit,
       take: request.limit,
     });
@@ -74,6 +75,16 @@ export abstract class TypeOrmBaseRepository<
     const result = await this.getRepository(tx).delete(id);
     return (result.affected ?? 0) > 0;
   }
+}
+
+/**
+ * Drops filters that were not provided. TypeORM rejects undefined values in
+ * a where clause; for list filters "not provided" simply means "any".
+ */
+export function withoutUndefined<T extends object>(where: T): T {
+  return Object.fromEntries(
+    Object.entries(where).filter(([, value]) => value !== undefined),
+  ) as T;
 }
 
 export function transactionalRepository<T extends ObjectLiteral>(

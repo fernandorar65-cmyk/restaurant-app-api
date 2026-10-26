@@ -58,11 +58,14 @@ export class InventoryCategoriesService {
     return this.categoryRepository.save(category);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.categoryRepository.delete(id);
-    if (!deleted) {
-      throw new InventoryCategoryNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const category = await this.findOne(id);
+    category.update({ isActive: false });
+    await this.categoryRepository.save(category);
   }
 
   private async assertNameIsFree(category: InventoryCategory): Promise<void> {

@@ -86,11 +86,14 @@ export class MembershipsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una membresía' })
-  @ApiOkResponse({ description: 'Id de la membresía eliminada' })
+  @ApiOperation({
+    summary: 'Desactivar una membresía (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Membresía no encontrada' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.membershipsService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.membershipsService.deactivate(id);
     return { id };
   }
 }

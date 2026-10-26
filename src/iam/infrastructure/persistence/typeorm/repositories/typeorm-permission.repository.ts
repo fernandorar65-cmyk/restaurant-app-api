@@ -40,6 +40,14 @@ export class TypeOrmPermissionRepository
     return found ? this.toDomain(found) : null;
   }
 
+  async findActive(): Promise<Permission[]> {
+    const rows = await this.repository.find({
+      where: { isActive: true },
+      order: { code: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findByIds(ids: string[]): Promise<Permission[]> {
     if (ids.length === 0) {
       return [];

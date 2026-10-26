@@ -59,10 +59,13 @@ export class PermissionsService {
     return this.permissionRepository.save(permission);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.permissionRepository.delete(id);
-    if (!deleted) {
-      throw new PermissionNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const permission = await this.findOne(id);
+    permission.update({ isActive: false });
+    await this.permissionRepository.save(permission);
   }
 }

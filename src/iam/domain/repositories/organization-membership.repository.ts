@@ -1,3 +1,4 @@
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { OrganizationMembership } from '../entities/organization-membership.entity.js';
 import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
@@ -19,6 +20,9 @@ export interface OrganizationMembershipRepository {
     page: PageRequest,
   ): Promise<Page<OrganizationMembership>>;
   /** Persists the membership together with its restaurant scope. */
-  save(membership: OrganizationMembership): Promise<OrganizationMembership>;
+  save(
+    membership: OrganizationMembership,
+    tx?: TransactionContext,
+  ): Promise<OrganizationMembership>;
   delete(id: string): Promise<boolean>;
 }

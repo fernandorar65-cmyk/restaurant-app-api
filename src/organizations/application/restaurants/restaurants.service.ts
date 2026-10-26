@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Restaurant } from '../../domain/entities/restaurant.entity.js';
 import type { RestaurantDetails } from '../../domain/entities/restaurant.entity.js';
 import { RestaurantStatus } from '../../domain/enums/restaurant-status.enum.js';
@@ -31,9 +32,14 @@ export class RestaurantsService {
     private readonly organizationsService: OrganizationsService,
   ) {}
 
-  async create(input: CreateRestaurantInput): Promise<Restaurant> {
+  /** `tx` lets other use cases (e.g. owner registration) include it in theirs. */
+  async create(
+    input: CreateRestaurantInput,
+    tx?: TransactionContext,
+  ): Promise<Restaurant> {
     const organization = await this.organizationsService.findOne(
       input.organizationId,
+      tx,
     );
     const slug = await this.uniqueSlug(input.slug ?? input.name);
     const code = input.code ?? slug.toUpperCase().slice(0, 50);
@@ -53,7 +59,7 @@ export class RestaurantsService {
       currencyCode: input.currencyCode ?? organization.currencyCode,
       timezone: input.timezone ?? organization.timezone,
     });
-    return this.restaurantRepository.save(restaurant);
+    return this.restaurantRepository.save(restaurant, tx);
   }
 
   findPage(
@@ -85,11 +91,14 @@ export class RestaurantsService {
     return this.restaurantRepository.save(restaurant);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.restaurantRepository.delete(id);
-    if (!deleted) {
-      throw new RestaurantNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const restaurant = await this.findOne(id);
+    restaurant.update({ status: RestaurantStatus.INACTIVE });
+    await this.restaurantRepository.save(restaurant);
   }
 
   private async uniqueSlug(seed: string): Promise<string> {

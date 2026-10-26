@@ -62,11 +62,14 @@ export class RestaurantFloorsService {
     return this.floorRepository.save(floor);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.floorRepository.delete(id);
-    if (!deleted) {
-      throw new RestaurantFloorNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const floor = await this.findOne(id);
+    floor.update({ isActive: false });
+    await this.floorRepository.save(floor);
   }
 
   private async assertNameIsFree(floor: RestaurantFloor): Promise<void> {

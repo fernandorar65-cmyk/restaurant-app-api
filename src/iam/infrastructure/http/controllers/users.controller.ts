@@ -74,11 +74,14 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un usuario' })
-  @ApiOkResponse({ description: 'Id del usuario eliminado' })
+  @ApiOperation({
+    summary: 'Desactivar un usuario (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.usersService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.usersService.deactivate(id);
     return { id };
   }
 }

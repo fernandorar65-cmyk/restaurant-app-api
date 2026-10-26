@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
+import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { RolePermission } from '../../../../domain/entities/role-permission.entity.js';
 import { RolePermissionRepository } from '../../../../domain/repositories/role-permission.repository.js';
 import { RolePermissionOrmEntity } from '../entities/role-permission.orm-entity.js';
@@ -28,8 +30,11 @@ export class TypeOrmRolePermissionRepository implements RolePermissionRepository
     return rows.map((row) => RolePermissionMapper.toDomain(row));
   }
 
-  async save(rolePermission: RolePermission): Promise<RolePermission> {
-    const saved = await this.repository.save(
+  async save(
+    rolePermission: RolePermission,
+    tx?: TransactionContext,
+  ): Promise<RolePermission> {
+    const saved = await transactionalRepository(this.repository, tx).save(
       RolePermissionMapper.toPersistence(rolePermission),
     );
     return RolePermissionMapper.toDomain(saved);

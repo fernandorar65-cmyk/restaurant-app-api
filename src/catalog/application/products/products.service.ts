@@ -77,11 +77,14 @@ export class ProductsService {
     return this.productRepository.save(product);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.productRepository.delete(id);
-    if (!deleted) {
-      throw new ProductNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const product = await this.findOne(id);
+    product.update({ status: ProductStatus.INACTIVE });
+    await this.productRepository.save(product);
   }
 
   private async assertCodeIsFree(product: Product): Promise<void> {

@@ -122,11 +122,14 @@ export class RestaurantsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un restaurante' })
-  @ApiOkResponse({ description: 'Id del restaurante eliminado' })
+  @ApiOperation({
+    summary: 'Desactivar un restaurante (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Restaurante no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.restaurantsService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.restaurantsService.deactivate(id);
     return { id };
   }
 }

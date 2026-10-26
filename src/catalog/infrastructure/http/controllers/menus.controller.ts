@@ -84,11 +84,14 @@ export class MenusController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un menú' })
-  @ApiOkResponse({ description: 'Id del menú eliminado' })
+  @ApiOperation({
+    summary: 'Desactivar un menú (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Menú no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.menusService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.menusService.deactivate(id);
     return { id };
   }
 

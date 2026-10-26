@@ -83,11 +83,14 @@ export class ProductCategoriesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una categoría (si no tiene productos)' })
-  @ApiOkResponse({ description: 'Id de la categoría eliminada' })
+  @ApiOperation({
+    summary: 'Desactivar una categoría (si no tiene productos) (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.categoriesService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.categoriesService.deactivate(id);
     return { id };
   }
 }

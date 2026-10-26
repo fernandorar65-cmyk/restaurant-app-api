@@ -76,11 +76,14 @@ export class PermissionsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un permiso' })
-  @ApiOkResponse({ description: 'Id del permiso eliminado' })
+  @ApiOperation({
+    summary: 'Desactivar un permiso (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.permissionsService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.permissionsService.deactivate(id);
     return { id };
   }
 }

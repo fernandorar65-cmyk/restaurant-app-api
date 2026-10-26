@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Organization } from '../../domain/entities/organization.entity.js';
 import { OrganizationStatus } from '../../domain/enums/organization-status.enum.js';
 import {
@@ -29,18 +30,22 @@ export class OrganizationsService {
     private readonly organizationRepository: OrganizationRepository,
   ) {}
 
-  async create(input: CreateOrganizationInput): Promise<Organization> {
+  /** `tx` lets other use cases (e.g. owner registration) include it in theirs. */
+  async create(
+    input: CreateOrganizationInput,
+    tx?: TransactionContext,
+  ): Promise<Organization> {
     const organization = Organization.create({ id: randomUUID(), ...input });
     await this.assertTaxIdentifierIsFree(organization);
-    return this.organizationRepository.save(organization);
+    return this.organizationRepository.save(organization, tx);
   }
 
   findPage(page: PageRequest): Promise<Page<Organization>> {
     return this.organizationRepository.findPage(page);
   }
 
-  async findOne(id: string): Promise<Organization> {
-    const organization = await this.organizationRepository.findById(id);
+  async findOne(id: string, tx?: TransactionContext): Promise<Organization> {
+    const organization = await this.organizationRepository.findById(id, tx);
     if (!organization) {
       throw new OrganizationNotFoundError(id);
     }
@@ -57,11 +62,14 @@ export class OrganizationsService {
     return this.organizationRepository.save(organization);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.organizationRepository.delete(id);
-    if (!deleted) {
-      throw new OrganizationNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const organization = await this.findOne(id);
+    organization.update({ status: OrganizationStatus.INACTIVE });
+    await this.organizationRepository.save(organization);
   }
 
   private async assertTaxIdentifierIsFree(

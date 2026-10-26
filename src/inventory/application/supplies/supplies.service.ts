@@ -89,11 +89,14 @@ export class SuppliesService {
     return this.supplyRepository.save(supply);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.supplyRepository.delete(id);
-    if (!deleted) {
-      throw new SupplyNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const supply = await this.findOne(id);
+    supply.update({ isActive: false });
+    await this.supplyRepository.save(supply);
   }
 
   /**

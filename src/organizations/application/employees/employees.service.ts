@@ -65,11 +65,14 @@ export class EmployeesService {
     return this.employeeRepository.save(employee);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.employeeRepository.delete(id);
-    if (!deleted) {
-      throw new EmployeeNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const employee = await this.findOne(id);
+    employee.update({ status: EmployeeStatus.INACTIVE });
+    await this.employeeRepository.save(employee);
   }
 
   private async assertConsistent(employee: Employee): Promise<void> {

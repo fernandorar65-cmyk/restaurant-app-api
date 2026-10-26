@@ -83,11 +83,14 @@ export class RestaurantFloorsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un piso (si no tiene mesas)' })
-  @ApiOkResponse({ description: 'Id del piso eliminado' })
+  @ApiOperation({
+    summary: 'Desactivar un piso (si no tiene mesas) (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Piso no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.floorsService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.floorsService.deactivate(id);
     return { id };
   }
 }

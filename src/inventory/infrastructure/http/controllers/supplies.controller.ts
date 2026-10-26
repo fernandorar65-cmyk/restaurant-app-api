@@ -90,13 +90,13 @@ export class SuppliesController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Eliminar un insumo',
-    description: 'Si tiene movimientos, desactívalo (isActive=false) en lugar de eliminarlo',
+    summary: 'Desactivar un insumo (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del insumo eliminado' })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Insumo no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.suppliesService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.suppliesService.deactivate(id);
     return { id };
   }
 

@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
@@ -88,6 +89,8 @@ function postgresError(exception: unknown) {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -95,6 +98,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const statusCode = this.resolveStatus(exception);
     const message = this.extractMessage(exception);
+    if (statusCode >= 500) {
+      // Unexpected: the client only gets a generic message, so keep the cause.
+      this.logger.error(
+        `${request.method} ${request.url}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    }
 
     response.status(statusCode).json({
       success: false,

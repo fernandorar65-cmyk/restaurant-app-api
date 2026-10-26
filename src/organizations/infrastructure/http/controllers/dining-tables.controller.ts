@@ -89,11 +89,14 @@ export class DiningTablesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una mesa' })
-  @ApiOkResponse({ description: 'Id de la mesa eliminada' })
+  @ApiOperation({
+    summary: 'Desactivar una mesa (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.diningTablesService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.diningTablesService.deactivate(id);
     return { id };
   }
 }

@@ -85,11 +85,14 @@ export class InventoryCategoriesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una categoría de inventario' })
-  @ApiOkResponse({ description: 'Id de la categoría eliminada' })
+  @ApiOperation({
+    summary: 'Desactivar una categoría de inventario (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
+  })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.categoriesService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.categoriesService.deactivate(id);
     return { id };
   }
 }

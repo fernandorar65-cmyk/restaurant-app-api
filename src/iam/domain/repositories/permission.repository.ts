@@ -7,6 +7,7 @@ export interface PermissionRepository {
   findById(id: string): Promise<Permission | null>;
   findByCode(code: string): Promise<Permission | null>;
   findByIds(ids: string[]): Promise<Permission[]>;
+  findActive(): Promise<Permission[]>;
   findPage(page: PageRequest): Promise<Page<Permission>>;
   save(permission: Permission): Promise<Permission>;
   delete(id: string): Promise<boolean>;

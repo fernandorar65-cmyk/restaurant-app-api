@@ -28,6 +28,9 @@ async function bootstrap() {
     .setTitle('Restaurant API')
     .setDescription('API para la gestión de un restaurante')
     .setVersion('1.0')
+    .addBearerAuth()
+    // Session is required by default; public routes are marked @Public().
+    .addSecurityRequirements('bearer')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, swaggerDocument);

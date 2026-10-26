@@ -3,8 +3,10 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CartValidationService } from '../../../application/cart-validation/cart-validation.service.js';
 import { CartValidateResponseDto } from '../dto/cart/cart-validate-response.dto.js';
 import { CartValidateDto } from '../dto/cart/cart-validate.dto.js';
+import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
 
 @ApiTags('customer/cart')
+@Public()
 @Controller('api/v1/restaurants')
 export class CartValidationController {
   constructor(private readonly cartValidationService: CartValidationService) {}

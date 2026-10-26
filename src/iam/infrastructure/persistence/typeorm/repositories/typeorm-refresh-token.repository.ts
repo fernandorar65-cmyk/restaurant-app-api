@@ -23,6 +23,19 @@ export class TypeOrmRefreshTokenRepository
     return RefreshTokenMapper.toDomain(orm);
   }
 
+  async revokeIfActive(id: string, tokenHash: string): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(RefreshTokenOrmEntity)
+      .set({ revokedAt: () => 'CURRENT_TIMESTAMP' })
+      .where('id = :id', { id })
+      .andWhere('token_hash = :tokenHash', { tokenHash })
+      .andWhere('revoked_at IS NULL')
+      .andWhere('expires_at > CURRENT_TIMESTAMP')
+      .execute();
+    return result.affected === 1;
+  }
+
   protected toPersistence(
     domain: RefreshToken,
     existing?: RefreshTokenOrmEntity,

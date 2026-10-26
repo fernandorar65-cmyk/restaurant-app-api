@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
 import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
+import { IdentityModule } from '../iam/identity.module.js';
 import { DiningTablesService } from './application/dining-tables/dining-tables.service.js';
 import { EmployeesService } from './application/employees/employees.service.js';
 import { OrganizationsService } from './application/organizations/organizations.service.js';
@@ -23,7 +24,7 @@ import { OrganizationsController } from './infrastructure/http/controllers/organ
 import { RestaurantFloorsController } from './infrastructure/http/controllers/restaurant-floors.controller.js';
 import { RestaurantsController } from './infrastructure/http/controllers/restaurants.controller.js';
 import { TableQrCodesController } from './infrastructure/http/controllers/table-qr-codes.controller.js';
-import { SqlUserLookupAdapter } from './infrastructure/lookups/sql-user-lookup.adapter.js';
+import { InternalUserLookupAdapter } from './infrastructure/lookups/internal-user-lookup.adapter.js';
 import { DiningTableOrmEntity } from './infrastructure/persistence/typeorm/entities/dining-table.orm-entity.js';
 import { EmployeeOrmEntity } from './infrastructure/persistence/typeorm/entities/employee.orm-entity.js';
 import { OrganizationOrmEntity } from './infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
@@ -50,6 +51,7 @@ import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeo
       DiningTableOrmEntity,
       TableQrCodeOrmEntity,
     ]),
+    IdentityModule,
   ],
   controllers: [
     OrganizationsController,
@@ -80,7 +82,7 @@ import { TypeOrmTableQrCodeRepository } from './infrastructure/persistence/typeo
     { provide: DINING_TABLE_REPOSITORY, useClass: TypeOrmDiningTableRepository },
     { provide: TABLE_QR_CODE_REPOSITORY, useClass: TypeOrmTableQrCodeRepository },
     { provide: EMPLOYEE_REPOSITORY, useClass: TypeOrmEmployeeRepository },
-    { provide: USER_LOOKUP, useClass: SqlUserLookupAdapter },
+    { provide: USER_LOOKUP, useClass: InternalUserLookupAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
   ],
   exports: [

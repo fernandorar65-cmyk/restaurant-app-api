@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import type { EntityManager } from 'typeorm';
+import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
+import { TypeOrmTransactionContext } from '../../../../../common/persistence/typeorm-transaction-runner.js';
+import { withoutUndefined } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { OrganizationMembership } from '../../../../domain/entities/organization-membership.entity.js';
 import { OrganizationMembershipRepository } from '../../../../domain/repositories/organization-membership.repository.js';
 import { MembershipRestaurantOrmEntity } from '../entities/membership-restaurant.orm-entity.js';
@@ -43,7 +47,10 @@ export class TypeOrmOrganizationMembershipRepository
     page: PageRequest,
   ): Promise<Page<OrganizationMembership>> {
     const [rows, total] = await this.repository.findAndCount({
-      where: { organizationId: filter.organizationId, userId: filter.userId },
+      where: withoutUndefined({
+        organizationId: filter.organizationId,
+        userId: filter.userId,
+      }),
       order: { joinedAt: 'ASC' },
       skip: (page.page - 1) * page.limit,
       take: page.limit,
@@ -56,8 +63,11 @@ export class TypeOrmOrganizationMembershipRepository
     };
   }
 
-  async save(membership: OrganizationMembership): Promise<OrganizationMembership> {
-    await this.repository.manager.transaction(async (manager) => {
+  async save(
+    membership: OrganizationMembership,
+    tx?: TransactionContext,
+  ): Promise<OrganizationMembership> {
+    const write = async (manager: EntityManager) => {
       const memberships = manager.getRepository(OrganizationMembershipOrmEntity);
       const scope = manager.getRepository(MembershipRestaurantOrmEntity);
       const existing = await memberships.findOne({
@@ -78,7 +88,13 @@ export class TypeOrmOrganizationMembershipRepository
           })),
         );
       }
-    });
+    };
+    // Join the caller's transaction, or open one: row + scope always together.
+    if (tx instanceof TypeOrmTransactionContext) {
+      await write(tx.manager);
+      return membership;
+    }
+    await this.repository.manager.transaction(write);
     return (await this.findById(membership.id)) as OrganizationMembership;
   }
 

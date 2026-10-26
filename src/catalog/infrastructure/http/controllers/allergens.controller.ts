@@ -67,7 +67,10 @@ export class AllergensController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un alérgeno (lo quita de todos los productos)' })
+  @ApiOperation({
+    summary: 'Eliminar un alérgeno (lo quita de todos los productos)',
+    description: 'Catálogo global sin historial: el borrado es físico',
+  })
   @ApiOkResponse({ description: 'Id del alérgeno eliminado' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
     await this.allergensService.remove(id);

@@ -5,8 +5,20 @@ import type { Page, PageRequest } from '../../../common/application/pagination.j
 
 export const ATTENTION_REPOSITORY = Symbol('ATTENTION_REPOSITORY');
 
+export interface DailyAttentionCounts {
+  opened: number;
+  closed: number;
+  cancelled: number;
+}
+
 export interface AttentionRepository {
   findById(id: string, tx?: TransactionContext): Promise<Attention | null>;
+  /** Attentions opened / closed / cancelled on a business date (restaurant time zone). */
+  countDaily(
+    restaurantId: string,
+    businessDate: string,
+    timeZone: string,
+  ): Promise<DailyAttentionCounts>;
   findActiveByDiningTable(
     diningTableId: string,
     tx?: TransactionContext,

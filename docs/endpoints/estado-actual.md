@@ -14,7 +14,9 @@ Swagger interactivo en `/docs`.
 - Las violaciones de restricciones de la base que se escapan de las validaciones se traducen: único → `409`, FK → `409`, CHECK → `400`.
 - Todos los `:id` son UUID (`ParseUUIDPipe`).
 - Estados y tipos en MAYÚSCULAS, igual que en la base (`OPEN`, `DINE_IN`, `PREPARING`, ...).
-- **El CRUD interno sigue sin autenticación ni permisos** (acceso libre). Las membresías y los permisos ya existen como datos, pero todavía no se aplican en los endpoints.
+- **Sesión obligatoria por defecto**: todas las rutas exigen `Authorization: Bearer <accessToken>` (401 `MISSING_ACCESS_TOKEN` / `INVALID_ACCESS_TOKEN`). Son públicas solo: registro, login, refresh y reseteo de contraseña (`/api/v1/owner/auth/*`, `/api/v1/customer/auth/*` salvo logout), y las rutas del comensal (`/api/v1/tables/qr/*`, `/api/v1/orders/*`, `/api/v1/restaurants/:slug/cart/validate`), donde el login es opcional.
+- **Todavía no se aplican permisos ni el alcance por organización/sede**: cualquier usuario con sesión puede operar el CRUD interno. Las membresías y los permisos ya existen como datos.
+- **`DELETE` = baja lógica** en entidades con estado: organizaciones, sedes, pisos, mesas, empleados, usuarios, roles, permisos, membresías, categorías, productos, menús, insumos y categorías de inventario/gasto quedan inactivos (`status`/`isActive`) en lugar de borrarse. Siguen siendo borrado físico las asociaciones puras (permisos de un rol, productos de un menú, alérgenos e ingredientes de un producto, líneas de receta) y los alérgenos del catálogo global.
 - **Paginación**: los listados aceptan `?page=` (desde 1) y `?limit=` (por defecto 20, máximo 100) y devuelven en `data`:
   `{ "items": [...], "meta": { "page", "limit", "total", "totalPages" } }`.
   No se paginan las sublistas acotadas: permisos de un rol, productos de un menú, alérgenos e ingredientes de un producto, receta, modalidades de una sede e historial de un plato.
@@ -29,9 +31,10 @@ Una sola identidad (`users`) para comensales y personal: el mismo usuario puede 
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
+| POST | `/api/v1/owner/auth/register` | público | Alta del dueño en una sola transacción: usuario + organización + rol `OWNER` (con todos los permisos activos) + membresía con acceso a todas las sedes + primera sede opcional (`restaurant`). Si algo falla no queda nada. Devuelve la sesión y los ids creados |
 | POST | `/api/v1/customer/auth/register` | público | Crea usuario + perfil de comensal (`email`, `password`, `firstName`, `lastName?`, `phone?`, `dietaryPreferences?`) y devuelve la sesión |
 | POST | `/api/v1/{owner\|customer}/auth/login` | público | Login con email y contraseña. Usuarios `INACTIVE`/`BLOCKED` reciben 403 |
-| POST | `/api/v1/{owner\|customer}/auth/refresh` | público | Rota el refresh token (el anterior deja de servir) |
+| POST | `/api/v1/{owner\|customer}/auth/refresh` | público | Rota el refresh token (el anterior deja de servir). Atómico: de dos refresh simultáneos con el mismo token solo uno gana |
 | POST | `/api/v1/{owner\|customer}/auth/logout` | bearer | Invalida el refresh token |
 | POST | `/api/v1/{owner\|customer}/auth/forgot-password` | público | Genera un token de un solo uso (30 min). Hoy se loguea en consola, no hay correo real |
 | POST | `/api/v1/{owner\|customer}/auth/reset-password` | público | Cambia la contraseña con el token |
@@ -136,12 +139,22 @@ Nombre y precio de cada plato se toman del catálogo **en el servidor** al momen
 
 ---
 
+## Finanzas
+
+| Recurso | Rutas | Notas |
+|---|---|---|
+| Categorías de gasto | `POST/GET /expense-categories?organizationId=`, `GET/PATCH/DELETE /expense-categories/:id` | Por organización; `DELETE` desactiva |
+| Gastos | `POST/GET /expenses?restaurantId=&categoryId=&status=&from=&to=`, `GET/PATCH /expenses/:id`, `POST /expenses/:id/void` | Quedan a nombre del usuario de la sesión. La categoría debe ser de la organización de la sede. No se borran: se **anulan** (`VOIDED`) y dejan de sumar; un gasto anulado no se edita |
+| Cierre diario | `GET /daily-closures/preview?restaurantId=&businessDate=`, `POST /daily-closures`, `GET /daily-closures?restaurantId=&from=&to=`, `GET /daily-closures/:id` | Foto inmutable del día en la zona horaria de la sede: atenciones abiertas/cerradas/canceladas, ventas brutas, reembolsos, ventas netas, gastos, efectivo esperado (efectivo cobrado − gastos en efectivo, mínimo 0), efectivo contado, diferencia y desglose por método de pago. Un cierre por sede y fecha (409); no se cierran fechas futuras |
+
+---
+
 ## Deliberadamente no implementado todavía
 
 - **Autorización**: guard de permisos por endpoint y validación de organización/sede según la membresía del usuario.
 - **Registro transaccional del propietario** (usuario + organización + rol OWNER + membresía + primera sede) y seeds de permisos/roles base.
-- **Pagos** (`payments`, `payment_allocations`, `refunds`): las tablas existen; la cuenta ya lee lo pagado desde ellas, pero no hay endpoints para registrar pagos.
-- **Finanzas** (gastos y cierre diario): solo tablas.
+- **Pagos** (`payments`, `payment_allocations`, `refunds`): hay un servicio de consulta (lo usan la cuenta y el cierre diario), pero no hay endpoints para registrar pagos ni reembolsos. Por eso el cierre muestra ventas en 0 hasta implementarlos.
+- **Vincular un gasto a una compra de inventario** (`expenses.inventory_movement_id`): la columna existe pero la API todavía no lo expone.
 - **Catálogo**: carta pública y descubrimiento de restaurantes.
 - **Monto mínimo** de la modalidad: se informa en la validación del carrito, pero todavía no bloquea el pedido.
 - Paginación, eventos en tiempo real, envío real de correos.

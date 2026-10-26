@@ -77,11 +77,14 @@ export class DiningTablesService {
     return this.diningTableRepository.save(diningTable);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.diningTableRepository.delete(id);
-    if (!deleted) {
-      throw new DiningTableNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const diningTable = await this.findOne(id);
+    diningTable.update({ operationalStatus: TableOperationalStatus.INACTIVE });
+    await this.diningTableRepository.save(diningTable);
   }
 
   private async assertCodeIsFree(diningTable: DiningTable): Promise<void> {

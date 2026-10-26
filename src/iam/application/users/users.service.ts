@@ -72,11 +72,14 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.userRepository.delete(id);
-    if (!deleted) {
-      throw new UserNotFoundError(id);
-    }
+  /**
+   * Logical delete: operational history must be kept, so the record is
+   * deactivated instead of removed.
+   */
+  async deactivate(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    user.changeStatus(UserStatus.INACTIVE);
+    await this.userRepository.save(user);
   }
 
   private async assertEmailIsFree(email: string, ownerId?: string): Promise<void> {

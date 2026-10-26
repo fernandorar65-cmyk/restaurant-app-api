@@ -141,16 +141,15 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const payload = await this.verifyRefreshToken(refreshToken);
-    const stored = await this.refreshTokenRepository.findById(payload.jti);
-    if (
-      !stored ||
-      !stored.isActive ||
-      stored.tokenHash !== hashToken(refreshToken)
-    ) {
+    // Check-and-revoke in a single statement: of two concurrent refreshes
+    // with the same token only one can win.
+    const revoked = await this.refreshTokenRepository.revokeIfActive(
+      payload.jti,
+      hashToken(refreshToken),
+    );
+    if (!revoked) {
       throw new InvalidRefreshTokenError();
     }
-    stored.revoke();
-    await this.refreshTokenRepository.save(stored);
 
     const user = await this.userRepository.findById(payload.sub);
     if (!user || !user.canLogIn) {
@@ -166,11 +165,10 @@ export class AuthService {
     if (!payload) {
       return;
     }
-    const stored = await this.refreshTokenRepository.findById(payload.jti);
-    if (stored && stored.isActive) {
-      stored.revoke();
-      await this.refreshTokenRepository.save(stored);
-    }
+    await this.refreshTokenRepository.revokeIfActive(
+      payload.jti,
+      hashToken(refreshToken),
+    );
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -254,6 +252,11 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  /** Opens a session for a user another use case just created (e.g. owner sign-up). */
+  startSession(user: User): Promise<AuthTokens> {
+    return this.issueTokens(user);
   }
 
   private async issueTokens(user: User): Promise<AuthTokens> {

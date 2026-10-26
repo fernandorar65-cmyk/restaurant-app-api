@@ -1,3 +1,4 @@
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Role } from '../entities/role.entity.js';
 import type { Page, PageRequest } from '../../../common/application/pagination.js';
 
@@ -10,6 +11,6 @@ export interface RoleRepository {
     filter: { organizationId?: string },
     page: PageRequest,
   ): Promise<Page<Role>>;
-  save(role: Role): Promise<Role>;
+  save(role: Role, tx?: TransactionContext): Promise<Role>;
   delete(id: string): Promise<boolean>;
 }

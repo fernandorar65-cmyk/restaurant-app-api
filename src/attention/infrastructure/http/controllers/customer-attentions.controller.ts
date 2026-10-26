@@ -32,6 +32,7 @@ import {
   AttentionResponseDto,
   OrderBatchResponseDto,
 } from '../dto/attention-responses.dto.js';
+import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
 
 const GUEST_TOKEN_HEADER = 'x-guest-token';
 
@@ -42,6 +43,7 @@ const GUEST_TOKEN_HEADER = 'x-guest-token';
  */
 @ApiTags('customer/orders')
 @ApiHeader({ name: 'X-Guest-Token', required: false, description: 'UUID del invitado' })
+@Public()
 @Controller('api/v1/orders')
 export class CustomerAttentionsController {
   constructor(

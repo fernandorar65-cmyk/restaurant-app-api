@@ -6,6 +6,8 @@ import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transact
 import { IamModule } from '../iam/iam.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
+import { AttentionReportsService } from './application/attention-reports/attention-reports.service.js';
 import { AttentionsService } from './application/attentions/attentions.service.js';
 import { CustomerAttentionsService } from './application/customer-attentions/customer-attentions.service.js';
 import { OrderItemsService } from './application/order-items/order-items.service.js';
@@ -32,7 +34,7 @@ import { InternalProductLookupAdapter } from './infrastructure/lookups/internal-
 import { InternalRestaurantLookupAdapter } from './infrastructure/lookups/internal-restaurant-lookup.adapter.js';
 import { InternalStockConsumptionAdapter } from './infrastructure/lookups/internal-stock-consumption.adapter.js';
 import { InternalTableQrLookupAdapter } from './infrastructure/lookups/internal-table-qr-lookup.adapter.js';
-import { SqlPaymentLedgerAdapter } from './infrastructure/lookups/sql-payment-ledger.adapter.js';
+import { InternalPaymentLedgerAdapter } from './infrastructure/lookups/internal-payment-ledger.adapter.js';
 import { AttentionParticipantOrmEntity } from './infrastructure/persistence/typeorm/entities/attention-participant.orm-entity.js';
 import { AttentionOrmEntity } from './infrastructure/persistence/typeorm/entities/attention.orm-entity.js';
 import { FulfillmentOrmEntity } from './infrastructure/persistence/typeorm/entities/fulfillment.orm-entity.js';
@@ -60,6 +62,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     CatalogModule,
     IamModule,
     InventoryModule,
+    PaymentsModule,
   ],
   controllers: [
     AttentionsController,
@@ -69,6 +72,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
   ],
   providers: [
     AttentionsService,
+    AttentionReportsService,
     OrderRoundsService,
     OrderItemsService,
     CustomerAttentionsService,
@@ -90,8 +94,9 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
     { provide: PRODUCT_LOOKUP, useClass: InternalProductLookupAdapter },
     { provide: STOCK_CONSUMPTION, useClass: InternalStockConsumptionAdapter },
-    { provide: PAYMENT_LEDGER, useClass: SqlPaymentLedgerAdapter },
+    { provide: PAYMENT_LEDGER, useClass: InternalPaymentLedgerAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
   ],
+  exports: [AttentionReportsService],
 })
 export class AttentionModule {}

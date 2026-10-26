@@ -86,13 +86,13 @@ export class ProductsController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Eliminar un producto',
-    description: 'Si ya fue pedido, desactívalo (status INACTIVE) en lugar de eliminarlo',
+    summary: 'Desactivar un producto (baja lógica)',
+    description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del producto eliminado' })
+  @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Producto no encontrado' })
-  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
-    await this.productsService.remove(id);
+  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+    await this.productsService.deactivate(id);
     return { id };
   }
 }

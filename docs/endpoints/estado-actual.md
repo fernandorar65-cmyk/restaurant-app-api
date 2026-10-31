@@ -115,7 +115,7 @@ Los estados están separados y no se pisan:
 | GET | `/attentions/:id/bill` | Ítems cobrables (sin rechazados ni cancelados), total, pagado, saldo |
 | POST | `/attentions/:id/request-bill` | Marca la cuenta como pedida |
 | POST | `/attentions/:id/close` | Cierra; solo con saldo 0 (422 si no) |
-| POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos (primero reembolsar). Cancela también el recojo/delivery pendiente |
+| POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos confirmados. Cancela también el recojo/delivery pendiente |
 | PATCH | `/attentions/:id/fulfillment/status` | `{ status, estimatedReadyAt? }`. Recojo: PENDING→CONFIRMED→PREPARING→READY→COMPLETED. Delivery: …→READY→OUT_FOR_DELIVERY→COMPLETED. CANCELLED desde cualquier estado no final. Saltos → 409; COMPLETED registra `deliveredAt` |
 | GET | `/order-items?restaurantId=&status=SUBMITTED,PREPARING&includeClosed=` | Tablero de cocina (paginado). Por defecto solo platos de atenciones activas; `includeClosed=true` incluye cerradas y canceladas |
 | GET | `/order-items/:id` | Un plato |
@@ -140,15 +140,60 @@ Nombre y precio de cada plato se toman del catálogo **en el servidor** al momen
 
 ---
 
+## Pagos
+
+Modelo independiente de cualquier pasarela:
+
+- **`payments`**: el movimiento de dinero o intento de cobro: monto, método, quién pagó, estado interno, datos de la pasarela (`provider_code`, `provider_payment_id`, `provider_status` con el estado **original** del proveedor) y `request_id` (idempotencia, único por sede). El importe y las asignaciones nunca cambian después.
+- **`payment_allocations`**: cómo se reparte cada pago entre los productos de la atención (`concept = ORDER_ITEM`) o el costo de envío (`DELIVERY_FEE`). Un pago cubre varios productos y un producto puede cubrirse con varios pagos; la suma de las asignaciones es siempre el monto del pago.
+- **`payment_statuses`**: catálogo global de ACMR (PENDING, PROCESSING, PAID, FAILED, CANCELLED, PARTIALLY_REFUNDED, REFUNDED) con `is_terminal`, `counts_toward_balance` y `allows_refund`. Se crea al arrancar la app. Solo los estados con `counts_toward_balance` reducen el saldo; los pendientes **reservan** su monto para que otro cobro no lo tome.
+- **`payment_provider_status_mappings`**: traducción de cada estado de pasarela a uno interno (p. ej. `mercado_pago` + `approved` → PAID). **`payment_provider_events`**: auditoría de los eventos recibidos, únicos por proveedor + `eventId` y sin datos de tarjeta.
+- **Reembolsos**: `refunds`, `refund_statuses`, `refund_allocations` y `refund_provider_status_mappings` están modelados, pero **todavía no hay flujo ni endpoints** (decisión pendiente: reembolsos parciales por producto o solo totales). Por eso ningún flujo lleva un pago a PARTIALLY_REFUNDED ni a REFUNDED.
+
+### Personal
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/payments` | `{ attentionId, requestId, method, mode, amount?, allocations?, payerName?, payerUserId?, externalReference?, notes?, provider? }`. `mode`: `FULL` (todo el saldo), `AMOUNT` (monto libre) o `ITEMS` (`allocations: [{ orderItemId?, amount }]`; sin `orderItemId` = costo de envío). En FULL y AMOUNT el servidor reparte en orden de creación del producto (id como desempate) y el envío al final; nunca usa montos del cliente. Sin `provider` el pago queda PAID; con `provider` arranca en PENDING o en el estado que mapee `provider.status`. 201 la primera vez, 200 con el mismo pago si se repite el `requestId`. Errores: saldo excedido (`PAYMENT_EXCEEDS_BALANCE`, `ALLOCATION_EXCEEDS_ITEM_BALANCE`), producto ajeno (`ALLOCATION_TARGET_NOT_IN_ATTENTION`), atención no activa (`ATTENTION_NOT_PAYABLE`), estado sin mapeo (`UNMAPPED_PROVIDER_STATUS`) |
+| GET | `/payments?attentionId=&restaurantId=&status=` | Lista paginada con sus asignaciones |
+| GET | `/payments/:id` | Un pago |
+| GET | `/payments/balance/:attentionId` | Por producto y envío: total, pagado, reservado (pagos pendientes) y pendiente |
+| POST | `/payments/:id/cancel` | Cancela un intento PENDING / PROCESSING y libera lo reservado. Un pago confirmado no se cancela (422) |
+
+El saldo se recalcula dentro de una transacción con un bloqueo por atención: cobros simultáneos nunca superan la deuda. La cuenta de la atención (`/attentions/:id/bill`) y el cierre diario usan solo los pagos que cuentan. Un producto con pagos asignados no se puede cancelar ni rechazar (`ORDER_ITEM_HAS_PAYMENTS`).
+
+### Privado de ACMR (`/platform`, solo `users.is_platform_admin`)
+
+El flag se activa solo en la base de datos; ninguna ruta de la API lo cambia. Sin él → 403 `PLATFORM_ADMIN_REQUIRED`.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/platform/payment-statuses` | Catálogo de estados internos |
+| PATCH | `/platform/payment-statuses/:code` | Solo `{ name?, description? }`; el código y el efecto contable no se pueden cambiar |
+| GET/POST | `/platform/payment-provider-status-mappings?providerCode=&isActive=` | Mapeos; `{ providerCode, externalStatus, paymentStatus }`, únicos por proveedor + estado externo sin distinguir mayúsculas |
+| PATCH | `/platform/payment-provider-status-mappings/:id` | `{ paymentStatus?, isActive? }`; afecta solo a eventos futuros |
+| POST | `/platform/payment-providers/:providerCode/events` | `{ eventId, eventType, providerPaymentId?, externalStatus?, payload? }`. Guarda el estado original, lo traduce y actualiza el pago. Un `eventId` repetido no se reaplica (200, `duplicate: true`); un estado que retrocede se ignora (`IGNORED`); sin mapeo → `FAILED` |
+| GET | `/platform/payment-provider-events?providerCode=` | Auditoría de eventos |
+
+---
+
 ## Inventario
+
+Tres niveles: **insumo maestro** de la organización (`supplies`) → **stock por sede** (`restaurant_supplies`) → **movimientos** inmutables (`inventory_movements`). Las unidades (`units_of_measure`: KG, G, L, ML, UNIT) y los tipos de movimiento (`inventory_movement_types`) son catálogos de ACMR que se crean al arrancar la app; el efecto de cada tipo sobre el stock está fijo en el código.
 
 | Recurso | Rutas | Notas |
 |---|---|---|
-| Categorías de inventario | `POST/GET /inventory-categories?organizationId=`, `GET/PATCH/DELETE /inventory-categories/:id` | Por organización |
-| Insumos | `POST/GET /supplies?restaurantId=&categoryId=`, `GET/PATCH/DELETE /supplies/:id` | Empiezan con stock 0; `PATCH` no toca el stock. `isBelowMinimum` en la respuesta |
-| Recetas | `GET /product-recipes/:productId`, `PUT/DELETE /product-recipes/:productId/supplies/:supplyId` | `{ quantityRequired, wastePercentage? }` por unidad de producto; devuelve `effectiveQuantity` con la merma. Insumo y producto de la misma sede |
-| Consumo automático | — | Cuando un plato pasa a `PREPARING` se registra un `USAGE` por cada insumo de su receta (cantidad con merma × unidades), con referencia `ORDER_ITEM` y nota "Consumo automático". Si falta stock consume lo disponible y anota el faltante, sin bloquear la cocina. Nunca descuenta dos veces el mismo plato. No se revierte si el plato se cancela después |
-| Movimientos | `POST /supplies/:id/movements`, `GET /supplies/:id/movements` | Única forma de cambiar el stock. `PURCHASE` (suma, recalcula costo promedio con `unitCost`), `USAGE`/`WASTE` (restan; sin stock → 422), `COUNT` (`countedQuantity` fija el stock), `ADJUSTMENT` (`quantity` + `direction` INCREASE/DECREASE). Stock y movimiento se guardan en la misma transacción con bloqueo de fila |
+| Catálogos | `GET /units-of-measure`, `GET /inventory-movement-types` | Para llenar formularios. Tipos: PURCHASE (+), USAGE (−), WASTE (−), COUNT_ADJUSTMENT_IN/OUT, MANUAL_ADJUSTMENT_IN/OUT, REVERSAL (calculado). Ya no existe `ADJUSTMENT` ni `COUNT` |
+| Categorías de inventario | `POST/GET /inventory-categories?organizationId=`, `GET/PATCH/DELETE /inventory-categories/:id` | Por organización, con `description`. Nombre único sin distinguir mayúsculas |
+| Insumos maestros | `POST/GET /supplies?organizationId=&categoryId=&isActive=`, `GET/PATCH/DELETE /supplies/:id` | `{ organizationId, categoryId, code, name, unitCode, description? }`. Se registra **una vez por organización** (código único, en mayúsculas); la categoría debe ser de la misma organización y la unidad del catálogo (texto libre → 404 `UNIT_OF_MEASURE_NOT_FOUND`). No guarda stock. La unidad base no cambia si alguna sede ya tiene movimientos (422 `SUPPLY_UNIT_LOCKED`) |
+| Stock por sede | `POST/GET /restaurant-supplies?restaurantId=&supplyId=&isActive=&lowStock=`, `GET/PATCH/DELETE /restaurant-supplies/:id` | `POST { restaurantId, supplyId, minimumQuantity? }` habilita el insumo en la sede con stock 0 (sede e insumo de la misma organización; una vez por sede). Respuesta con `supply { code, name, unitCode }`, `currentQuantity`, `minimumQuantity`, `averageUnitCost` y `lowStock` (alerta: saldo ≤ mínimo). `PATCH` solo `minimumQuantity` / `isActive`: **el saldo no se edita**. `DELETE` desactiva y conserva el historial |
+| Movimientos | `POST /restaurant-supplies/:id/movements`, `GET /restaurant-supplies/:id/movements` | `{ type: PURCHASE \| USAGE \| WASTE \| MANUAL_ADJUSTMENT_IN \| MANUAL_ADJUSTMENT_OUT, quantity (> 0), unitCost? (compras), notes?, idempotencyKey? }`. El tipo define el signo: se guarda `quantityDelta` firmado con saldo anterior y resultante. Saldo y movimiento se guardan juntos con la fila bloqueada (sin pérdida de actualizaciones); una salida nunca deja stock negativo (422 `INSUFFICIENT_STOCK`). Las compras con `unitCost` recalculan el costo promedio ponderado; las salidas no. `idempotencyKey` repetida → 200 con el mismo movimiento. Historial del más reciente al más antiguo: el primero tiene el saldo actual |
+| Conteo físico | `POST /restaurant-supplies/:id/counts` | `{ countedQuantity, notes?, idempotencyKey? }`. El backend calcula la diferencia y crea COUNT_ADJUSTMENT_IN / OUT con `countedQuantity`. Sin diferencia → 200 con `movement: null` |
+| Reversión | `GET /inventory-movements/:id`, `POST /inventory-movements/:id/reverse` | `{ notes, idempotencyKey? }`. Crea un REVERSAL con el delta opuesto y `reversalOfMovementId`; el original no cambia. Un movimiento se revierte una vez (409); una reversión no se revierte (422). No hay `PATCH` ni `DELETE` de movimientos |
+| Recetas | `GET /product-recipes/:productId`, `PUT/DELETE /product-recipes/:productId/supplies/:supplyId` | `{ quantityRequired, wastePercentage? }` por unidad de producto con el **insumo maestro** (misma organización que el producto); devuelve `effectiveQuantity` con la merma |
+| Consumo automático | — | **Apagado por defecto** (`INVENTORY_AUTO_CONSUMPTION=false`) hasta confirmar el flujo. Encendido: al pasar un plato a `PREPARING` registra un USAGE en el stock de la sede del pedido por cada insumo de la receta, con `originModule = ATTENTION`, `originId` = plato e `idempotencyKey` (nunca descuenta dos veces). Si falta stock consume lo disponible y anota el faltante, sin bloquear la cocina. No se revierte si el plato se cancela después |
+
+Privado de ACMR (`/platform`, solo `users.is_platform_admin`): `PATCH /platform/units-of-measure/:code` (`{ name?, isActive? }`; una unidad desactivada no se usa en insumos nuevos) y `PATCH /platform/inventory-movement-types/:code` (`{ name }`; el efecto no se cambia).
 
 ---
 
@@ -165,9 +210,10 @@ Nombre y precio de cada plato se toman del catálogo **en el servidor** al momen
 ## Deliberadamente no implementado todavía
 
 - **Autorización**: guard de permisos por endpoint y validación de organización/sede según la membresía del usuario.
-- **Registro transaccional del propietario** (usuario + organización + rol OWNER + membresía + primera sede) y seeds de permisos/roles base.
-- **Pagos** (`payments`, `payment_allocations`, `refunds`): hay un servicio de consulta (lo usan la cuenta y el cierre diario), pero no hay endpoints para registrar pagos ni reembolsos. Por eso el cierre muestra ventas en 0 hasta implementarlos.
+- **Seeds** de permisos y roles base.
+- **Reembolsos**: tablas modeladas, sin flujo ni endpoints hasta decidir si serán parciales por producto o solo totales.
+- **Webhooks públicos de pasarelas** con verificación de firma: hoy los eventos entran por la ruta privada `/platform/payment-providers/:providerCode/events`.
 - **Vincular un gasto a una compra de inventario** (`expenses.inventory_movement_id`): la columna existe pero la API todavía no lo expone.
 - **Catálogo**: carta pública y descubrimiento de restaurantes.
 - **Monto mínimo** de la modalidad: se informa en la validación del carrito, pero todavía no bloquea el pedido.
-- Paginación, eventos en tiempo real, envío real de correos.
+- Eventos en tiempo real, envío real de correos.

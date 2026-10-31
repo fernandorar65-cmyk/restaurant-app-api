@@ -9,6 +9,11 @@ import {
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
 import {
+  currentRequestContext,
+  currentRequestId,
+} from '../infrastructure/logging/request-context.js';
+import { ERROR_CODE_LOCAL } from '../infrastructure/logging/request-logging.middleware.js';
+import {
   BusinessRuleDomainError,
   ConflictDomainError,
   DomainError,
@@ -98,10 +103,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const statusCode = this.resolveStatus(exception);
     const message = this.extractMessage(exception);
+    const errorCode = this.resolveErrorCode(exception, statusCode);
+    // The access log line (request-logging middleware) reports it.
+    response.locals[ERROR_CODE_LOCAL] = errorCode;
     if (statusCode >= 500) {
+      // Recorded with the error in error_logs.
+      const requestContext = currentRequestContext();
+      if (requestContext) {
+        requestContext.failure = { statusCode, errorCode };
+      }
       // Unexpected: the client only gets a generic message, so keep the cause.
+      const userId = (request as Request & { user?: { id: string } }).user?.id;
       this.logger.error(
-        `${request.method} ${request.url}`,
+        `${request.method} ${request.route?.path ?? request.path} → ${errorCode}` +
+          (userId ? ` user=${userId}` : ''),
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
@@ -109,11 +124,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(statusCode).json({
       success: false,
       statusCode,
-      errorCode: this.resolveErrorCode(exception, statusCode),
+      errorCode,
       message,
       data: null,
       timestamp: new Date().toISOString(),
       path: request.url,
+      // Lets a client report the error so it can be found in the logs.
+      requestId: currentRequestId(),
     });
   }
 

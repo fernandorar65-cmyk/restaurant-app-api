@@ -51,6 +51,7 @@ import { RefundStatusOrmEntity } from '../../../payments/infrastructure/persiste
 import { PaymentAllocationOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment-allocation.orm-entity.js';
 import { PaymentOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/payment.orm-entity.js';
 import { RefundOrmEntity } from '../../../payments/infrastructure/persistence/typeorm/entities/refund.orm-entity.js';
+import { ErrorLogOrmEntity } from '../../../observability/infrastructure/persistence/typeorm/entities/error-log.orm-entity.js';
 
 export const entities = [
   // iam
@@ -111,4 +112,6 @@ export const entities = [
   // auth support (not part of the 38-table business model)
   RefreshTokenOrmEntity,
   PasswordResetTokenOrmEntity,
+  // observability (not part of the business model)
+  ErrorLogOrmEntity,
 ];

@@ -5,6 +5,9 @@ const EXAMPLE_SECRETS = new Set(['dev-access-secret', 'dev-refresh-secret']);
 
 const MIN_PRODUCTION_SECRET_LENGTH = 32;
 
+const LOG_LEVELS = ['fatal', 'error', 'warn', 'log', 'debug', 'verbose'];
+const LOG_FORMATS = ['text', 'json'];
+
 /**
  * Runs once at startup (ConfigModule `validate`): the app refuses to boot
  * without its JWT secrets instead of silently signing tokens with a default.
@@ -35,6 +38,21 @@ export function validateEnvironment(
     config.JWT_ACCESS_SECRET === config.JWT_REFRESH_SECRET
   ) {
     errors.push('JWT_ACCESS_SECRET y JWT_REFRESH_SECRET deben ser distintos');
+  }
+
+  if (config.LOG_LEVEL !== undefined && !LOG_LEVELS.includes(config.LOG_LEVEL as string)) {
+    errors.push(`LOG_LEVEL debe ser uno de: ${LOG_LEVELS.join(', ')}`);
+  }
+  if (config.LOG_FORMAT !== undefined && !LOG_FORMATS.includes(config.LOG_FORMAT as string)) {
+    errors.push(`LOG_FORMAT debe ser uno de: ${LOG_FORMATS.join(', ')}`);
+  }
+
+  const retentionDays = config.ERROR_LOG_RETENTION_DAYS;
+  if (
+    retentionDays !== undefined &&
+    !(Number.isInteger(Number(retentionDays)) && Number(retentionDays) >= 1)
+  ) {
+    errors.push('ERROR_LOG_RETENTION_DAYS debe ser un entero mayor o igual a 1');
   }
 
   if (errors.length > 0) {

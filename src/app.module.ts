@@ -11,6 +11,7 @@ import { AttentionModule } from './attention/attention.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { FinanceModule } from './finance/finance.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
+import { ObservabilityModule } from './observability/observability.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
@@ -27,6 +28,7 @@ import { PaymentsModule } from './payments/payments.module.js';
     PaymentsModule,
     InventoryModule,
     FinanceModule,
+    ObservabilityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

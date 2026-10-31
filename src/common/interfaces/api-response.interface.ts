@@ -7,4 +7,6 @@ export interface ApiResponse<T = unknown> {
   data: T;
   timestamp: string;
   path: string;
+  /** Only on errors: same value as the X-Request-Id header, to find it in the logs. */
+  requestId?: string;
 }

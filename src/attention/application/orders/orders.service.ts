@@ -6,7 +6,8 @@ import type { TransactionContext } from '../../../common/domain/transaction-cont
 import { Attention } from '../../domain/entities/attention.entity.js';
 import { Order } from '../../domain/entities/order.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
-import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
+import { AttentionStatus } from '../../domain/enums/attention-status.enum.js';
+import { OrderStatus } from '../../domain/enums/order-status.enum.js';
 import { OrderSource } from '../../domain/enums/order-source.enum.js';
 import {
   AttentionNotActiveError,
@@ -28,7 +29,11 @@ import type { OrderItemRepository } from '../../domain/repositories/order-item.r
 import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
 import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
 import { PRODUCT_LOOKUP } from '../ports/product-lookup.port.js';
-import type { ProductForOrder, ProductLookupPort } from '../ports/product-lookup.port.js';
+import type {
+  ProductForOrder,
+  ProductLookupPort,
+} from '../ports/product-lookup.port.js';
+import { WorkflowStatusesService } from '../attention-settings/workflow-statuses.service.js';
 
 export interface OrderLineInput {
   productId: string;
@@ -68,6 +73,7 @@ export class OrdersService {
     @Inject(TRANSACTION_RUNNER)
     private readonly transactionRunner: TransactionRunner,
     @Inject(PAYMENT_LEDGER) private readonly paymentLedger: PaymentLedgerPort,
+    private readonly statuses: WorkflowStatusesService,
   ) {}
 
   /**
@@ -75,12 +81,17 @@ export class OrdersService {
    * requestId: repeating it never duplicates products.
    */
   async submitOrder(input: SubmitOrderInput): Promise<OrderResult> {
-    const previous = await this.findExisting(input.attentionId, input.requestId);
+    const previous = await this.findExisting(
+      input.attentionId,
+      input.requestId,
+    );
     if (previous) {
       return previous;
     }
 
-    const attention = await this.attentionRepository.findById(input.attentionId);
+    const attention = await this.attentionRepository.findById(
+      input.attentionId,
+    );
     if (!attention) {
       throw new AttentionNotFoundError(input.attentionId);
     }
@@ -93,7 +104,10 @@ export class OrdersService {
     } catch (error) {
       // A concurrent request with the same id won the race: return its order.
       if (error instanceof DuplicateOrderRequestError) {
-        const winner = await this.findExisting(input.attentionId, input.requestId);
+        const winner = await this.findExisting(
+          input.attentionId,
+          input.requestId,
+        );
         if (winner) {
           return winner;
         }
@@ -131,14 +145,24 @@ export class OrdersService {
         created: false,
       };
     }
-    attention.acceptOrder();
+    const attentionStatuses = await this.statuses.attentionCatalog(
+      attention.restaurantId,
+      tx,
+    );
+    const orderStatuses = await this.statuses.orderCatalog(
+      attention.restaurantId,
+      tx,
+    );
+    attention.acceptOrder(attentionStatuses.defaultFor(AttentionStatus.OPEN));
     await this.attentionRepository.save(attention, tx);
+    const initial = orderStatuses.initial();
     const order = await this.orderRepository.save(
       Order.submit({
         id: randomUUID(),
         attentionId: attention.id,
         requestId: input.requestId,
         source: input.source,
+        status: initial,
         submittedByUserId: input.submittedByUserId,
         submittedByParticipantId: input.participantId,
       }),
@@ -150,6 +174,7 @@ export class OrdersService {
       const { item, history } = OrderItem.create({
         id: randomUUID(),
         historyId: randomUUID(),
+        status: initial,
         orderId: order.id,
         productId: product.id,
         productName: product.name,
@@ -165,11 +190,10 @@ export class OrdersService {
   }
 
   async confirmOrder(orderId: string): Promise<Order> {
-    const order = await this.orderRepository.findById(orderId);
-    if (!order) {
-      throw new OrderNotFoundError(orderId);
-    }
-    order.confirm();
+    const order = await this.findOrder(orderId);
+    order.confirm(
+      await this.statuses.orderCatalog(await this.restaurantOf(order)),
+    );
     return this.orderRepository.save(order);
   }
 
@@ -187,44 +211,69 @@ export class OrdersService {
       if (!order) {
         throw new OrderNotFoundError(orderId);
       }
-      const attention = await this.attentionRepository.findById(order.attentionId);
-      if (attention && !attention.isActive) {
+      const attention = await this.attentionRepository.findById(
+        order.attentionId,
+        tx,
+      );
+      if (!attention) {
+        throw new AttentionNotFoundError(order.attentionId);
+      }
+      if (!attention.isActive) {
         throw new AttentionNotActiveError(attention.status);
       }
+      const statuses = await this.statuses.orderCatalog(
+        attention.restaurantId,
+        tx,
+      );
+      const cancelled = statuses.defaultFor(OrderStatus.CANCELLED);
       const items = await this.itemRepository.findByOrder(orderId, tx);
       order.assertCancellable(items.map((item) => item.currentStatus));
-      const pending = items.filter((line) => line.isBillable).map((line) => line.id);
+      const pending = items
+        .filter((line) => line.isBillable)
+        .map((line) => line.id);
       if ((await this.paymentLedger.itemsWithPayments(pending)).length > 0) {
         throw new OrderItemHasPaymentsError();
       }
       for (const item of items.filter((line) => line.isBillable)) {
         const expectedVersion = item.version;
-        const entry = item.changeStatus(OrderItemStatus.CANCELLED, {
+        const entry = item.changeStatus(cancelled, {
           historyId: randomUUID(),
           reason: input.reason,
           changedByUserId: input.changedByUserId,
         });
-        if (!(await this.itemRepository.updateStatus(item, expectedVersion, tx))) {
+        if (
+          !(await this.itemRepository.updateStatus(item, expectedVersion, tx))
+        ) {
           throw new StaleOrderItemVersionError(item.id);
         }
         await this.historyRepository.save(entry, tx);
       }
-      order.syncWithItems(items.map((item) => item.currentStatus));
+      order.syncWithItems(
+        items.map((item) => item.currentStatus),
+        statuses,
+      );
       await this.orderRepository.save(order, tx);
     });
     const order = await this.findOrder(orderId);
-    return { order, items: await this.itemRepository.findByOrder(orderId), created: false };
+    return {
+      order,
+      items: await this.itemRepository.findByOrder(orderId),
+      created: false,
+    };
   }
 
   /**
    * Locks the order row for the rest of the transaction. Every change of an
    * item takes this lock first (before touching the item), so item changes
    * and order cancellations always lock in the same order and never deadlock.
+   * Returns the restaurant the order belongs to.
    */
-  async lock(orderId: string, tx: TransactionContext): Promise<void> {
-    if (!(await this.orderRepository.findByIdForUpdate(orderId, tx))) {
+  async lock(orderId: string, tx: TransactionContext): Promise<string> {
+    const order = await this.orderRepository.findByIdForUpdate(orderId, tx);
+    if (!order) {
       throw new OrderNotFoundError(orderId);
     }
+    return this.restaurantOf(order, tx);
   }
 
   /**
@@ -238,7 +287,10 @@ export class OrdersService {
       throw new OrderNotFoundError(orderId);
     }
     const items = await this.itemRepository.findByOrder(orderId, tx);
-    order.syncWithItems(items.map((item) => item.currentStatus));
+    order.syncWithItems(
+      items.map((item) => item.currentStatus),
+      await this.statuses.orderCatalog(await this.restaurantOf(order, tx), tx),
+    );
     await this.orderRepository.save(order, tx);
   }
 
@@ -254,11 +306,28 @@ export class OrdersService {
     return order;
   }
 
+  private async restaurantOf(
+    order: Order,
+    tx?: TransactionContext,
+  ): Promise<string> {
+    const attention = await this.attentionRepository.findById(
+      order.attentionId,
+      tx,
+    );
+    if (!attention) {
+      throw new AttentionNotFoundError(order.attentionId);
+    }
+    return attention.restaurantId;
+  }
+
   private async findExisting(
     attentionId: string,
     requestId: string,
   ): Promise<OrderResult | null> {
-    const order = await this.orderRepository.findByRequestId(attentionId, requestId);
+    const order = await this.orderRepository.findByRequestId(
+      attentionId,
+      requestId,
+    );
     if (!order) {
       return null;
     }
@@ -271,12 +340,12 @@ export class OrdersService {
    * before anything is saved.
    */
   async validateItems(
-    attention: Pick<Attention, 'restaurantId' | 'serviceType'>,
+    attention: Pick<Attention, 'restaurantId' | 'fulfillmentMode'>,
     items: OrderLineInput[],
   ): Promise<Map<string, ProductForOrder>> {
     const products = await this.productLookup.findForOrder(
       [...new Set(items.map((item) => item.productId))],
-      attention.serviceType,
+      attention.fulfillmentMode,
     );
     const byId = new Map(products.map((product) => [product.id, product]));
     for (const item of items) {
@@ -285,7 +354,10 @@ export class OrdersService {
         throw new ProductNotOrderableError(item.productId, 'PRODUCT_NOT_FOUND');
       }
       if (product.restaurantId !== attention.restaurantId) {
-        throw new ProductNotOrderableError(item.productId, 'PRODUCT_NOT_IN_RESTAURANT');
+        throw new ProductNotOrderableError(
+          item.productId,
+          'PRODUCT_NOT_IN_RESTAURANT',
+        );
       }
       if (product.issue) {
         throw new ProductNotOrderableError(item.productId, product.issue);

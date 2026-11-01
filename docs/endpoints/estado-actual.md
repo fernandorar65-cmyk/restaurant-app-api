@@ -13,7 +13,7 @@ Swagger interactivo en `/docs`.
 - Errores: `400` (datos inválidos / invariante de dominio), `401`, `403` (sin acceso al recurso), `404`, `409` (duplicado, transición no permitida, conflicto de versión o de concurrencia), `422` (regla de negocio), `500`.
 - Las violaciones de restricciones de la base que se escapan de las validaciones se traducen: único → `409`, FK → `409`, CHECK → `400`.
 - Todos los `:id` son UUID (`ParseUUIDPipe`).
-- Estados y tipos en MAYÚSCULAS, igual que en la base (`OPEN`, `DINE_IN`, `PREPARING`, ...).
+- Estados y tipos en MAYÚSCULAS, igual que en la base (`OPEN`, `DINE_IN`, `IN_PREPARATION`, ...). Los estados de atenciones, órdenes y platos se devuelven como `status` (estado canónico) + `statusId` (estado de la sede, con nombre y color en `/attention-statuses` y `/order-statuses`).
 - **Sesión obligatoria por defecto**: todas las rutas exigen `Authorization: Bearer <accessToken>` (401 `MISSING_ACCESS_TOKEN` / `INVALID_ACCESS_TOKEN`). Son públicas solo: registro, login, refresh y reseteo de contraseña (`/api/v1/owner/auth/*`, `/api/v1/customer/auth/*` salvo logout), y las rutas del comensal (`/api/v1/tables/qr/*`, `/api/v1/attentions/*`, `/api/v1/restaurants/:slug/cart/validate`), donde el login es opcional.
 - **Todavía no se aplican permisos ni el alcance por organización/sede**: cualquier usuario con sesión puede operar el CRUD interno. Las membresías y los permisos ya existen como datos.
 - **`DELETE` = baja lógica** en entidades con estado: organizaciones, sedes, pisos, mesas, empleados, usuarios, roles, permisos, membresías, categorías, productos, menús, secciones de menú, insumos y categorías de inventario/gasto quedan inactivos (`status`/`isActive`) en lugar de borrarse. Siguen siendo borrado físico las asociaciones puras (permisos de un rol, productos de un menú, categorías e ingredientes de un producto, líneas de receta).
@@ -63,7 +63,6 @@ Una sola identidad (`users`) para comensales y personal: el mismo usuario puede 
 | Pisos | `POST/GET /restaurant-floors?restaurantId=`, `GET/PATCH/DELETE /restaurant-floors/:id` | Nombre único por sede |
 | Mesas | `POST/GET /dining-tables?restaurantId=&floorId=`, `GET/PATCH/DELETE /dining-tables/:id` | Se crean en un piso (la sede sale del piso). `operationalStatus` ACTIVE/INACTIVE/MAINTENANCE, `serviceStatus` AVAILABLE/RESERVED/CLEANING. "Ocupada" no se guarda: es tener una atención activa. La respuesta incluye `qr: { active, version, generatedAt, assetUrl }`, nunca el token ni su hash |
 | QR de mesa | `POST /dining-tables/:id/qr-code` (`{ assetUrl? }`), `DELETE /dining-tables/:id/qr-code` | Un QR activo por mesa, guardado en la propia mesa (ya no existe `table_qr_codes`). Generar crea un token seguro, guarda solo su SHA-256 e incrementa `qr.version`: el QR anterior deja de funcionar. **`token` y `qrUrl` (`PUBLIC_APP_URL/t/<token>`) solo vienen en esa respuesta**. `assetUrl` es opcional (imagen en almacenamiento externo) y nunca valida el QR. `DELETE` deja la mesa sin QR válido |
-| Modalidades de la sede | `GET /restaurants/:id/order-modes`, `PUT /restaurants/:id/order-modes/:mode` | `DINE_IN`, `PICKUP`, `DELIVERY` con `isEnabled`, `minimumAmount`, `deliveryFee` (solo DELIVERY) y `configuration` libre. Sin configurar, solo `DINE_IN` está habilitada |
 | Áreas laborales | `POST/GET /work-areas?organizationId=&isActive=`, `GET/PATCH/DELETE /work-areas/:id` | Cocina, Sala, Limpieza... Nombre único por organización sin distinguir mayúsculas. `PATCH isActive` activa/desactiva; `DELETE` desactiva |
 | Puestos | `POST/GET /job-positions?organizationId=&workAreaId=&isActive=`, `GET/PATCH/DELETE /job-positions/:id` | Cocinero, Mozo... dentro de un área (la organización sale del área). Nombre único por área sin distinguir mayúsculas. Desactivar un puesto no cambia a los empleados que ya lo tienen; solo deja de poder asignarse |
 | Empleados | `POST/GET /employees?organizationId=`, `GET/PATCH/DELETE /employees/:id` | `userId` opcional (empleado sin acceso al sistema); `employeeCode` único por organización. Puesto vigente en `jobPositionId` (de la misma organización y activo al asignarlo); ya no hay `positionName` ni `area` en texto libre. **El puesto nunca da permisos: eso es IAM** |
@@ -86,7 +85,7 @@ Los alérgenos quedan fuera del MVP: no hay tablas ni endpoints (observación AC
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/v1/restaurants/:slug/cart/validate` | `{ serviceType, items[{productId, quantity, unitPrice?}] }`. Devuelve `lines` con nombre y **precio del servidor**, `subtotal`, `deliveryFee`, `total`, `minimumAmount`, `issues` por producto (`PRODUCT_NOT_FOUND`, `PRODUCT_NOT_IN_RESTAURANT`, `PRODUCT_INACTIVE`, `PRODUCT_UNAVAILABLE`, `MODE_NOT_ALLOWED`, `PRICE_CHANGED`) y `serviceIssues` del pedido (`MODE_DISABLED`, `BELOW_MINIMUM`) |
+| POST | `/api/v1/restaurants/:slug/cart/validate` | `{ serviceType, items[{productId, quantity, unitPrice?}] }`. Devuelve `lines` con nombre y **precio del servidor**, `subtotal`, `deliveryFee`, `total`, `minimumAmount` (del tipo de servicio, 0 = sin mínimo), `issues` por producto (`PRODUCT_NOT_FOUND`, `PRODUCT_NOT_IN_RESTAURANT`, `PRODUCT_INACTIVE`, `PRODUCT_UNAVAILABLE`, `MODE_NOT_ALLOWED`, `PRICE_CHANGED`) y `serviceIssues` del pedido (`MODE_DISABLED`, `BELOW_MINIMUM`) |
 
 ---
 
@@ -94,20 +93,31 @@ Los alérgenos quedan fuera del MVP: no hay tablas ni endpoints (observación AC
 
 Modelo: **atención** (`attentions`: la visita / cuenta) → **órdenes** (`orders`: cada comanda o ronda enviada desde el carrito o por el mozo; antes `order_batches`) → **ítems** (`order_items.order_id`: cada plato, con su estado e historial). Ejemplo: una mesa pide bebidas, luego fondos y luego postres → tres órdenes de la misma atención.
 
-Los estados están separados y no se pisan:
+Los estados están separados y no se pisan. Cada sede configura sus propios estados (nombre, color, orden y estados extra), pero cada uno pertenece a un **estado canónico**, que es lo que usa el backend:
 
 - **Atención** (ciclo comercial): `OPEN` → `BILL_REQUESTED` → `CLOSED`, o `CANCELLED`.
-- **Orden** (ciclo operativo, se calcula a partir de sus ítems): `SUBMITTED` → `CONFIRMED` (opcional) → `PREPARING` → `READY` → `SERVED`, o `CANCELLED` si todos sus ítems se rechazaron o cancelaron. No hay `DRAFT`: el carrito vive en el cliente hasta que se envía.
+- **Orden** (ciclo operativo, se calcula a partir de sus ítems): `SUBMITTED` → `CONFIRMED` (opcional) → `IN_PREPARATION` → `READY` → `SERVED`, o `CANCELLED` si todos sus ítems se rechazaron o cancelaron. No hay `DRAFT`: el carrito vive en el cliente hasta que se envía.
+- **Plato**: `SUBMITTED` → `IN_PREPARATION` → `READY` → `SERVED`, o `REJECTED` / `CANCELLED`. (Antes `PREPARING` y `DELIVERED`.)
 - Servir o cancelar una orden **nunca** cierra ni cancela la atención; una atención abierta puede tener a la vez órdenes servidas, en preparación y recién enviadas.
 
  Una mesa tiene como máximo una atención activa (`OPEN` o `BILL_REQUESTED`), garantizado también con envíos simultáneos.
+
+### Configuración de la sede
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET/POST | `/attention-statuses?restaurantId=` | Estados comerciales de la sede (activos e inactivos). Crear: `{ restaurantId, code, name, canonicalState, color?, sortOrder, isInitial? }` |
+| PATCH | `/attention-statuses/:id` | `{ code?, name?, color?, sortOrder?, isInitial?, isActive? }`. No se borra: se desactiva. No se puede desactivar el inicial ni el último activo de su estado canónico (422) |
+| GET/POST/PATCH | `/order-statuses?restaurantId=`, `/order-statuses/:id` | Igual, para órdenes y platos (por ejemplo "En horno" con `canonicalState: IN_PREPARATION`) |
+| GET/POST | `/service-types?restaurantId=` | Tipos de servicio (reemplazan a `/restaurants/:id/order-modes`). Crear: `{ restaurantId, code, name, fulfillmentMode, sortOrder, requiresTable?, requiresCustomerAddress?, minimumOrderAmount?, deliveryFee? }` |
+| PATCH | `/service-types/:id` | Configurar, ordenar o retirar (`isActive: false`). Cada sede nueva tiene `DINE_IN` activo y `PICKUP`/`DELIVERY` inactivos |
 
 ### Personal
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/attentions` | Abre una atención: `DINE_IN` con `diningTableId`, o `PICKUP`/`DELIVERY` con `restaurantId` + `fulfillment` (contacto y dirección). Mesa con atención activa → 409; modalidad deshabilitada en la sede → 422. En DELIVERY el costo de envío se toma de la sede |
-| GET | `/attentions?restaurantId=&status=` | Lista |
+| POST | `/attentions` | Abre una atención con `serviceTypeId` (o `fulfillmentMode`: el primer tipo activo de esa modalidad). Mesa (`diningTableId`) si el tipo la exige; `restaurantId` sin mesa ni `serviceTypeId`; `fulfillment` (contacto, y dirección si el tipo la exige) en recojo/delivery. Mesa con atención activa → 409; tipo inactivo → 422. El costo de envío sale del tipo de servicio |
+| GET | `/attentions?restaurantId=&status=` | Lista (`status` = estado canónico) |
 | GET | `/attentions/:id` | Detalle: participantes, `orders` (cada una con su `status` y sus platos), datos de recojo/delivery |
 | POST | `/attentions/:id/orders` | Orden tomada por el mozo `{ requestId, items, submittedByUserId? }`. Idempotente por `requestId` |
 | POST | `/attentions/orders/:orderId/confirm` | Confirma una orden recibida (solo desde `SUBMITTED`) |
@@ -117,9 +127,9 @@ Los estados están separados y no se pisan:
 | POST | `/attentions/:id/close` | Cierra; solo con saldo 0 (422 si no) |
 | POST | `/attentions/:id/cancel` | `{ reason }`. No permitido si hay pagos confirmados. Cancela también el recojo/delivery pendiente |
 | PATCH | `/attentions/:id/fulfillment/status` | `{ status, estimatedReadyAt? }`. Recojo: PENDING→CONFIRMED→PREPARING→READY→COMPLETED. Delivery: …→READY→OUT_FOR_DELIVERY→COMPLETED. CANCELLED desde cualquier estado no final. Saltos → 409; COMPLETED registra `deliveredAt` |
-| GET | `/order-items?restaurantId=&status=SUBMITTED,PREPARING&includeClosed=` | Tablero de cocina (paginado). Por defecto solo platos de atenciones activas; `includeClosed=true` incluye cerradas y canceladas |
+| GET | `/order-items?restaurantId=&status=SUBMITTED,IN_PREPARATION&includeClosed=` | Tablero de cocina (paginado). Por defecto solo platos de atenciones activas; `includeClosed=true` incluye cerradas y canceladas |
 | GET | `/order-items/:id` | Un plato |
-| PATCH | `/order-items/:id/status` | `{ status, version?, reason?, changedByUserId? }`. Transiciones: SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. `REJECTED` exige `reason`. Si `version` no coincide (otro empleado lo cambió) → 409. Al pasar a `PREPARING` se descuenta el stock según la receta del producto (ver Inventario). Cada cambio recalcula el estado de su orden |
+| PATCH | `/order-items/:id/status` | `{ statusId? \| status?, version?, reason?, changedByUserId? }`. `statusId` debe ser un estado activo de la sede del plato (404 si es de otra). Transiciones canónicas: SUBMITTED→IN_PREPARATION/REJECTED/CANCELLED, IN_PREPARATION→READY/CANCELLED, READY→SERVED/CANCELLED; dentro de un estado no final se puede pasar entre los estados propios de la sede. `REJECTED` exige `reason`. Si `version` no coincide (otro empleado lo cambió) → 409. Al entrar a `IN_PREPARATION` se descuenta el stock según la receta del producto (ver Inventario). Cada cambio recalcula el estado de su orden |
 | GET | `/order-items/:id/history` | Historial de estados |
 
 ### Comensal (`/api/v1`, login opcional)
@@ -129,7 +139,7 @@ Identidad: con `Authorization: Bearer` se identifica al usuario; sin login, con 
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/api/v1/tables/qr/:token` | Resuelve el QR: sede, mesa y atención activa (si hay). QR revocado → 404 con `errorCode: QR_INVALID` |
-| POST | `/api/v1/attentions` | Primera orden: `{ serviceType, tableToken? (DINE_IN), restaurantId? + fulfillment? (PICKUP/DELIVERY), requestId, items, displayName? }`. En mesa se une a la atención activa o la abre. Un invitado nuevo recibe `guestToken` en la respuesta |
+| POST | `/api/v1/attentions` | Primera orden: `{ serviceTypeId? \| fulfillmentMode?, tableToken? (si el tipo exige mesa; con QR la modalidad por defecto es DINE_IN), restaurantId? + fulfillment? (recojo/delivery), requestId, items, displayName? }`. En mesa se une a la atención activa o la abre. Un invitado nuevo recibe `guestToken` en la respuesta |
 | POST | `/api/v1/attentions/:id/orders` | Otra orden `{ requestId, items }`. Si la cuenta estaba pedida, vuelve a `OPEN` |
 | DELETE | `/api/v1/attentions/:id/items/:itemId` | Cancela un plato propio mientras siga `SUBMITTED` |
 | GET | `/api/v1/attentions/:id` | Atención con sus órdenes y el estado de cada plato |
@@ -191,7 +201,7 @@ Tres niveles: **insumo maestro** de la organización (`supplies`) → **stock po
 | Conteo físico | `POST /restaurant-supplies/:id/counts` | `{ countedQuantity, notes?, idempotencyKey? }`. El backend calcula la diferencia y crea COUNT_ADJUSTMENT_IN / OUT con `countedQuantity`. Sin diferencia → 200 con `movement: null` |
 | Reversión | `GET /inventory-movements/:id`, `POST /inventory-movements/:id/reverse` | `{ notes, idempotencyKey? }`. Crea un REVERSAL con el delta opuesto y `reversalOfMovementId`; el original no cambia. Un movimiento se revierte una vez (409); una reversión no se revierte (422). No hay `PATCH` ni `DELETE` de movimientos |
 | Recetas | `GET /product-recipes/:productId`, `PUT/DELETE /product-recipes/:productId/supplies/:supplyId` | `{ quantityRequired, wastePercentage? }` por unidad de producto con el **insumo maestro** (misma organización que el producto); devuelve `effectiveQuantity` con la merma |
-| Consumo automático | — | **Apagado por defecto** (`INVENTORY_AUTO_CONSUMPTION=false`) hasta confirmar el flujo. Encendido: al pasar un plato a `PREPARING` registra un USAGE en el stock de la sede del pedido por cada insumo de la receta, con `originModule = ATTENTION`, `originId` = plato e `idempotencyKey` (nunca descuenta dos veces). Si falta stock consume lo disponible y anota el faltante, sin bloquear la cocina. No se revierte si el plato se cancela después |
+| Consumo automático | — | **Apagado por defecto** (`INVENTORY_AUTO_CONSUMPTION=false`) hasta confirmar el flujo. Encendido: al pasar un plato a `IN_PREPARATION` registra un USAGE en el stock de la sede del pedido por cada insumo de la receta, con `originModule = ATTENTION`, `originId` = plato e `idempotencyKey` (nunca descuenta dos veces). Si falta stock consume lo disponible y anota el faltante, sin bloquear la cocina. No se revierte si el plato se cancela después |
 
 Privado de ACMR (`/platform`, solo `users.is_platform_admin`): `PATCH /platform/units-of-measure/:code` (`{ name?, isActive? }`; una unidad desactivada no se usa en insumos nuevos) y `PATCH /platform/inventory-movement-types/:code` (`{ name }`; el efecto no se cambia).
 

@@ -7,6 +7,11 @@ import { FulfillmentOrmEntity } from '../../../attention/infrastructure/persiste
 import { OrderOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order.orm-entity.js';
 import { OrderItemStatusHistoryOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-item-status-history.orm-entity.js';
 import { OrderItemOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/order-item.orm-entity.js';
+import { ServiceTypeOrmEntity } from '../../../attention/infrastructure/persistence/typeorm/entities/service-type.orm-entity.js';
+import {
+  AttentionStatusOrmEntity,
+  OrderStatusOrmEntity,
+} from '../../../attention/infrastructure/persistence/typeorm/entities/workflow-status.orm-entity.js';
 import { CategoryOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/category.orm-entity.js';
 import { MenuProductOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/menu-product.orm-entity.js';
 import { MenuOrmEntity } from '../../../catalog/infrastructure/persistence/typeorm/entities/menu.orm-entity.js';
@@ -38,7 +43,6 @@ import { EmployeeOrmEntity } from '../../../organizations/infrastructure/persist
 import { MembershipRestaurantOrmEntity } from '../../../iam/infrastructure/persistence/typeorm/entities/membership-restaurant.orm-entity.js';
 import { OrganizationOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
 import { RestaurantFloorOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant-floor.orm-entity.js';
-import { RestaurantOrderModeOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant-order-mode.orm-entity.js';
 import { RestaurantOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 import { JobPositionOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/job-position.orm-entity.js';
 import { WorkAreaOrmEntity } from '../../../organizations/infrastructure/persistence/typeorm/entities/work-area.orm-entity.js';
@@ -66,7 +70,6 @@ export const entities = [
   RestaurantOrmEntity,
   MembershipRestaurantOrmEntity,
   EmployeeOrmEntity,
-  RestaurantOrderModeOrmEntity,
   RestaurantFloorOrmEntity,
   DiningTableOrmEntity,
   WorkAreaOrmEntity,
@@ -80,6 +83,9 @@ export const entities = [
   MenuSectionOrmEntity,
   ProductIngredientOrmEntity,
   // attention
+  AttentionStatusOrmEntity,
+  OrderStatusOrmEntity,
+  ServiceTypeOrmEntity,
   AttentionOrmEntity,
   AttentionParticipantOrmEntity,
   OrderOrmEntity,
@@ -109,7 +115,7 @@ export const entities = [
   ExpenseOrmEntity,
   DailyClosureOrmEntity,
   DailyClosurePaymentTotalOrmEntity,
-  // auth support (not part of the 38-table business model)
+  // auth support (not part of the 50-table business model)
   RefreshTokenOrmEntity,
   PasswordResetTokenOrmEntity,
   // observability (not part of the business model)

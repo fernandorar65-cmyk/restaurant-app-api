@@ -62,8 +62,10 @@ export class CartValidateResponseDto {
   @ApiProperty()
   subtotal: number;
 
-  @ApiPropertyOptional({ nullable: true })
-  minimumAmount: number | null;
+  @ApiProperty({
+    description: 'Monto mínimo del tipo de servicio (0 = sin mínimo)',
+  })
+  minimumAmount: number;
 
   @ApiProperty({ description: 'Solo en DELIVERY' })
   deliveryFee: number;

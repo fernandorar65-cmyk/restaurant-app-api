@@ -1,5 +1,6 @@
 import type {
   FindManyOptions,
+  FindOptionsRelations,
   FindOptionsWhere,
   ObjectLiteral,
   Repository,
@@ -19,6 +20,9 @@ export abstract class TypeOrmBaseRepository<
 > {
   constructor(protected readonly repository: Repository<TOrm>) {}
 
+  /** Relations the mapping needs; joined by every finder of this base class. */
+  protected readonly relations?: FindOptionsRelations<TOrm>;
+
   protected abstract toDomain(orm: TOrm): TDomain;
   protected abstract toPersistence(domain: TDomain, existing?: TOrm): TOrm;
 
@@ -33,8 +37,27 @@ export abstract class TypeOrmBaseRepository<
   async findById(id: string, tx?: unknown): Promise<TDomain | null> {
     const found = await this.getRepository(tx).findOne({
       where: { id } as FindOptionsWhere<TOrm>,
+      relations: this.relations,
     });
     return found ? this.toDomain(found) : null;
+  }
+
+  /**
+   * Locks the row until the transaction ends and then reads it. The lock is
+   * taken without joins: Postgres can't lock the nullable side of the outer
+   * joins TypeORM uses for relations.
+   */
+  protected async findByIdLocked(
+    id: string,
+    tx: unknown,
+  ): Promise<TDomain | null> {
+    const locked = await this.getRepository(tx)
+      .createQueryBuilder('row')
+      .select('row.id')
+      .where('row.id = :id', { id })
+      .setLock('pessimistic_write')
+      .getOne();
+    return locked ? this.findById(id, tx) : null;
   }
 
   /** One page of rows plus the total count, for paginated listings. */
@@ -43,6 +66,7 @@ export abstract class TypeOrmBaseRepository<
     request: PageRequest,
   ): Promise<Page<TDomain>> {
     const [rows, total] = await this.repository.findAndCount({
+      relations: this.relations,
       ...options,
       where: options.where && withoutUndefined(options.where),
       skip: (request.page - 1) * request.limit,
@@ -57,7 +81,7 @@ export abstract class TypeOrmBaseRepository<
   }
 
   async findAll(): Promise<TDomain[]> {
-    const rows = await this.repository.find();
+    const rows = await this.repository.find({ relations: this.relations });
     return rows.map((row) => this.toDomain(row));
   }
 

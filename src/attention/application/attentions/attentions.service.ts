@@ -12,15 +12,14 @@ import { Order } from '../../domain/entities/order.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { AttentionStatus } from '../../domain/enums/attention-status.enum.js';
 import { FulfillmentStatus } from '../../domain/enums/fulfillment-status.enum.js';
+import { FulfillmentMode } from '../../domain/enums/fulfillment-mode.enum.js';
 import { FulfillmentType } from '../../domain/enums/fulfillment-type.enum.js';
-import { ServiceType } from '../../domain/enums/service-type.enum.js';
 import {
   AttentionNotFoundError,
   DiningTableReferenceNotFoundError,
   FulfillmentNotFoundError,
   InvalidServiceSetupError,
   RestaurantReferenceNotFoundError,
-  ServiceModeDisabledError,
 } from '../../domain/exceptions/attention.errors.js';
 import { ATTENTION_PARTICIPANT_REPOSITORY } from '../../domain/repositories/attention-participant.repository.js';
 import type { AttentionParticipantRepository } from '../../domain/repositories/attention-participant.repository.js';
@@ -28,6 +27,8 @@ import { ATTENTION_REPOSITORY } from '../../domain/repositories/attention.reposi
 import type { AttentionRepository } from '../../domain/repositories/attention.repository.js';
 import { FULFILLMENT_REPOSITORY } from '../../domain/repositories/fulfillment.repository.js';
 import type { FulfillmentRepository } from '../../domain/repositories/fulfillment.repository.js';
+import { ServiceTypesService } from '../attention-settings/service-types.service.js';
+import { WorkflowStatusesService } from '../attention-settings/workflow-statuses.service.js';
 import { generateAttentionNumber } from './attention-number.js';
 import { OrderItemsService } from '../order-items/order-items.service.js';
 import { OrdersService } from '../orders/orders.service.js';
@@ -37,16 +38,22 @@ import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
 import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
 import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
 import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/application/pagination.js';
 
 export interface OpenAttentionInput {
-  serviceType: ServiceType;
-  /** Required for DINE_IN; the restaurant is taken from the table. */
+  /** One of the restaurant's service types... */
+  serviceTypeId?: string | null;
+  /** ...or its first active type of this mode. */
+  fulfillmentMode?: FulfillmentMode | null;
+  /** Required when the service type requires a table; gives the restaurant. */
   diningTableId?: string;
-  /** Required for PICKUP / DELIVERY. */
+  /** Required when neither a table nor serviceTypeId identify the restaurant. */
   restaurantId?: string;
   customerUserId?: string | null;
-  /** Contact and delivery data, required for PICKUP / DELIVERY. */
+  /** Contact (and delivery) data, required for PICKUP / DELIVERY. */
   fulfillment?: FulfillmentDetails;
 }
 
@@ -62,6 +69,8 @@ export interface AttentionBill {
   attention: Attention;
   items: OrderItem[];
   subtotal: number;
+  /** Pickup/delivery record the fee belongs to (null when there is none). */
+  fulfillmentId: string | null;
   deliveryFee: number;
   total: number;
   paid: number;
@@ -95,6 +104,8 @@ export class AttentionsService {
     private readonly transactionRunner: TransactionRunner,
     private readonly ordersService: OrdersService,
     private readonly itemsService: OrderItemsService,
+    private readonly serviceTypes: ServiceTypesService,
+    private readonly statuses: WorkflowStatusesService,
   ) {}
 
   /** Opens a new attention; a table that already has an active one is a conflict. */
@@ -103,55 +114,68 @@ export class AttentionsService {
     return this.transactionRunner.run((tx) => this.saveOpening(opening, tx));
   }
 
-  /** Validates the table / restaurant and service mode; saves nothing. */
+  /**
+   * Validates the table, restaurant and service type; saves nothing. The
+   * service type decides: a table when it requires one (and none otherwise),
+   * contact data for pickup/delivery and an address when it requires one.
+   */
   async prepareOpening(input: OpenAttentionInput): Promise<AttentionOpening> {
-    if (input.serviceType === ServiceType.DINE_IN) {
-      const table = await this.requireOperationalTable(input.diningTableId);
-      await this.requireEnabledMode(table.restaurantId, ServiceType.DINE_IN);
-      return {
-        attention: Attention.open({
-          id: randomUUID(),
-          attentionNumber: generateAttentionNumber(),
-          restaurantId: table.restaurantId,
-          serviceType: ServiceType.DINE_IN,
-          diningTableId: table.id,
-          customerUserId: input.customerUserId,
-        }),
-        fulfillment: null,
-      };
-    }
-
-    if (!input.restaurantId) {
-      throw new InvalidServiceSetupError(`${input.serviceType} requiere un restaurante`);
-    }
-    if (!input.fulfillment) {
+    const table = input.diningTableId
+      ? await this.requireOperationalTable(input.diningTableId)
+      : null;
+    const serviceType = await this.serviceTypes.resolveActive({
+      restaurantId: table?.restaurantId ?? input.restaurantId,
+      serviceTypeId: input.serviceTypeId,
+      fulfillmentMode: input.fulfillmentMode,
+    });
+    if (table && table.restaurantId !== serviceType.restaurantId) {
       throw new InvalidServiceSetupError(
-        `${input.serviceType} requiere datos de contacto (y de entrega)`,
+        'La mesa no pertenece a la sede del tipo de servicio',
       );
     }
-    const restaurant = await this.restaurantLookup.findById(input.restaurantId);
+    const restaurant = await this.restaurantLookup.findById(
+      serviceType.restaurantId,
+    );
     if (!restaurant || !restaurant.isActive) {
-      throw new RestaurantReferenceNotFoundError(input.restaurantId);
+      throw new RestaurantReferenceNotFoundError(serviceType.restaurantId);
     }
-    const orderMode = await this.requireEnabledMode(restaurant.id, input.serviceType);
+    const statuses = await this.statuses.attentionCatalog(restaurant.id);
     const attention = Attention.open({
       id: randomUUID(),
       attentionNumber: generateAttentionNumber(),
       restaurantId: restaurant.id,
-      serviceType: input.serviceType,
+      serviceType: serviceType.ref,
+      status: statuses.initial(),
+      diningTableId: table?.id ?? null,
       customerUserId: input.customerUserId,
     });
+    if (serviceType.fulfillmentMode === FulfillmentMode.DINE_IN) {
+      return { attention, fulfillment: null };
+    }
+
+    if (!input.fulfillment) {
+      throw new InvalidServiceSetupError(
+        `${serviceType.name} requiere datos de contacto (y de entrega)`,
+      );
+    }
+    if (
+      serviceType.requiresCustomerAddress &&
+      !input.fulfillment.deliveryAddress?.trim()
+    ) {
+      throw new InvalidServiceSetupError(
+        `${serviceType.name} requiere la dirección de entrega`,
+      );
+    }
     const fulfillment = Fulfillment.create({
       ...input.fulfillment,
       id: randomUUID(),
       attentionId: attention.id,
       type:
-        input.serviceType === ServiceType.DELIVERY
+        serviceType.fulfillmentMode === FulfillmentMode.DELIVERY
           ? FulfillmentType.DELIVERY
           : FulfillmentType.PICKUP,
       // The fee is the restaurant's, never the client's.
-      deliveryFee:
-        input.serviceType === ServiceType.DELIVERY ? (orderMode.deliveryFee ?? 0) : 0,
+      deliveryFee: serviceType.deliveryFee,
     });
     return { attention, fulfillment };
   }
@@ -160,7 +184,10 @@ export class AttentionsService {
    * Saves a prepared attention within the caller's transaction. Throws
    * ActiveAttentionAlreadyExistsError if the table got one concurrently.
    */
-  async saveOpening(opening: AttentionOpening, tx: TransactionContext): Promise<Attention> {
+  async saveOpening(
+    opening: AttentionOpening,
+    tx: TransactionContext,
+  ): Promise<Attention> {
     const saved = await this.attentionRepository.save(opening.attention, tx);
     if (opening.fulfillment) {
       await this.fulfillmentRepository.save(opening.fulfillment, tx);
@@ -173,7 +200,10 @@ export class AttentionsService {
    * (locking it) or saves the prepared one. Pickup and delivery always open
    * their own attention.
    */
-  async openOrJoin(opening: AttentionOpening, tx: TransactionContext): Promise<Attention> {
+  async openOrJoin(
+    opening: AttentionOpening,
+    tx: TransactionContext,
+  ): Promise<Attention> {
     const diningTableId = opening.attention.diningTableId;
     if (diningTableId) {
       const active = await this.attentionRepository.findActiveByDiningTable(
@@ -225,7 +255,13 @@ export class AttentionsService {
   async requestBill(id: string): Promise<Attention> {
     return this.transactionRunner.run(async (tx) => {
       const attention = await this.lockActive(id, tx);
-      attention.requestBill();
+      const statuses = await this.statuses.attentionCatalog(
+        attention.restaurantId,
+        tx,
+      );
+      attention.requestBill(
+        statuses.defaultFor(AttentionStatus.BILL_REQUESTED),
+      );
       return this.attentionRepository.save(attention, tx);
     });
   }
@@ -238,7 +274,14 @@ export class AttentionsService {
     return this.transactionRunner.run(async (tx) => {
       const attention = await this.lockActive(id, tx);
       const bill = await this.billFor(attention);
-      attention.close(bill.balance);
+      const statuses = await this.statuses.attentionCatalog(
+        attention.restaurantId,
+        tx,
+      );
+      attention.close(
+        bill.balance,
+        statuses.defaultFor(AttentionStatus.CLOSED),
+      );
       return this.attentionRepository.save(attention, tx);
     });
   }
@@ -247,7 +290,15 @@ export class AttentionsService {
   async cancel(id: string, reason: string): Promise<Attention> {
     return this.transactionRunner.run(async (tx) => {
       const attention = await this.lockActive(id, tx);
-      attention.cancel(reason, await this.paymentLedger.paidAmount(id));
+      const statuses = await this.statuses.attentionCatalog(
+        attention.restaurantId,
+        tx,
+      );
+      attention.cancel(
+        reason,
+        await this.paymentLedger.paidAmount(id),
+        statuses.defaultFor(AttentionStatus.CANCELLED),
+      );
       const fulfillment = await this.fulfillmentRepository.findByAttention(id);
       if (fulfillment && !fulfillment.isFinal) {
         fulfillment.changeStatus(FulfillmentStatus.CANCELLED);
@@ -263,7 +314,8 @@ export class AttentionsService {
     input: { status: FulfillmentStatus; estimatedReadyAt?: Date | null },
   ): Promise<Fulfillment> {
     await this.findOne(attentionId);
-    const fulfillment = await this.fulfillmentRepository.findByAttention(attentionId);
+    const fulfillment =
+      await this.fulfillmentRepository.findByAttention(attentionId);
     if (!fulfillment) {
       throw new FulfillmentNotFoundError(attentionId);
     }
@@ -274,7 +326,10 @@ export class AttentionsService {
   }
 
   /** Locks the attention row until the transaction ends. */
-  private async lockActive(id: string, tx: TransactionContext): Promise<Attention> {
+  private async lockActive(
+    id: string,
+    tx: TransactionContext,
+  ): Promise<Attention> {
     const attention = await this.attentionRepository.findByIdForUpdate(id, tx);
     if (!attention) {
       throw new AttentionNotFoundError(id);
@@ -289,13 +344,16 @@ export class AttentionsService {
       this.paymentLedger.paidAmount(attention.id),
     ]);
     const billable = items.filter((item) => item.isBillable);
-    const subtotal = roundMoney(billable.reduce((sum, item) => sum + item.subtotal, 0));
+    const subtotal = roundMoney(
+      billable.reduce((sum, item) => sum + item.subtotal, 0),
+    );
     const deliveryFee = fulfillment?.deliveryFee ?? 0;
     const total = roundMoney(subtotal + deliveryFee);
     return {
       attention,
       items: billable,
       subtotal,
+      fulfillmentId: fulfillment?.id ?? null,
       deliveryFee,
       total,
       paid,
@@ -303,21 +361,7 @@ export class AttentionsService {
     };
   }
 
-  private async requireEnabledMode(restaurantId: string, serviceType: ServiceType) {
-    const orderMode = await this.restaurantLookup.findOrderMode(
-      restaurantId,
-      serviceType,
-    );
-    if (!orderMode.isEnabled) {
-      throw new ServiceModeDisabledError(serviceType);
-    }
-    return orderMode;
-  }
-
-  private async requireOperationalTable(diningTableId?: string) {
-    if (!diningTableId) {
-      throw new InvalidServiceSetupError('DINE_IN requiere una mesa');
-    }
+  private async requireOperationalTable(diningTableId: string) {
     const table = await this.diningTableLookup.findById(diningTableId);
     if (!table) {
       throw new DiningTableReferenceNotFoundError(diningTableId);

@@ -9,9 +9,7 @@ import { OrderItemStatusHistoryOrmEntity } from '../entities/order-item-status-h
 import { OrderItemStatusHistoryMapper } from '../mappers/attention.mappers.js';
 
 @Injectable()
-export class TypeOrmOrderItemStatusHistoryRepository
-  implements OrderItemStatusHistoryRepository
-{
+export class TypeOrmOrderItemStatusHistoryRepository implements OrderItemStatusHistoryRepository {
   constructor(
     @InjectRepository(OrderItemStatusHistoryOrmEntity)
     private readonly repository: Repository<OrderItemStatusHistoryOrmEntity>,
@@ -20,6 +18,7 @@ export class TypeOrmOrderItemStatusHistoryRepository
   async findByItem(orderItemId: string): Promise<OrderItemStatusHistory[]> {
     const rows = await this.repository.find({
       where: { orderItemId },
+      relations: { previousStatus: true, newStatus: true },
       order: { changedAt: 'ASC' },
     });
     return rows.map((row) => OrderItemStatusHistoryMapper.toDomain(row));

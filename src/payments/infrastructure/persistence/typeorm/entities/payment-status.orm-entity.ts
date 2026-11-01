@@ -5,6 +5,10 @@ import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity
 @Entity('payment_statuses')
 @Unique('uq_payment_statuses_code', ['code'])
 @Check('chk_payment_statuses_code', "code ~ '^[A-Z][A-Z_]*$'")
+@Check(
+  'chk_payment_statuses_effect',
+  'NOT (counts_toward_balance AND reserves_balance)',
+)
 export class PaymentStatusOrmEntity extends BaseOrmEntity {
   @Column({ type: 'varchar', length: 30 })
   code: string;
@@ -20,6 +24,10 @@ export class PaymentStatusOrmEntity extends BaseOrmEntity {
 
   @Column({ name: 'counts_toward_balance', type: 'boolean' })
   countsTowardBalance: boolean;
+
+  // A pending attempt blocks its amount without reducing the debt yet.
+  @Column({ name: 'reserves_balance', type: 'boolean', default: false })
+  reservesBalance: boolean;
 
   @Column({ name: 'allows_refund', type: 'boolean' })
   allowsRefund: boolean;

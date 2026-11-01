@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/application/pagination.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import type { PaymentMethod } from '../../../common/domain/payment-method.enum.js';
@@ -66,7 +69,11 @@ export interface RegisterPaymentInput {
   externalReference?: string | null;
   notes?: string | null;
   /** Gateway data; without it the payment is a confirmed manual one. */
-  provider?: { code: string; paymentId?: string | null; status?: string | null };
+  provider?: {
+    code: string;
+    paymentId?: string | null;
+    status?: string | null;
+  };
   registeredByUserId?: string | null;
 }
 
@@ -101,11 +108,14 @@ export interface AttentionBalance {
 @Injectable()
 export class PaymentsService {
   constructor(
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly paymentRepository: PaymentRepository,
     @Inject(PROVIDER_STATUS_MAPPING_REPOSITORY)
     private readonly mappingRepository: ProviderStatusMappingRepository,
-    @Inject(ATTENTION_BILLING) private readonly attentionBilling: AttentionBillingPort,
-    @Inject(TRANSACTION_RUNNER) private readonly transactionRunner: TransactionRunner,
+    @Inject(ATTENTION_BILLING)
+    private readonly attentionBilling: AttentionBillingPort,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   /**
@@ -132,7 +142,10 @@ export class PaymentsService {
     try {
       const payment = await this.transactionRunner.run(async (tx) => {
         await this.paymentRepository.lockAttention(bill.attentionId, tx);
-        const totals = await this.paymentRepository.allocationTotals(bill.attentionId, tx);
+        const totals = await this.paymentRepository.allocationTotals(
+          bill.attentionId,
+          tx,
+        );
         const plan = planAllocations(this.chargeLines(bill, totals), request);
         const created = Payment.create({
           id: randomUUID(),
@@ -151,7 +164,10 @@ export class PaymentsService {
           requestId: input.requestId,
           notes: input.notes ?? null,
           registeredByUserId: input.registeredByUserId ?? null,
-          allocations: plan.map((allocation) => ({ id: randomUUID(), ...allocation })),
+          allocations: plan.map((allocation) => ({
+            id: randomUUID(),
+            ...allocation,
+          })),
         });
         await this.paymentRepository.insert(created, tx);
         return created;
@@ -210,22 +226,29 @@ export class PaymentsService {
   async balance(attentionId: string): Promise<AttentionBalance> {
     const bill = await this.requireBill(attentionId);
     const totals = await this.paymentRepository.allocationTotals(attentionId);
-    const lines = sortChargeLines(this.chargeLines(bill, totals)).map((line) => {
-      const allocated = this.totalsFor(totals, line.concept, line.orderItemId);
-      const total =
-        line.concept === AllocationConcept.DELIVERY_FEE
-          ? bill.deliveryFee
-          : (bill.items.find((item) => item.orderItemId === line.orderItemId)?.subtotal ?? 0);
-      return {
-        concept: line.concept,
-        orderItemId: line.orderItemId,
-        label: line.label,
-        total,
-        paid: allocated.counted,
-        reserved: allocated.reserved,
-        outstanding: line.outstanding,
-      };
-    });
+    const lines = sortChargeLines(this.chargeLines(bill, totals)).map(
+      (line) => {
+        const allocated = this.totalsFor(
+          totals,
+          line.concept,
+          line.orderItemId,
+        );
+        const total =
+          line.concept === AllocationConcept.DELIVERY_FEE
+            ? bill.deliveryFee
+            : (bill.items.find((item) => item.orderItemId === line.orderItemId)
+                ?.subtotal ?? 0);
+        return {
+          concept: line.concept,
+          orderItemId: line.orderItemId,
+          label: line.label,
+          total,
+          paid: allocated.counted,
+          reserved: allocated.reserved,
+          outstanding: line.outstanding,
+        };
+      },
+    );
     const sum = (pick: (line: ChargeLineBalance) => number) =>
       roundMoney(lines.reduce((acc, line) => acc + pick(line), 0));
     return {
@@ -239,7 +262,9 @@ export class PaymentsService {
     };
   }
 
-  private async requireBill(attentionId: string): Promise<AttentionBillingSnapshot> {
+  private async requireBill(
+    attentionId: string,
+  ): Promise<AttentionBillingSnapshot> {
     const bill = await this.attentionBilling.find(attentionId);
     if (!bill) {
       throw new AttentionReferenceNotFoundError(attentionId);
@@ -248,22 +273,38 @@ export class PaymentsService {
   }
 
   /** Billable products plus the delivery fee, minus what is already paid or in flight. */
-  private chargeLines(bill: AttentionBillingSnapshot, totals: AllocationTotals[]): ChargeLine[] {
+  private chargeLines(
+    bill: AttentionBillingSnapshot,
+    totals: AllocationTotals[],
+  ): ChargeLine[] {
     const lines: ChargeLine[] = bill.items.map((item) => {
-      const allocated = this.totalsFor(totals, AllocationConcept.ORDER_ITEM, item.orderItemId);
+      const allocated = this.totalsFor(
+        totals,
+        AllocationConcept.ORDER_ITEM,
+        item.orderItemId,
+      );
       return {
         concept: AllocationConcept.ORDER_ITEM,
         orderItemId: item.orderItemId,
+        fulfillmentId: null,
         label: `"${item.productName}"`,
-        outstanding: Math.max(0, roundMoney(item.subtotal - allocated.counted - allocated.reserved)),
+        outstanding: Math.max(
+          0,
+          roundMoney(item.subtotal - allocated.counted - allocated.reserved),
+        ),
         createdAt: item.createdAt,
       };
     });
-    if (bill.deliveryFee > 0) {
-      const allocated = this.totalsFor(totals, AllocationConcept.DELIVERY_FEE, null);
+    if (bill.deliveryFee > 0 && bill.fulfillmentId) {
+      const allocated = this.totalsFor(
+        totals,
+        AllocationConcept.DELIVERY_FEE,
+        null,
+      );
       lines.push({
         concept: AllocationConcept.DELIVERY_FEE,
         orderItemId: null,
+        fulfillmentId: bill.fulfillmentId,
         label: 'el costo de envío',
         outstanding: Math.max(
           0,
@@ -281,7 +322,8 @@ export class PaymentsService {
     orderItemId: string | null,
   ): { counted: number; reserved: number } {
     const row = totals.find(
-      (candidate) => candidate.concept === concept && candidate.orderItemId === orderItemId,
+      (candidate) =>
+        candidate.concept === concept && candidate.orderItemId === orderItemId,
     );
     return { counted: row?.counted ?? 0, reserved: row?.reserved ?? 0 };
   }
@@ -292,11 +334,16 @@ export class PaymentsService {
         return { mode: AllocationMode.FULL };
       case AllocationMode.AMOUNT:
         if (input.amount === undefined) {
-          throw new InvalidPaymentAmountError('El modo AMOUNT requiere el monto a pagar');
+          throw new InvalidPaymentAmountError(
+            'El modo AMOUNT requiere el monto a pagar',
+          );
         }
         return { mode: AllocationMode.AMOUNT, amount: input.amount };
       case AllocationMode.ITEMS:
-        return { mode: AllocationMode.ITEMS, allocations: input.allocations ?? [] };
+        return {
+          mode: AllocationMode.ITEMS,
+          allocations: input.allocations ?? [],
+        };
     }
   }
 
@@ -312,14 +359,20 @@ export class PaymentsService {
     }
     const code = normalizeProviderCode(provider.code);
     const paymentId = provider.paymentId?.trim() || null;
-    if (paymentId && (await this.paymentRepository.findByProviderPaymentId(code, paymentId))) {
+    if (
+      paymentId &&
+      (await this.paymentRepository.findByProviderPaymentId(code, paymentId))
+    ) {
       throw new DuplicateProviderPaymentError(code, paymentId);
     }
     const externalStatus = provider.status?.trim() || null;
     let status = PaymentStatusCode.PENDING;
     if (externalStatus) {
       const mapping = await this.mappingRepository.find(code, externalStatus);
-      if (!mapping?.isActive || REFUND_STATUSES_DISABLED.includes(mapping.paymentStatus)) {
+      if (
+        !mapping?.isActive ||
+        REFUND_STATUSES_DISABLED.includes(mapping.paymentStatus)
+      ) {
         throw new UnmappedProviderStatusError(code, externalStatus);
       }
       status = mapping.paymentStatus;

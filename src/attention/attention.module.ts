@@ -7,6 +7,7 @@ import { IamModule } from '../iam/iam.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
+import { AttentionSettingsModule } from './attention-settings.module.js';
 import { AttentionReportsService } from './application/attention-reports/attention-reports.service.js';
 import { AttentionsService } from './application/attentions/attentions.service.js';
 import { CustomerAttentionsService } from './application/customer-attentions/customer-attentions.service.js';
@@ -58,6 +59,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
       OrderItemStatusHistoryOrmEntity,
       FulfillmentOrmEntity,
     ]),
+    AttentionSettingsModule,
     OrganizationsModule,
     CatalogModule,
     IamModule,
@@ -91,7 +93,10 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     },
     { provide: FULFILLMENT_REPOSITORY, useClass: TypeOrmFulfillmentRepository },
     { provide: TABLE_QR_LOOKUP, useClass: InternalTableQrLookupAdapter },
-    { provide: DINING_TABLE_LOOKUP, useClass: InternalDiningTableLookupAdapter },
+    {
+      provide: DINING_TABLE_LOOKUP,
+      useClass: InternalDiningTableLookupAdapter,
+    },
     { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
     { provide: PRODUCT_LOOKUP, useClass: InternalProductLookupAdapter },
     { provide: STOCK_CONSUMPTION, useClass: InternalStockConsumptionAdapter },

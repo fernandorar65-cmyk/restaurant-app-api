@@ -1,7 +1,10 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/application/pagination.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { OrderItem } from '../entities/order-item.entity.js';
-import { OrderItemStatus } from '../enums/order-item-status.enum.js';
+import { OrderStatus } from '../enums/order-status.enum.js';
 
 export const ORDER_ITEM_REPOSITORY = Symbol('ORDER_ITEM_REPOSITORY');
 
@@ -16,7 +19,7 @@ export interface OrderItemRepository {
   findForBoard(
     filter: {
       restaurantId: string;
-      statuses?: OrderItemStatus[];
+      statuses?: OrderStatus[];
       includeClosedAttentions?: boolean;
     },
     page: PageRequest,

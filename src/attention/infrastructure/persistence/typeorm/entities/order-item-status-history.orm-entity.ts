@@ -7,20 +7,14 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { inValues } from '../../../../../common/persistence/column-options.js';
-import { OrderItemStatus } from '../../../../domain/enums/order-item-status.enum.js';
 import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { OrderItemOrmEntity } from './order-item.orm-entity.js';
+import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
 
-const ORDER_ITEM_STATUSES = Object.values(OrderItemStatus);
-
+// Insert-only. Statuses are never deleted (only deactivated), so the ids
+// keep pointing to a readable code and name.
 @Entity('order_item_status_history')
 @Index('idx_item_history_item_changed', ['orderItemId', 'changedAt'])
-@Check(
-  'chk_item_history_previous',
-  inValues('previous_status', ORDER_ITEM_STATUSES, { nullable: true }),
-)
-@Check('chk_item_history_new', inValues('new_status', ORDER_ITEM_STATUSES))
 @Check(
   'chk_item_history_version',
   'version_before IS NULL OR version_before >= 0',
@@ -32,20 +26,23 @@ export class OrderItemStatusHistoryOrmEntity {
   @Column({ name: 'order_item_id', type: 'uuid' })
   orderItemId: string;
 
-  @ManyToOne('OrderItemOrmEntity', { onDelete: 'CASCADE' })
+  @ManyToOne('OrderItemOrmEntity')
   @JoinColumn({ name: 'order_item_id' })
   orderItem?: OrderItemOrmEntity;
 
-  @Column({
-    name: 'previous_status',
-    type: 'varchar',
-    length: 20,
-    nullable: true,
-  })
-  previousStatus: OrderItemStatus | null;
+  @Column({ name: 'previous_status_id', type: 'uuid', nullable: true })
+  previousStatusId: string | null;
 
-  @Column({ name: 'new_status', type: 'varchar', length: 20 })
-  newStatus: OrderItemStatus;
+  @ManyToOne('OrderStatusOrmEntity')
+  @JoinColumn({ name: 'previous_status_id' })
+  previousStatus?: OrderStatusOrmEntity | null;
+
+  @Column({ name: 'new_status_id', type: 'uuid' })
+  newStatusId: string;
+
+  @ManyToOne('OrderStatusOrmEntity')
+  @JoinColumn({ name: 'new_status_id' })
+  newStatus?: OrderStatusOrmEntity;
 
   @Column({ name: 'changed_by_user_id', type: 'uuid', nullable: true })
   changedByUserId: string | null;

@@ -6,7 +6,7 @@ import {
   ValidationDomainError,
 } from '../../../common/domain/domain-error.js';
 import type { AttentionStatus } from '../enums/attention-status.enum.js';
-import type { OrderItemStatus } from '../enums/order-item-status.enum.js';
+import type { OrderStatus } from '../enums/order-status.enum.js';
 
 export class AttentionNotFoundError extends NotFoundDomainError {
   constructor(id: string) {
@@ -35,11 +35,50 @@ export class OutstandingBalanceError extends BusinessRuleDomainError {
 
 export class AttentionHasPaymentsError extends BusinessRuleDomainError {
   constructor() {
-    super('La atención tiene pagos; primero deben reembolsarse para cancelarla');
+    super(
+      'La atención tiene pagos; primero deben reembolsarse para cancelarla',
+    );
   }
 }
 
 export class InvalidServiceSetupError extends ValidationDomainError {}
+
+/** A status id that is not an active status of the restaurant's catalog. */
+export class WorkflowStatusNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe un estado activo con id "${id}" en esta sede`);
+  }
+}
+
+/** The restaurant deactivated every status the backend needs for a state. */
+export class StatusNotConfiguredError extends BusinessRuleDomainError {
+  constructor(kind: string, canonicalState: string) {
+    super(
+      `La sede no tiene un estado activo ${canonicalState} (${kind === 'ATTENTION' ? 'atención' : 'orden'})`,
+    );
+  }
+}
+
+export class DuplicateWorkflowStatusCodeError extends ConflictDomainError {
+  constructor(code: string) {
+    super(`La sede ya tiene un estado con el código "${code}"`);
+  }
+}
+
+/** The backend always needs one active status per canonical state and an initial one. */
+export class RequiredWorkflowStatusError extends BusinessRuleDomainError {}
+
+export class ServiceTypeNotFoundError extends NotFoundDomainError {
+  constructor(id: string) {
+    super(`No existe el tipo de servicio "${id}" en esta sede`);
+  }
+}
+
+export class DuplicateServiceTypeCodeError extends ConflictDomainError {
+  constructor(code: string) {
+    super(`La sede ya tiene un tipo de servicio con el código "${code}"`);
+  }
+}
 
 export class AttentionAccessDeniedError extends ForbiddenDomainError {
   constructor() {
@@ -80,7 +119,7 @@ export class OrderItemNotFoundError extends NotFoundDomainError {
 }
 
 export class InvalidOrderItemTransitionError extends ConflictDomainError {
-  constructor(from: OrderItemStatus, to: OrderItemStatus) {
+  constructor(from: OrderStatus, to: OrderStatus) {
     super(`Un plato no puede pasar de "${from}" a "${to}"`);
   }
 }
@@ -146,6 +185,8 @@ export class InvalidFulfillmentTransitionError extends ConflictDomainError {
 /** Paid products can't be dropped from the bill: the payment would exceed it. */
 export class OrderItemHasPaymentsError extends BusinessRuleDomainError {
   constructor() {
-    super('El producto ya tiene pagos asignados y no se puede cancelar ni rechazar');
+    super(
+      'El producto ya tiene pagos asignados y no se puede cancelar ni rechazar',
+    );
   }
 }

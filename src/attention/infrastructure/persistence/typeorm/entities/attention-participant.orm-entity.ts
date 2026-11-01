@@ -26,7 +26,7 @@ export class AttentionParticipantOrmEntity extends CreatedOnlyOrmEntity {
   @Column({ name: 'attention_id', type: 'uuid' })
   attentionId: string;
 
-  @ManyToOne('AttentionOrmEntity', { onDelete: 'CASCADE' })
+  @ManyToOne('AttentionOrmEntity')
   @JoinColumn({ name: 'attention_id' })
   attention?: AttentionOrmEntity;
 

@@ -1,11 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/application/pagination.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import { OrderItemStatusHistory } from '../../domain/entities/order-item-status-history.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
-import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
+import { OrderStatus } from '../../domain/enums/order-status.enum.js';
+import { InvalidServiceSetupError } from '../../domain/exceptions/attention.errors.js';
 import {
   OrderItemHasPaymentsError,
   OrderItemNotFoundError,
@@ -15,6 +19,7 @@ import { ORDER_ITEM_STATUS_HISTORY_REPOSITORY } from '../../domain/repositories/
 import type { OrderItemStatusHistoryRepository } from '../../domain/repositories/order-item-status-history.repository.js';
 import { ORDER_ITEM_REPOSITORY } from '../../domain/repositories/order-item.repository.js';
 import type { OrderItemRepository } from '../../domain/repositories/order-item.repository.js';
+import { WorkflowStatusesService } from '../attention-settings/workflow-statuses.service.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
 import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
@@ -22,10 +27,13 @@ import { STOCK_CONSUMPTION } from '../ports/stock-consumption.port.js';
 import type { StockConsumptionPort } from '../ports/stock-consumption.port.js';
 
 /** Leaving the bill: not allowed once the item is covered by a payment. */
-const DROPPING_STATUSES = [OrderItemStatus.REJECTED, OrderItemStatus.CANCELLED];
+const DROPPING_STATUSES = [OrderStatus.REJECTED, OrderStatus.CANCELLED];
 
 export interface ChangeOrderItemStatusInput {
-  status: OrderItemStatus;
+  /** One of the restaurant's order statuses... */
+  statusId?: string | null;
+  /** ...or its first active status of this canonical state. */
+  status?: OrderStatus | null;
   /**
    * Version the caller read. If someone else changed the item since then,
    * the change is rejected instead of silently overwriting theirs.
@@ -50,6 +58,7 @@ export class OrderItemsService {
     private readonly stockConsumption: StockConsumptionPort,
     private readonly ordersService: OrdersService,
     @Inject(PAYMENT_LEDGER) private readonly paymentLedger: PaymentLedgerPort,
+    private readonly statuses: WorkflowStatusesService,
   ) {}
 
   async findOne(id: string): Promise<OrderItem> {
@@ -67,7 +76,7 @@ export class OrderItemsService {
   findForBoard(
     filter: {
       restaurantId: string;
-      statuses?: OrderItemStatus[];
+      statuses?: OrderStatus[];
       includeClosedAttentions?: boolean;
     },
     page: PageRequest,
@@ -82,29 +91,40 @@ export class OrderItemsService {
 
   /**
    * Applies a transition and writes its history entry atomically, keeping the
-   * status of its order in sync. The attention status is never touched.
+   * status of its order in sync. The attention status is never touched. The
+   * target must be an active status of the item's own restaurant.
    */
   async changeStatus(
     id: string,
     input: ChangeOrderItemStatusInput,
   ): Promise<OrderItem> {
-    if (
-      DROPPING_STATUSES.includes(input.status) &&
-      (await this.paymentLedger.itemsWithPayments([id])).length > 0
-    ) {
-      throw new OrderItemHasPaymentsError();
+    if (!input.statusId && !input.status) {
+      throw new InvalidServiceSetupError(
+        'Indica el estado destino (statusId o status)',
+      );
     }
-    await this.transactionRunner.run(async (tx) => {
+    const previous = await this.transactionRunner.run(async (tx) => {
       const item = await this.itemRepository.findById(id, tx);
       if (!item) {
         throw new OrderItemNotFoundError(id);
       }
-      await this.ordersService.lock(item.orderId, tx);
+      const restaurantId = await this.ordersService.lock(item.orderId, tx);
+      const statuses = await this.statuses.orderCatalog(restaurantId, tx);
+      const target = input.statusId
+        ? statuses.require(input.statusId)
+        : statuses.defaultFor(input.status as OrderStatus);
+      if (
+        DROPPING_STATUSES.includes(target.canonicalState) &&
+        (await this.paymentLedger.itemsWithPayments([id])).length > 0
+      ) {
+        throw new OrderItemHasPaymentsError();
+      }
       const expectedVersion = input.expectedVersion ?? item.version;
       if (expectedVersion !== item.version) {
         throw new StaleOrderItemVersionError(id);
       }
-      const entry = item.changeStatus(input.status, {
+      const from = item.currentStatus;
+      const entry = item.changeStatus(target, {
         historyId: randomUUID(),
         reason: input.reason,
         changedByUserId: input.changedByUserId,
@@ -119,9 +139,15 @@ export class OrderItemsService {
       }
       await this.historyRepository.save(entry, tx);
       await this.ordersService.syncStatus(item.orderId, tx);
+      return from;
     });
     const item = await this.findOne(id);
-    if (item.currentStatus === OrderItemStatus.PREPARING) {
+    // Only when the item enters preparation, not when it moves between the
+    // restaurant's own preparation statuses.
+    if (
+      previous !== OrderStatus.IN_PREPARATION &&
+      item.currentStatus === OrderStatus.IN_PREPARATION
+    ) {
       await this.consumeStock(item, input.changedByUserId);
     }
     return item;

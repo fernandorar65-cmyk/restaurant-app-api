@@ -40,6 +40,7 @@ export class PaymentMapper {
           id: allocation.id,
           concept: allocation.concept,
           orderItemId: allocation.orderItemId,
+          fulfillmentId: allocation.fulfillmentId,
           amount: allocation.allocatedAmount,
           createdAt: allocation.createdAt,
         }))
@@ -79,13 +80,16 @@ export class PaymentMapper {
     return orm;
   }
 
-  static allocationsToPersistence(domain: Payment): PaymentAllocationOrmEntity[] {
+  static allocationsToPersistence(
+    domain: Payment,
+  ): PaymentAllocationOrmEntity[] {
     return domain.allocations.map((allocation) => {
       const orm = new PaymentAllocationOrmEntity();
       orm.id = allocation.id;
       orm.paymentId = domain.id;
       orm.concept = allocation.concept;
       orm.orderItemId = allocation.orderItemId;
+      orm.fulfillmentId = allocation.fulfillmentId;
       orm.allocatedAmount = allocation.amount;
       return orm;
     });
@@ -101,6 +105,7 @@ export class PaymentStatusMapper {
       description: orm.description,
       isTerminal: orm.isTerminal,
       countsTowardBalance: orm.countsTowardBalance,
+      reservesBalance: orm.reservesBalance,
       allowsRefund: orm.allowsRefund,
       isActive: orm.isActive,
       createdAt: orm.createdAt,
@@ -110,7 +115,9 @@ export class PaymentStatusMapper {
 }
 
 export class ProviderStatusMappingMapper {
-  static toDomain(orm: PaymentProviderStatusMappingOrmEntity): ProviderStatusMapping {
+  static toDomain(
+    orm: PaymentProviderStatusMappingOrmEntity,
+  ): ProviderStatusMapping {
     return ProviderStatusMapping.fromPersistence({
       id: orm.id,
       providerCode: orm.providerCode,

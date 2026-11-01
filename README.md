@@ -1,118 +1,157 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Restaurant API (ACMR)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend de **Restaurant CMR**: gestión de restaurantes con pedidos desde la mesa por QR, recojo y delivery, cocina, cobros con varias pasarelas, inventario por sede y cierre diario de caja.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Construido como un **monolito modular** con **DDD y arquitectura hexagonal** sobre NestJS, TypeORM y PostgreSQL.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Stack
 
-## Project setup
+| | |
+|---|---|
+| Runtime | Node.js (desarrollado con v24), TypeScript, módulos ESM |
+| Framework | NestJS 12 |
+| Base de datos | PostgreSQL 16 (Docker) con TypeORM |
+| Validación | class-validator / class-transformer, mensajes en español |
+| Documentación de la API | Swagger (OpenAPI) en `/docs` |
+| Tests | Vitest |
+| Lint | oxlint (con chequeo de tipos) |
+
+---
+
+## Puesta en marcha
 
 ```bash
-$ npm install
+# 1. Dependencias
+npm install
+
+# 2. Variables de entorno
+cp .env.example .env
+
+# 3. Base de datos (PostgreSQL 16 en el puerto DB_PORT, por defecto 5433)
+docker compose up -d
+
+# 4. Crear o actualizar el esquema (migraciones versionadas)
+npm run migration:run
+
+# 5. Levantar la API en modo desarrollo
+npm run start:dev
 ```
 
-## Compile and run the project
+- API: `http://localhost:3000`
+- Swagger: `http://localhost:3000/docs`
 
-```bash
-# development
-$ npm run start
+El esquema se crea **solo con migraciones** (`npm run migration:run`; `migration:revert` y `migration:show` también existen). `synchronize` está apagado. Una base creada antes con `synchronize` se adopta tal cual en la primera migración y luego se migra con sus datos. Al arrancar se cargan los catálogos de ACMR (estados de pago y reembolso, unidades de medida y tipos de movimiento de inventario). Cada sede nueva recibe sus estados de atención, estados de orden y tipos de servicio. El modelo está en [docs/modelo-tablas/base-de-datos.md](docs/modelo-tablas/base-de-datos.md).
 
-# watch mode
-$ npm run start:dev
+### Primer uso
 
-# production mode
-$ npm run start:prod
+1. Registra un dueño con `POST /api/v1/owner/auth/register`. En una sola transacción crea el usuario, la organización, el rol OWNER, la membresía y la primera sede, y devuelve la sesión.
+2. Usa el `accessToken` como `Authorization: Bearer <token>` (en Swagger, botón **Authorize**).
+3. Para usar la API privada de ACMR (`/platform/*`), marca al usuario como administrador de la plataforma. Esto solo se hace desde la base de datos; ninguna ruta de la API lo permite:
+
+   ```sql
+   UPDATE users SET is_platform_admin = true WHERE email = 'tu@correo.com';
+   ```
+
+### Variables de entorno
+
+| Variable | Para qué sirve | Por defecto en `.env.example` |
+|---|---|---|
+| `PORT` | Puerto de la API | `3000` |
+| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` | Conexión a PostgreSQL | `localhost`, `5433`, `postgres`, `postgres`, `restaurant_api` |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Firma de los tokens. **Obligatorias y distintas entre sí**; en producción, de al menos 32 caracteres y distintas a las de ejemplo | valores de desarrollo |
+| `PUBLIC_APP_URL` | URL de la app del comensal; los QR de las mesas apuntan a `<PUBLIC_APP_URL>/t/<token>` | `http://localhost:5173` |
+| `INVENTORY_AUTO_CONSUMPTION` | Descuento automático de stock por receta al preparar un plato | `false` |
+| `LOG_LEVEL`, `LOG_FORMAT` | Nivel (`fatal`…`verbose`) y formato (`text`/`json`) de los logs | `log`, `text` |
+| `ERROR_LOG_RETENTION_DAYS` | Días que se conservan los errores en la tabla `error_logs` | `30` |
+| `NODE_ENV` | `production` endurece la validación de secretos e ignora `DB_SYNCHRONIZE` | — |
+| `DB_SYNCHRONIZE` | `true` vuelve a sincronizar el esquema desde las entidades. **Solo para una base local desechable**: borra columnas sin migrar datos | `false` |
+
+La app **no arranca** si la configuración es inválida (`src/common/infrastructure/config/environment.validation.ts`).
+
+---
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm run start:dev` | API en modo watch |
+| `npm run build` / `npm run start:prod` | Compilar y ejecutar `dist/` |
+| `npm test` | Tests unitarios (`*.spec.ts`) |
+| `npm run test:e2e` | Tests e2e (`*.e2e-spec.ts`). El test del modelo crea una base temporal, así que necesita el Postgres de Docker levantado |
+| `npm run lint` | oxlint con chequeo de tipos |
+| `npm run format` | Prettier |
+| `npm run migration:generate` / `migration:run` / `migration:revert` | Migraciones TypeORM (todavía no hay ninguna) |
+
+> `test/app.e2e-spec.ts` no compila (viene de la plantilla de Nest; pendiente T3).
+
+---
+
+## Arquitectura
+
+### Contextos (bounded contexts)
+
+Cada contexto es un módulo Nest dueño de sus tablas. Ninguno escribe en las tablas de otro.
+
+| Contexto | Responsabilidad |
+|---|---|
+| `iam` | Identidad única (comensales y personal), login y refresh, roles, permisos y membresías |
+| `organizations` | Organizaciones, sedes, modalidades de atención, pisos, mesas con QR, áreas, puestos y empleados |
+| `catalog` | Categorías en árbol, productos, menús y secciones, validación del carrito |
+| `attention` | Atención (visita), órdenes, platos con su flujo de cocina, recojo y delivery, cuenta |
+| `payments` | Cobros con asignación por plato, estados internos, mapeo de pasarelas, eventos idempotentes; reembolsos modelados |
+| `inventory` | Insumos maestros, stock por sede, movimientos inmutables con reversión, conteos, recetas |
+| `finance` | Categorías de gasto, gastos con anulación y cierre diario |
+| `observability` | Registro de errores en `error_logs` con retención automática |
+| `common` | Núcleo compartido: errores de dominio, value objects, paginación, transacciones, logging y filtros HTTP |
+
+### Capas dentro de cada contexto
+
+```
+src/<contexto>/
+├── domain/           Entidades con reglas de negocio, enums, errores, interfaces de repositorios.
+│                     Sin dependencias de NestJS ni TypeORM.
+├── application/      Casos de uso (servicios) y puertos hacia otros contextos.
+├── infrastructure/
+│   ├── http/         Controllers y DTOs.
+│   ├── persistence/  Entidades ORM, mappers y repositorios TypeORM.
+│   └── lookups/      Adaptadores que implementan los puertos llamando a otros contextos.
+└── <contexto>.module.ts
 ```
 
-## Run tests
+Reglas:
+- El **dominio no importa** frameworks ni infraestructura.
+- Un contexto se comunica con otro **solo mediante puertos** definidos en su capa `application`, implementados por adaptadores en `infrastructure/lookups`.
+- Los errores de negocio heredan de `DomainError` y la API los devuelve con un `errorCode` estable y un mensaje en español.
 
-```bash
-# unit tests
-$ npm run test
+### Convenciones de la API
 
-# e2e tests
-$ npm run test:e2e
+- **Sesión obligatoria por defecto** (guard global). Las rutas abiertas se marcan con `@Public()`: registro, login y las rutas del comensal, donde el login es opcional.
+- **API privada de ACMR** bajo `/platform/*`, solo para usuarios con `is_platform_admin`.
+- **Respuestas** envueltas en `{ success, statusCode, message, data, timestamp, path }`. Los listados se paginan con `?page&limit` (máximo 100) y devuelven `{ items, meta }`.
+- **`DELETE`** desactiva en lugar de borrar todo lo que tiene historial.
+- **Idempotencia** con `requestId` o `idempotencyKey` en pedidos, pagos y movimientos de inventario.
 
-# test coverage
-$ npm run test:cov
-```
+---
 
-## Deployment
+## Documentación
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Documento | Contenido |
+|---|---|
+| [docs/modelo-tablas/base-de-datos.md](docs/modelo-tablas/base-de-datos.md) | Cómo funciona la base: cada tabla, su propósito y sus reglas |
+| [docs/modelo-tablas/modelo-bd.png](docs/modelo-tablas/modelo-bd.png) | Diagrama de las 51 tablas ([SVG](docs/modelo-tablas/modelo-bd.svg)) |
+| [docs/endpoints/estado-actual.md](docs/endpoints/estado-actual.md) | Referencia de la API vigente |
+| [docs/arquitectura-ddd-hexagonal.md](docs/arquitectura-ddd-hexagonal.md) | Propuesta de arquitectura DDD + hexagonal |
+| [docs/checklist-pendientes.md](docs/checklist-pendientes.md) | Checklist de pendientes y decisiones por tomar |
+| [docs/pendientes-arquitectura.md](docs/pendientes-arquitectura.md) | Historial de puntos de arquitectura (hechos y pendientes) |
+| [docs/finanzas-pendientes.md](docs/finanzas-pendientes.md) | Revisión del módulo de Finanzas frente al modelo de ACMR |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+---
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+## Estado
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+El modelo de datos y la API cubren los siete contextos de negocio. Antes de desplegar en un ambiente compartido faltan los puntos críticos de la [checklist](docs/checklist-pendientes.md), principalmente:
 
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- permisos por endpoint y alcance por organización y sede (C3);
+- consistencia de la atención ante cambios simultáneos (C5 a C7).

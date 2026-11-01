@@ -25,7 +25,9 @@ import { AllocationMode } from '../../../domain/enums/allocation-mode.enum.js';
 import { PaymentStatusCode } from '../../../domain/enums/payment-status-code.enum.js';
 
 export class RequestedAllocationDto {
-  @ApiPropertyOptional({ description: 'Producto a pagar; omitirlo para pagar el costo de envío' })
+  @ApiPropertyOptional({
+    description: 'Producto a pagar; omitirlo para pagar el costo de envío',
+  })
   @IsOptional()
   @IsUUID()
   orderItemId?: string | null;
@@ -49,7 +51,10 @@ export class ProviderDataDto {
   @MaxLength(255)
   paymentId?: string | null;
 
-  @ApiPropertyOptional({ example: 'approved', description: 'Estado original informado por la pasarela' })
+  @ApiPropertyOptional({
+    example: 'approved',
+    description: 'Estado original informado por la pasarela',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -61,7 +66,10 @@ export class RegisterPaymentDto {
   @IsUUID()
   attentionId: string;
 
-  @ApiProperty({ description: 'UUID generado por el cliente. Reenviarlo devuelve el mismo pago' })
+  @ApiProperty({
+    description:
+      'UUID generado por el cliente. Reenviarlo devuelve el mismo pago',
+  })
   @IsUUID()
   requestId: string;
 
@@ -83,7 +91,10 @@ export class RegisterPaymentDto {
   @Min(0.01)
   amount?: number;
 
-  @ApiPropertyOptional({ type: [RequestedAllocationDto], description: 'Solo para ITEMS' })
+  @ApiPropertyOptional({
+    type: [RequestedAllocationDto],
+    description: 'Solo para ITEMS',
+  })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(200)
@@ -102,7 +113,9 @@ export class RegisterPaymentDto {
   @MaxLength(150)
   payerName?: string | null;
 
-  @ApiPropertyOptional({ description: 'Referencia manual, p. ej. número de operación Yape' })
+  @ApiPropertyOptional({
+    description: 'Referencia manual, p. ej. número de operación Yape',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
@@ -134,6 +147,9 @@ export class AllocationResponseDto {
   @ApiPropertyOptional({ nullable: true })
   orderItemId: string | null;
 
+  @ApiPropertyOptional({ nullable: true, description: 'Solo DELIVERY_FEE' })
+  fulfillmentId: string | null;
+
   @ApiProperty()
   amount: number;
 
@@ -142,6 +158,7 @@ export class AllocationResponseDto {
     dto.id = allocation.id;
     dto.concept = allocation.concept;
     dto.orderItemId = allocation.orderItemId;
+    dto.fulfillmentId = allocation.fulfillmentId;
     dto.amount = allocation.amount;
     return dto;
   }
@@ -154,7 +171,10 @@ export class ProviderResponseDto {
   @ApiPropertyOptional({ nullable: true })
   paymentId: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Último estado original de la pasarela' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Último estado original de la pasarela',
+  })
   status: string | null;
 }
 
@@ -168,7 +188,10 @@ export class PaymentResponseDto {
   @ApiProperty()
   restaurantId: string;
 
-  @ApiProperty({ enum: PaymentStatusCode, description: 'Estado interno de ACMR' })
+  @ApiProperty({
+    enum: PaymentStatusCode,
+    description: 'Estado interno de ACMR',
+  })
   status: PaymentStatusCode;
 
   @ApiProperty({ enum: PaymentMethod })
@@ -259,7 +282,9 @@ export class ChargeLineBalanceDto {
   @ApiProperty({ description: 'Cubierto por pagos confirmados' })
   paid: number;
 
-  @ApiProperty({ description: 'Reservado por pagos pendientes en una pasarela' })
+  @ApiProperty({
+    description: 'Reservado por pagos pendientes en una pasarela',
+  })
   reserved: number;
 
   @ApiProperty()

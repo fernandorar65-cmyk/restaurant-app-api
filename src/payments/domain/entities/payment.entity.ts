@@ -12,7 +12,10 @@ import { paymentStatusDefinition } from '../status-catalog.js';
 export interface PaymentAllocation {
   id: string;
   concept: AllocationConcept;
+  /** Set for ORDER_ITEM allocations. */
   orderItemId: string | null;
+  /** Set for DELIVERY_FEE allocations: the pickup/delivery record charged. */
+  fulfillmentId: string | null;
   amount: number;
   createdAt: Date;
 }
@@ -81,15 +84,22 @@ export class Payment {
   private constructor(private props: PaymentProps) {}
 
   static create(
-    params: Omit<PaymentProps, 'paidAt' | 'createdAt' | 'updatedAt' | 'allocations'> & {
+    params: Omit<
+      PaymentProps,
+      'paidAt' | 'createdAt' | 'updatedAt' | 'allocations'
+    > & {
       allocations: Omit<PaymentAllocation, 'createdAt'>[];
     },
   ): Payment {
     if (params.allocations.length === 0) {
-      throw new InvalidPaymentAmountError('El pago debe cubrir al menos un concepto');
+      throw new InvalidPaymentAmountError(
+        'El pago debe cubrir al menos un concepto',
+      );
     }
     if (params.amount <= 0) {
-      throw new InvalidPaymentAmountError('El monto del pago debe ser mayor a 0');
+      throw new InvalidPaymentAmountError(
+        'El monto del pago debe ser mayor a 0',
+      );
     }
     if (sumAllocations(params.allocations) !== params.amount) {
       throw new InvalidPaymentAmountError(
@@ -99,8 +109,13 @@ export class Payment {
     const now = new Date();
     return new Payment({
       ...params,
-      allocations: params.allocations.map((allocation) => ({ ...allocation, createdAt: now })),
-      paidAt: paymentStatusDefinition(params.status).countsTowardBalance ? now : null,
+      allocations: params.allocations.map((allocation) => ({
+        ...allocation,
+        createdAt: now,
+      })),
+      paidAt: paymentStatusDefinition(params.status).countsTowardBalance
+        ? now
+        : null,
       createdAt: now,
       updatedAt: now,
     });
@@ -130,7 +145,10 @@ export class Payment {
   }
 
   canMoveTo(target: PaymentStatusCode): boolean {
-    return target === this.props.status || TRANSITIONS[this.props.status].includes(target);
+    return (
+      target === this.props.status ||
+      TRANSITIONS[this.props.status].includes(target)
+    );
   }
 
   recordProviderStatus(externalStatus: string): void {

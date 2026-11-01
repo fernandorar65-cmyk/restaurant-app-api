@@ -1,6 +1,15 @@
-import { Check, Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
 import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
+import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { PaymentOrmEntity } from './payment.orm-entity.js';
 import type { RefundStatusOrmEntity } from './refund-status.orm-entity.js';
 
@@ -34,27 +43,50 @@ export class RefundOrmEntity extends BaseOrmEntity {
   @JoinColumn({ name: 'refund_status_id' })
   status?: RefundStatusOrmEntity;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, transformer: decimalTransformer })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    transformer: decimalTransformer,
+  })
   amount: number;
 
   @Column({ type: 'varchar', length: 500 })
   reason: string;
 
-  @Column({ name: 'provider_code', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'provider_code',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   providerCode: string | null;
 
-  @Column({ name: 'provider_refund_id', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'provider_refund_id',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   providerRefundId: string | null;
 
-  @Column({ name: 'provider_status', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'provider_status',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   providerStatus: string | null;
 
   @Column({ name: 'request_id', type: 'uuid' })
   requestId: string;
 
-  // Logical reference to an IAM user (no FK across contexts).
   @Column({ name: 'processed_by_user_id', type: 'uuid', nullable: true })
   processedByUserId: string | null;
+
+  @ManyToOne('UserOrmEntity')
+  @JoinColumn({ name: 'processed_by_user_id' })
+  processedByUser?: UserOrmEntity;
 
   @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt: Date | null;

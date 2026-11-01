@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../../../common/application/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import {
   transactionalRepository,
@@ -41,7 +44,9 @@ export class TypeOrmPaymentStatusRepository implements PaymentStatusRepository {
   ) {}
 
   async findAll(): Promise<PaymentStatus[]> {
-    const rows = await this.statuses.find({ order: { createdAt: 'ASC', code: 'ASC' } });
+    const rows = await this.statuses.find({
+      order: { createdAt: 'ASC', code: 'ASC' },
+    });
     return rows.map((row) => PaymentStatusMapper.toDomain(row));
   }
 
@@ -66,9 +71,12 @@ export class TypeOrmPaymentStatusRepository implements PaymentStatusRepository {
       const flags = {
         isTerminal: definition.isTerminal,
         countsTowardBalance: definition.countsTowardBalance,
+        reservesBalance: definition.reservesBalance,
         allowsRefund: definition.allowsRefund,
       };
-      const existing = await this.statuses.findOne({ where: { code: definition.code } });
+      const existing = await this.statuses.findOne({
+        where: { code: definition.code },
+      });
       if (existing) {
         await this.statuses.update({ id: existing.id }, flags);
       } else {
@@ -85,7 +93,9 @@ export class TypeOrmPaymentStatusRepository implements PaymentStatusRepository {
         isTerminal: definition.isTerminal,
         countsAsRefunded: definition.countsAsRefunded,
       };
-      const existing = await this.refundStatuses.findOne({ where: { code: definition.code } });
+      const existing = await this.refundStatuses.findOne({
+        where: { code: definition.code },
+      });
       if (existing) {
         await this.refundStatuses.update({ id: existing.id }, flags);
       } else {
@@ -115,8 +125,13 @@ export class TypeOrmProviderStatusMappingRepository implements ProviderStatusMap
   }
 
   /** citext column: the comparison already ignores case. */
-  async find(providerCode: string, externalStatus: string): Promise<ProviderStatusMapping | null> {
-    const found = await this.mappings.findOne({ where: { providerCode, externalStatus } });
+  async find(
+    providerCode: string,
+    externalStatus: string,
+  ): Promise<ProviderStatusMapping | null> {
+    const found = await this.mappings.findOne({
+      where: { providerCode, externalStatus },
+    });
     return found ? ProviderStatusMappingMapper.toDomain(found) : null;
   }
 
@@ -125,7 +140,10 @@ export class TypeOrmProviderStatusMappingRepository implements ProviderStatusMap
     page: PageRequest,
   ): Promise<Page<ProviderStatusMapping>> {
     const [rows, total] = await this.mappings.findAndCount({
-      where: withoutUndefined({ providerCode: filter.providerCode, isActive: filter.isActive }),
+      where: withoutUndefined({
+        providerCode: filter.providerCode,
+        isActive: filter.isActive,
+      }),
       order: { providerCode: 'ASC', externalStatus: 'ASC' },
       skip: (page.page - 1) * page.limit,
       take: page.limit,
@@ -139,7 +157,9 @@ export class TypeOrmProviderStatusMappingRepository implements ProviderStatusMap
   }
 
   async save(mapping: ProviderStatusMapping): Promise<ProviderStatusMapping> {
-    const status = await this.statuses.findOneOrFail({ where: { code: mapping.paymentStatus } });
+    const status = await this.statuses.findOneOrFail({
+      where: { code: mapping.paymentStatus },
+    });
     await this.mappings.save({
       id: mapping.id,
       providerCode: mapping.providerCode,
@@ -158,17 +178,29 @@ export class TypeOrmProviderEventRepository implements ProviderEventRepository {
     private readonly events: Repository<PaymentProviderEventOrmEntity>,
   ) {}
 
-  async findByEventId(providerCode: string, eventId: string): Promise<ProviderEvent | null> {
-    const found = await this.events.findOne({ where: { providerCode, eventId } });
+  async findByEventId(
+    providerCode: string,
+    eventId: string,
+  ): Promise<ProviderEvent | null> {
+    const found = await this.events.findOne({
+      where: { providerCode, eventId },
+    });
     return found ? ProviderEventMapper.toDomain(found) : null;
   }
 
   /** ON CONFLICT DO NOTHING: a duplicate must not abort the transaction. */
-  async insertIfNew(event: ProviderEvent, tx: TransactionContext): Promise<boolean> {
+  async insertIfNew(
+    event: ProviderEvent,
+    tx: TransactionContext,
+  ): Promise<boolean> {
     const result = await transactionalRepository(this.events, tx)
       .createQueryBuilder()
       .insert()
-      .values(ProviderEventMapper.toPersistence(event) as QueryDeepPartialEntity<PaymentProviderEventOrmEntity>)
+      .values(
+        ProviderEventMapper.toPersistence(
+          event,
+        ) as QueryDeepPartialEntity<PaymentProviderEventOrmEntity>,
+      )
       .orIgnore()
       .returning('id')
       .execute();
@@ -176,7 +208,9 @@ export class TypeOrmProviderEventRepository implements ProviderEventRepository {
   }
 
   async save(event: ProviderEvent, tx?: TransactionContext): Promise<void> {
-    await transactionalRepository(this.events, tx).save(ProviderEventMapper.toPersistence(event));
+    await transactionalRepository(this.events, tx).save(
+      ProviderEventMapper.toPersistence(event),
+    );
   }
 
   async findPage(

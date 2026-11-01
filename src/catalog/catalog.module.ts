@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AttentionSettingsModule } from '../attention/attention-settings.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { CartValidationService } from './application/cart-validation/cart-validation.service.js';
 import { CategoriesService } from './application/categories/categories.service.js';
@@ -36,6 +37,8 @@ import { TypeOrmMenuRepository } from './infrastructure/persistence/typeorm/repo
 import { TypeOrmProductCategoryRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-product-category.repository.js';
 import { TypeOrmProductIngredientRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-product-ingredient.repository.js';
 import { TypeOrmProductRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-product.repository.js';
+import { SERVICE_TYPE_LOOKUP } from './application/ports/service-type-lookup.port.js';
+import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/internal-service-type-lookup.adapter.js';
 
 @Module({
   imports: [
@@ -49,6 +52,7 @@ import { TypeOrmProductRepository } from './infrastructure/persistence/typeorm/r
       ProductIngredientOrmEntity,
     ]),
     OrganizationsModule,
+    AttentionSettingsModule,
   ],
   controllers: [
     CategoriesController,
@@ -72,13 +76,23 @@ import { TypeOrmProductRepository } from './infrastructure/persistence/typeorm/r
       useClass: TypeOrmProductCategoryRepository,
     },
     { provide: MENU_REPOSITORY, useClass: TypeOrmMenuRepository },
-    { provide: MENU_SECTION_REPOSITORY, useClass: TypeOrmMenuSectionRepository },
-    { provide: MENU_PRODUCT_REPOSITORY, useClass: TypeOrmMenuProductRepository },
+    {
+      provide: MENU_SECTION_REPOSITORY,
+      useClass: TypeOrmMenuSectionRepository,
+    },
+    {
+      provide: MENU_PRODUCT_REPOSITORY,
+      useClass: TypeOrmMenuProductRepository,
+    },
     {
       provide: PRODUCT_INGREDIENT_REPOSITORY,
       useClass: TypeOrmProductIngredientRepository,
     },
     { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
+    {
+      provide: SERVICE_TYPE_LOOKUP,
+      useClass: InternalServiceTypeLookupAdapter,
+    },
   ],
   exports: [ProductsService],
 })

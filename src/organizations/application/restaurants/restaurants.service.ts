@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Restaurant } from '../../domain/entities/restaurant.entity.js';
 import type { RestaurantDetails } from '../../domain/entities/restaurant.entity.js';
@@ -10,8 +12,13 @@ import {
 } from '../../domain/exceptions/restaurant.errors.js';
 import { RESTAURANT_REPOSITORY } from '../../domain/repositories/restaurant.repository.js';
 import type { RestaurantRepository } from '../../domain/repositories/restaurant.repository.js';
+import { RESTAURANT_SETUP } from '../ports/restaurant-setup.port.js';
+import type { RestaurantSetupPort } from '../ports/restaurant-setup.port.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/application/pagination.js';
 
 export interface CreateRestaurantInput extends RestaurantDetails {
   organizationId: string;
@@ -30,13 +37,24 @@ export class RestaurantsService {
     @Inject(RESTAURANT_REPOSITORY)
     private readonly restaurantRepository: RestaurantRepository,
     private readonly organizationsService: OrganizationsService,
+    @Inject(RESTAURANT_SETUP)
+    private readonly restaurantSetup: RestaurantSetupPort,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
-  /** `tx` lets other use cases (e.g. owner registration) include it in theirs. */
+  /**
+   * Creates the restaurant together with its default statuses and service
+   * types. `tx` lets other use cases (e.g. owner registration) include it in
+   * theirs.
+   */
   async create(
     input: CreateRestaurantInput,
     tx?: TransactionContext,
   ): Promise<Restaurant> {
+    if (!tx) {
+      return this.transactionRunner.run((own) => this.create(input, own));
+    }
     const organization = await this.organizationsService.findOne(
       input.organizationId,
       tx,
@@ -59,7 +77,9 @@ export class RestaurantsService {
       currencyCode: input.currencyCode ?? organization.currencyCode,
       timezone: input.timezone ?? organization.timezone,
     });
-    return this.restaurantRepository.save(restaurant, tx);
+    const saved = await this.restaurantRepository.save(restaurant, tx);
+    await this.restaurantSetup.provisionDefaults(saved.id, tx);
+    return saved;
   }
 
   findPage(

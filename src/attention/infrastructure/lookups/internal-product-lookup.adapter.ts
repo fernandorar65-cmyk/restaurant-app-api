@@ -4,7 +4,7 @@ import {
   ProductForOrder,
   ProductLookupPort,
 } from '../../application/ports/product-lookup.port.js';
-import { ServiceType } from '../../domain/enums/service-type.enum.js';
+import { FulfillmentMode } from '../../domain/enums/fulfillment-mode.enum.js';
 
 /** In-process adapter over catalog's ProductsService. */
 @Injectable()
@@ -13,7 +13,7 @@ export class InternalProductLookupAdapter implements ProductLookupPort {
 
   async findForOrder(
     productIds: string[],
-    serviceType: ServiceType,
+    fulfillmentMode: FulfillmentMode,
   ): Promise<ProductForOrder[]> {
     const products = await this.productsService.findByIds(productIds);
     return products.map((product) => ({
@@ -21,7 +21,7 @@ export class InternalProductLookupAdapter implements ProductLookupPort {
       restaurantId: product.restaurantId,
       name: product.name,
       price: product.price,
-      issue: product.orderIssue(serviceType),
+      issue: product.orderIssue(fulfillmentMode),
     }));
   }
 }

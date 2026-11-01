@@ -18,7 +18,9 @@ export class InternalAttentionBillingAdapter implements AttentionBillingPort {
   async find(attentionId: string): Promise<AttentionBillingSnapshot | null> {
     try {
       const bill = await this.attentionsService.getBill(attentionId);
-      const restaurant = await this.restaurantsService.findOne(bill.attention.restaurantId);
+      const restaurant = await this.restaurantsService.findOne(
+        bill.attention.restaurantId,
+      );
       return {
         attentionId: bill.attention.id,
         organizationId: restaurant.organizationId,
@@ -32,6 +34,7 @@ export class InternalAttentionBillingAdapter implements AttentionBillingPort {
           subtotal: item.subtotal,
           createdAt: item.createdAt,
         })),
+        fulfillmentId: bill.fulfillmentId,
         deliveryFee: bill.deliveryFee,
       };
     } catch (error) {

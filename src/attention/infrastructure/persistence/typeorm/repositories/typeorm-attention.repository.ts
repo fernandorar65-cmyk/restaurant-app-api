@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, QueryFailedError, Repository } from 'typeorm';
+import { IsNull, QueryFailedError, Repository } from 'typeorm';
+import type { FindOptionsRelations } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Attention } from '../../../../domain/entities/attention.entity.js';
@@ -12,15 +13,22 @@ import {
 } from '../../../../domain/repositories/attention.repository.js';
 import { AttentionOrmEntity } from '../entities/attention.orm-entity.js';
 import { AttentionMapper } from '../mappers/attention.mappers.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
-
-const ACTIVE_STATUSES = [AttentionStatus.OPEN, AttentionStatus.BILL_REQUESTED];
+import type {
+  Page,
+  PageRequest,
+} from '../../../../../common/application/pagination.js';
 
 @Injectable()
 export class TypeOrmAttentionRepository
   extends TypeOrmBaseRepository<Attention, AttentionOrmEntity>
   implements AttentionRepository
 {
+  protected override readonly relations: FindOptionsRelations<AttentionOrmEntity> =
+    {
+      status: true,
+      serviceType: true,
+    };
+
   constructor(
     @InjectRepository(AttentionOrmEntity)
     repository: Repository<AttentionOrmEntity>,
@@ -43,21 +51,23 @@ export class TypeOrmAttentionRepository
     id: string,
     tx: TransactionContext,
   ): Promise<Attention | null> {
-    const found = await this.getRepository(tx).findOne({
-      where: { id },
-      lock: { mode: 'pessimistic_write' },
-    });
-    return found ? this.toDomain(found) : null;
+    return this.findByIdLocked(id, tx);
   }
 
   async findPage(
     filter: { restaurantId?: string; status?: AttentionStatus },
     page: PageRequest,
   ): Promise<Page<Attention>> {
-    return this.findPageBy({
-      where: { restaurantId: filter.restaurantId, status: filter.status },
-      order: { openedAt: 'DESC' },
-    }, page);
+    return this.findPageBy(
+      {
+        where: {
+          restaurantId: filter.restaurantId,
+          status: filter.status && { canonicalState: filter.status },
+        },
+        order: { openedAt: 'DESC' },
+      },
+      page,
+    );
   }
 
   async countDaily(
@@ -86,8 +96,10 @@ export class TypeOrmAttentionRepository
     diningTableId: string,
     tx?: TransactionContext,
   ): Promise<Attention | null> {
+    // Active = neither closed nor cancelled (same predicate as uq_attentions_active_table).
     const found = await this.getRepository(tx).findOne({
-      where: { diningTableId, status: In(ACTIVE_STATUSES) },
+      where: { diningTableId, closedAt: IsNull(), cancelledAt: IsNull() },
+      relations: this.relations,
     });
     return found ? this.toDomain(found) : null;
   }

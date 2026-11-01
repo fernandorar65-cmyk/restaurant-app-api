@@ -14,8 +14,7 @@ import { FulfillmentStatus } from '../../../domain/enums/fulfillment-status.enum
 import { FulfillmentType } from '../../../domain/enums/fulfillment-type.enum.js';
 import { OrderSource } from '../../../domain/enums/order-source.enum.js';
 import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
-import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
-import { ServiceType } from '../../../domain/enums/service-type.enum.js';
+import { FulfillmentMode } from '../../../domain/enums/fulfillment-mode.enum.js';
 
 export class AttentionResponseDto {
   @ApiProperty()
@@ -33,11 +32,20 @@ export class AttentionResponseDto {
   @ApiProperty({ example: 'A-7KX2QF' })
   attentionNumber: string;
 
-  @ApiProperty({ enum: ServiceType })
-  serviceType: ServiceType;
+  @ApiProperty()
+  serviceTypeId: string;
 
-  @ApiProperty({ enum: AttentionStatus })
+  @ApiProperty({ enum: FulfillmentMode })
+  fulfillmentMode: FulfillmentMode;
+
+  @ApiProperty({ enum: AttentionStatus, description: 'Estado canónico' })
   status: AttentionStatus;
+
+  @ApiProperty({
+    description:
+      'Estado de la sede (nombre y color en GET /attention-statuses)',
+  })
+  statusId: string;
 
   @ApiPropertyOptional({ nullable: true })
   billRequestedAt: Date | null;
@@ -64,8 +72,10 @@ export class AttentionResponseDto {
     dto.diningTableId = attention.diningTableId;
     dto.customerUserId = attention.customerUserId;
     dto.attentionNumber = attention.attentionNumber;
-    dto.serviceType = attention.serviceType;
+    dto.serviceTypeId = attention.serviceTypeId;
+    dto.fulfillmentMode = attention.fulfillmentMode;
     dto.status = attention.status;
+    dto.statusId = attention.statusId;
     dto.billRequestedAt = attention.billRequestedAt;
     dto.openedAt = attention.openedAt;
     dto.closedAt = attention.closedAt;
@@ -104,8 +114,13 @@ export class OrderItemResponseDto {
   @ApiPropertyOptional({ nullable: true })
   customerNote: string | null;
 
-  @ApiProperty({ enum: OrderItemStatus })
-  status: OrderItemStatus;
+  @ApiProperty({ enum: OrderStatus, description: 'Estado canónico' })
+  status: OrderStatus;
+
+  @ApiProperty({
+    description: 'Estado de la sede (nombre y color en GET /order-statuses)',
+  })
+  statusId: string;
 
   @ApiPropertyOptional({ nullable: true })
   rejectionReason: string | null;
@@ -133,6 +148,7 @@ export class OrderItemResponseDto {
     dto.subtotal = item.subtotal;
     dto.customerNote = item.customerNote;
     dto.status = item.currentStatus;
+    dto.statusId = item.statusId;
     dto.rejectionReason = item.rejectionReason;
     dto.version = item.version;
     dto.createdAt = item.createdAt;
@@ -160,8 +176,11 @@ export class OrderResponseDto {
   @ApiPropertyOptional({ nullable: true })
   submittedByParticipantId: string | null;
 
-  @ApiProperty({ enum: OrderStatus })
+  @ApiProperty({ enum: OrderStatus, description: 'Estado canónico' })
   status: OrderStatus;
+
+  @ApiProperty()
+  statusId: string;
 
   @ApiProperty()
   submittedAt: Date;
@@ -181,6 +200,7 @@ export class OrderResponseDto {
     dto.submittedByUserId = order.submittedByUserId;
     dto.submittedByParticipantId = order.submittedByParticipantId;
     dto.status = order.status;
+    dto.statusId = order.statusId;
     dto.submittedAt = order.submittedAt;
     dto.confirmedAt = order.confirmedAt;
     dto.items = items
@@ -343,11 +363,17 @@ export class OrderItemHistoryResponseDto {
   @ApiProperty()
   id: string;
 
-  @ApiPropertyOptional({ enum: OrderItemStatus, nullable: true })
-  previousStatus: OrderItemStatus | null;
+  @ApiPropertyOptional({ enum: OrderStatus, nullable: true })
+  previousStatus: OrderStatus | null;
 
-  @ApiProperty({ enum: OrderItemStatus })
-  newStatus: OrderItemStatus;
+  @ApiPropertyOptional({ nullable: true })
+  previousStatusId: string | null;
+
+  @ApiProperty({ enum: OrderStatus })
+  newStatus: OrderStatus;
+
+  @ApiProperty()
+  newStatusId: string;
 
   @ApiPropertyOptional({ nullable: true })
   changedByUserId: string | null;
@@ -361,11 +387,15 @@ export class OrderItemHistoryResponseDto {
   @ApiPropertyOptional({ nullable: true })
   versionBefore: number | null;
 
-  static fromDomain(entry: OrderItemStatusHistory): OrderItemHistoryResponseDto {
+  static fromDomain(
+    entry: OrderItemStatusHistory,
+  ): OrderItemHistoryResponseDto {
     const dto = new OrderItemHistoryResponseDto();
     dto.id = entry.id;
-    dto.previousStatus = entry.previousStatus;
-    dto.newStatus = entry.newStatus;
+    dto.previousStatus = entry.previousStatus?.canonicalState ?? null;
+    dto.previousStatusId = entry.previousStatus?.id ?? null;
+    dto.newStatus = entry.newStatus.canonicalState;
+    dto.newStatusId = entry.newStatus.id;
     dto.changedByUserId = entry.changedByUserId;
     dto.reason = entry.reason;
     dto.changedAt = entry.changedAt;

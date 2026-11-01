@@ -8,6 +8,7 @@ export interface PaymentStatusProps {
   description: string | null;
   isTerminal: boolean;
   countsTowardBalance: boolean;
+  reservesBalance: boolean;
   allowsRefund: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -28,7 +29,9 @@ export class PaymentStatus {
 
   rename(params: { name?: string; description?: string | null }): void {
     if (params.name !== undefined) {
-      this.props.name = requireText(params.name, 'El nombre del estado', { max: 100 });
+      this.props.name = requireText(params.name, 'El nombre del estado', {
+        max: 100,
+      });
     }
     if (params.description !== undefined) {
       this.props.description = params.description;
@@ -53,6 +56,9 @@ export class PaymentStatus {
   }
   get countsTowardBalance(): boolean {
     return this.props.countsTowardBalance;
+  }
+  get reservesBalance(): boolean {
+    return this.props.reservesBalance;
   }
   get allowsRefund(): boolean {
     return this.props.allowsRefund;

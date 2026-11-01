@@ -11,7 +11,10 @@ import type { AttentionOrmEntity } from './attention.orm-entity.js';
 // Pickup/delivery details of an attention (at most one per attention).
 @Entity('fulfillments')
 @Unique('uq_fulfillments_attention', ['attentionId'])
-@Check('chk_fulfillments_type', inValues('type', Object.values(FulfillmentType)))
+@Check(
+  'chk_fulfillments_type',
+  inValues('type', Object.values(FulfillmentType)),
+)
 @Check(
   'chk_fulfillments_status',
   inValues('status', Object.values(FulfillmentStatus)),
@@ -33,7 +36,7 @@ export class FulfillmentOrmEntity extends BaseOrmEntity {
   @Column({ name: 'attention_id', type: 'uuid' })
   attentionId: string;
 
-  @OneToOne('AttentionOrmEntity', { onDelete: 'CASCADE' })
+  @OneToOne('AttentionOrmEntity')
   @JoinColumn({ name: 'attention_id' })
   attention?: AttentionOrmEntity;
 

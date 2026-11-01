@@ -8,38 +8,27 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import {
-  decimalTransformer,
-  inValues,
-} from '../../../../../common/persistence/column-options.js';
-import { OrderItemStatus } from '../../../../domain/enums/order-item-status.enum.js';
+import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
 import type { ProductOrmEntity } from '../../../../../catalog/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
 import type { AttentionParticipantOrmEntity } from './attention-participant.orm-entity.js';
 import type { OrderOrmEntity } from './order.orm-entity.js';
+import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
 
 // Name and price are snapshotted at order time so later catalog changes never
 // alter past orders.
 @Entity('order_items')
 @Index('idx_order_items_order', ['orderId'])
 @Index('idx_order_items_product', ['productId'])
-@Index('idx_order_items_status', ['currentStatus', 'createdAt'])
+@Index('idx_order_items_status', ['orderStatusId', 'createdAt'])
 @Check('chk_order_items_price', 'unit_price >= 0')
 @Check('chk_order_items_quantity', 'quantity > 0')
 @Check('chk_order_items_subtotal', 'subtotal >= 0')
-@Check(
-  'chk_order_items_status',
-  inValues('current_status', Object.values(OrderItemStatus)),
-)
-@Check(
-  'chk_order_items_rejection',
-  `current_status <> '${OrderItemStatus.REJECTED}' OR rejection_reason IS NOT NULL`,
-)
 @Check('chk_order_items_version', 'version >= 0')
 export class OrderItemOrmEntity extends BaseOrmEntity {
   @Column({ name: 'order_id', type: 'uuid' })
   orderId: string;
 
-  @ManyToOne('OrderOrmEntity', { onDelete: 'CASCADE' })
+  @ManyToOne('OrderOrmEntity')
   @JoinColumn({ name: 'order_id' })
   order?: OrderOrmEntity;
 
@@ -88,13 +77,14 @@ export class OrderItemOrmEntity extends BaseOrmEntity {
   })
   customerNote: string | null;
 
-  @Column({
-    name: 'current_status',
-    type: 'varchar',
-    length: 20,
-    default: OrderItemStatus.SUBMITTED,
-  })
-  currentStatus: OrderItemStatus;
+  // A REJECTED status requires rejection_reason (checked by the domain:
+  // the canonical state lives in order_statuses).
+  @Column({ name: 'order_status_id', type: 'uuid' })
+  orderStatusId: string;
+
+  @ManyToOne('OrderStatusOrmEntity')
+  @JoinColumn({ name: 'order_status_id' })
+  status?: OrderStatusOrmEntity;
 
   @Column({
     name: 'rejection_reason',

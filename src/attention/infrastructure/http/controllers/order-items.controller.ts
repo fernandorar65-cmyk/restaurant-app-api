@@ -25,7 +25,7 @@ import {
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
 import { OrderItemsService } from '../../../application/order-items/order-items.service.js';
-import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
+import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
 import { ChangeOrderItemStatusDto } from '../dto/attention-requests.dto.js';
 import {
   OrderItemHistoryResponseDto,
@@ -49,7 +49,8 @@ export class OrderItemsController {
   @ApiQuery({
     name: 'status',
     required: false,
-    description: 'Uno o varios estados separados por coma, ej. SUBMITTED,PREPARING',
+    description:
+      'Uno o varios estados canónicos separados por coma, ej. SUBMITTED,IN_PREPARATION',
   })
   @ApiPaginatedResponse(OrderItemResponseDto)
   async findForBoard(
@@ -66,21 +67,25 @@ export class OrderItemsController {
     const items = await this.itemsService.findForBoard(
       {
         restaurantId,
-        statuses: statuses?.filter((status): status is OrderItemStatus =>
-          Object.values<string>(OrderItemStatus).includes(status),
+        statuses: statuses?.filter((status): status is OrderStatus =>
+          Object.values<string>(OrderStatus).includes(status),
         ),
         includeClosedAttentions: includeClosed,
       },
       page,
     );
-    return toPageResponse(items, (item) => OrderItemResponseDto.fromDomain(item));
+    return toPageResponse(items, (item) =>
+      OrderItemResponseDto.fromDomain(item),
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un plato' })
   @ApiOkResponse({ type: OrderItemResponseDto })
   @ApiNotFoundResponse({ description: 'Plato no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrderItemResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<OrderItemResponseDto> {
     const item = await this.itemsService.findOne(id);
     return OrderItemResponseDto.fromDomain(item);
   }
@@ -89,17 +94,19 @@ export class OrderItemsController {
   @ApiOperation({
     summary: 'Cambiar el estado de un plato',
     description:
-      'SUBMITTED→PREPARING/REJECTED/CANCELLED, PREPARING→READY/CANCELLED, READY→DELIVERED/CANCELLED. Cada cambio queda en el historial',
+      'Destino por statusId (estado de la sede) o status (estado canónico). Flujo canónico: SUBMITTED→IN_PREPARATION/REJECTED/CANCELLED, IN_PREPARATION→READY/CANCELLED, READY→SERVED/CANCELLED; dentro de un estado no final se puede pasar entre los estados propios de la sede. Cada cambio queda en el historial',
   })
   @ApiOkResponse({ type: OrderItemResponseDto })
   @ApiConflictResponse({
-    description: 'Transición no permitida o el plato fue modificado por otro empleado',
+    description:
+      'Transición no permitida o el plato fue modificado por otro empleado',
   })
   async changeStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeOrderItemStatusDto,
   ): Promise<OrderItemResponseDto> {
     const item = await this.itemsService.changeStatus(id, {
+      statusId: dto.statusId,
       status: dto.status,
       expectedVersion: dto.version,
       reason: dto.reason,
@@ -115,6 +122,8 @@ export class OrderItemsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<OrderItemHistoryResponseDto[]> {
     const entries = await this.itemsService.history(id);
-    return entries.map((entry) => OrderItemHistoryResponseDto.fromDomain(entry));
+    return entries.map((entry) =>
+      OrderItemHistoryResponseDto.fromDomain(entry),
+    );
   }
 }

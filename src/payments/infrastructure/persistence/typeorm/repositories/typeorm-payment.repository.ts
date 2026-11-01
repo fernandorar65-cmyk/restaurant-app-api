@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../../../common/application/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { roundMoney } from '../../../../../common/domain/value-objects/money.js';
 import {
@@ -44,7 +47,10 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return found ? PaymentMapper.toDomain(found) : null;
   }
 
-  async findByIdForUpdate(id: string, tx: TransactionContext): Promise<Payment | null> {
+  async findByIdForUpdate(
+    id: string,
+    tx: TransactionContext,
+  ): Promise<Payment | null> {
     // Lock only the payment row (FOR UPDATE can't be used with outer joins).
     const locked = await transactionalRepository(this.payments, tx)
       .createQueryBuilder('payment')
@@ -55,7 +61,10 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return locked ? this.findById(id, tx) : null;
   }
 
-  async findByRequestId(restaurantId: string, requestId: string): Promise<Payment | null> {
+  async findByRequestId(
+    restaurantId: string,
+    requestId: string,
+  ): Promise<Payment | null> {
     const found = await this.payments.findOne({
       where: { restaurantId, requestId },
       relations: WITH_ALLOCATIONS,
@@ -75,7 +84,10 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return found ? PaymentMapper.toDomain(found) : null;
   }
 
-  async findPage(filter: PaymentFilter, page: PageRequest): Promise<Page<Payment>> {
+  async findPage(
+    filter: PaymentFilter,
+    page: PageRequest,
+  ): Promise<Page<Payment>> {
     const [rows, total] = await this.payments.findAndCount({
       where: withoutUndefined({
         attentionId: filter.attentionId,
@@ -127,11 +139,15 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     );
   }
 
-  async lockAttention(attentionId: string, tx: TransactionContext): Promise<void> {
+  async lockAttention(
+    attentionId: string,
+    tx: TransactionContext,
+  ): Promise<void> {
     const manager = (tx as TypeOrmTransactionContext).manager;
-    await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-      `payments:attention:${attentionId}`,
-    ]);
+    await manager.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [`payments:attention:${attentionId}`],
+    );
   }
 
   async allocationTotals(
@@ -149,13 +165,18 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
         'counted',
       )
       .addSelect(
-        'COALESCE(SUM(allocation.allocated_amount) FILTER (WHERE NOT status.counts_toward_balance AND NOT status.is_terminal), 0)',
+        'COALESCE(SUM(allocation.allocated_amount) FILTER (WHERE status.reserves_balance), 0)',
         'reserved',
       )
       .where('payment.attention_id = :attentionId', { attentionId })
       .groupBy('allocation.concept')
       .addGroupBy('allocation.order_item_id')
-      .getRawMany<{ concept: AllocationConcept; orderItemId: string | null; counted: string; reserved: string }>();
+      .getRawMany<{
+        concept: AllocationConcept;
+        orderItemId: string | null;
+        counted: string;
+        reserved: string;
+      }>();
     return rows.map((row) => ({
       concept: row.concept,
       orderItemId: row.orderItemId,
@@ -164,8 +185,14 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     }));
   }
 
-  private async statusId(code: PaymentStatusCode, tx?: TransactionContext): Promise<string> {
-    const status = await transactionalRepository(this.statuses, tx).findOneOrFail({
+  private async statusId(
+    code: PaymentStatusCode,
+    tx?: TransactionContext,
+  ): Promise<string> {
+    const status = await transactionalRepository(
+      this.statuses,
+      tx,
+    ).findOneOrFail({
       where: { code },
     });
     return status.id;

@@ -9,8 +9,8 @@ import { Attention } from '../../domain/entities/attention.entity.js';
 import type { FulfillmentDetails } from '../../domain/entities/fulfillment.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { OrderSource } from '../../domain/enums/order-source.enum.js';
-import { OrderItemStatus } from '../../domain/enums/order-item-status.enum.js';
-import { ServiceType } from '../../domain/enums/service-type.enum.js';
+import { FulfillmentMode } from '../../domain/enums/fulfillment-mode.enum.js';
+import { OrderStatus } from '../../domain/enums/order-status.enum.js';
 import {
   ActiveAttentionAlreadyExistsError,
   AttentionAccessDeniedError,
@@ -44,10 +44,13 @@ export interface DinerIdentity {
 }
 
 export interface StartAttentionInput {
-  serviceType: ServiceType;
-  /** QR token of the table, required for DINE_IN. */
+  /** One of the restaurant's service types... */
+  serviceTypeId?: string | null;
+  /** ...or its first active type of this mode. */
+  fulfillmentMode?: FulfillmentMode | null;
+  /** QR token of the table, required when the service type requires a table. */
   tableToken?: string;
-  /** Required for PICKUP / DELIVERY. */
+  /** Required for pickup / delivery unless serviceTypeId identifies the restaurant. */
   restaurantId?: string;
   requestId: string;
   items: OrderLineInput[];
@@ -146,11 +149,11 @@ export class CustomerAttentionsService {
     ) {
       throw new AttentionAccessDeniedError();
     }
-    if (item.currentStatus !== OrderItemStatus.SUBMITTED) {
+    if (item.currentStatus !== OrderStatus.SUBMITTED) {
       throw new ItemAlreadyInPreparationError();
     }
     return this.itemsService.changeStatus(itemId, {
-      status: OrderItemStatus.CANCELLED,
+      status: OrderStatus.CANCELLED,
       expectedVersion: item.version,
       reason: 'Cancelado por el comensal',
     });
@@ -184,22 +187,36 @@ export class CustomerAttentionsService {
     input: StartAttentionInput,
     identity: DinerIdentity,
   ): Promise<OpenAttentionInput> {
-    if (input.serviceType !== ServiceType.DINE_IN) {
+    const base = {
+      serviceTypeId: input.serviceTypeId,
+      fulfillmentMode: input.fulfillmentMode,
+    };
+    if (!input.tableToken) {
+      if (
+        input.fulfillmentMode === FulfillmentMode.DINE_IN &&
+        !input.serviceTypeId
+      ) {
+        throw new InvalidServiceSetupError(
+          'En mesa requiere el token del QR de la mesa',
+        );
+      }
       return {
-        serviceType: input.serviceType,
+        ...base,
         restaurantId: input.restaurantId,
         customerUserId: identity.userId,
         fulfillment: input.fulfillment,
       };
     }
-    if (!input.tableToken) {
-      throw new InvalidServiceSetupError('DINE_IN requiere el token del QR de la mesa');
-    }
     const table = await this.tableQrLookup.resolveByToken(input.tableToken);
     if (!table) {
       throw new InvalidTableQrTokenError();
     }
-    return { serviceType: ServiceType.DINE_IN, diningTableId: table.tableId };
+    // At a table the default is the restaurant's dine-in service.
+    return {
+      serviceTypeId: input.serviceTypeId,
+      fulfillmentMode: input.fulfillmentMode ?? FulfillmentMode.DINE_IN,
+      diningTableId: table.tableId,
+    };
   }
 
   private async startInTransaction(
@@ -208,8 +225,8 @@ export class CustomerAttentionsService {
     input: StartAttentionInput,
     identity: DinerIdentity,
   ): Promise<StartAttentionResult> {
-    const { attentionId, participant, order } = await this.transactionRunner.run(
-      async (tx) => {
+    const { attentionId, participant, order } =
+      await this.transactionRunner.run(async (tx) => {
         const attention = await this.attentionsService.openOrJoin(opening, tx);
         const participant = await this.joinOrGet(
           attention.id,
@@ -229,8 +246,7 @@ export class CustomerAttentionsService {
           tx,
         );
         return { attentionId: attention.id, participant, order };
-      },
-    );
+      });
     return {
       attention: await this.attentionsService.findOne(attentionId),
       participant,
@@ -258,7 +274,9 @@ export class CustomerAttentionsService {
         id: randomUUID(),
         attentionId,
         userId: identity.userId,
-        guestToken: identity.userId ? null : (identity.guestToken ?? randomUUID()),
+        guestToken: identity.userId
+          ? null
+          : (identity.guestToken ?? randomUUID()),
         displayName,
       }),
       tx,

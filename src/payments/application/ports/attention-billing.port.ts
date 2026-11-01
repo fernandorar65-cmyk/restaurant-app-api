@@ -17,6 +17,8 @@ export interface AttentionBillingSnapshot {
   isActive: boolean;
   /** Billable products only (rejected / cancelled ones are never charged). */
   items: BillableItem[];
+  /** Pickup/delivery record the fee belongs to; null when there is none. */
+  fulfillmentId: string | null;
   deliveryFee: number;
 }
 

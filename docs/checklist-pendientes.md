@@ -2,14 +2,14 @@
 
 Lista única para ir eligiendo qué abordar: indica los códigos (por ejemplo, "haz C1, C3 y F1") y se marcan con `[x]` al terminarlos. Consolida [pendientes-arquitectura.md](pendientes-arquitectura.md), [finanzas-pendientes.md](finanzas-pendientes.md) y el análisis de arquitectura (SOLID, DDD y monolito modular).
 
-**Actualizado:** 2026-10-26 · Prioridad: 🔴 crítica · 🟠 alta · 🟡 media · 🟢 baja · Esfuerzo: B bajo · M medio · A alto
+**Actualizado:** 2026-10-31 · Prioridad: 🔴 crítica · 🟠 alta · 🟡 media · 🟢 baja · Esfuerzo: B bajo · M medio · A alto
 
 ## 1. Críticos antes de cualquier ambiente compartido
 
-- [ ] **C1** 🔴 M — Migración inicial con el modelo actual y `synchronize: false` (#8)
+- [x] **C1** 🔴 M — Migración inicial con el modelo actual y `synchronize: false` (#8). *Hecho: `InitialSchema` (adopta bases creadas por `synchronize`) + `ConfigurableCatalogs`; `synchronize` apagado en todo entorno salvo `DB_SYNCHRONIZE=true` local*
 - [ ] **C2** 🔴 B — Seed idempotente de permisos y roles base (#9). *Conviene junto con C1*
 - [ ] **C3** 🔴 A — Permisos por endpoint y alcance por organización y sede según la membresía (#5)
-- [ ] **C4** 🔴 B — Secretos JWT obligatorios: la app no arranca sin ellos (#6)
+- [x] **C4** 🔴 B — Secretos JWT obligatorios: la app no arranca sin ellos (#6). *Hecho con `validateEnvironment`: en producción además exige 32 caracteres y valores distintos a los de ejemplo*
 - [ ] **C5** 🔴 B — Una orden no puede reabrir una atención cerrada o cancelada: leerla con bloqueo dentro de la transacción (#1)
 - [ ] **C6** 🔴 B — `requestBill`, `close` y `cancel` sin pisar cambios simultáneos (#2)
 - [ ] **C7** 🔴 M — Primer pedido del comensal atómico: validar el carrito antes de abrir la atención (#3), y bloquear el pedido si no llega al monto mínimo de la modalidad (#25)
@@ -17,7 +17,7 @@ Lista única para ir eligiendo qué abordar: indica los códigos (por ejemplo, "
 ## 2. Arquitectura (SOLID, DDD y monolito modular)
 
 - [ ] **R1** 🟠 M — Romper el ciclo attention ↔ payments (`forwardRef`): payments dueño del saldo, o la cuenta expuesta mediante un puerto sin dependencia de vuelta
-- [ ] **R2** 🟡 M — Política única de FK entre contextos: FK solo hacia organizations e iam, o solo referencias lógicas (hoy hay 25 FK cruzadas y payments no usa ninguna)
+- [x] **R2** 🟡 M — Política única de FK entre contextos. *Hecho: FK físicas hacia organizations e iam (27 de 33), payments → attention lógica como excepción documentada, sin cascadas en historia ni dinero. Ver [base-de-datos.md](modelo-tablas/base-de-datos.md)*
 - [ ] **R3** 🟡 M — Fachada pública por módulo en lugar de exportar servicios completos (por ejemplo, `AttentionBillingFacade`)
 - [ ] **R4** 🟡 A — Eventos de dominio en proceso (y outbox más adelante) para efectos secundarios, empezando por el consumo de stock
 - [ ] **R5** 🟢 B — Mover `Page` y `PageRequest` a `common/domain`: hoy 25 interfaces del dominio importan `common/application`
@@ -45,12 +45,15 @@ Lista única para ir eligiendo qué abordar: indica los códigos (por ejemplo, "
 
 ## 5. Funcionalidad pendiente
 
+- [ ] **P3** 🟡 M — Validar en la apertura de la atención el monto mínimo del tipo de servicio (hoy solo lo informa la validación del carrito; ver C7)
+- [ ] **P4** 🟢 B — Permisos para administrar estados y tipos de servicio (`/attention-statuses`, `/order-statuses`, `/service-types`) cuando exista C3
+
 - [ ] **P1** 🟡 M — Webhook público por pasarela con verificación de firma, que llame a `ProviderEventsService` (#37). *Requiere elegir la pasarela*
 - [ ] **P2** 🟢 B — Motivos secundarios de movimiento de inventario por organización (vencimiento, derrame, consumo del personal) (#40)
 
 ## 6. Documentación
 
-- [ ] **D-1** 🟡 B — Consolidar las observaciones de ACMR en el SQL general y el documento definitivo de tablas (#31). El diagrama ya está al día
+- [ ] **D-1** 🟡 B — Consolidar las observaciones de ACMR en el SQL general (#31). El documento de tablas y el diagrama ya están al día (53 tablas; el diagrama se regenera con `scripts/model-diagram.mjs`)
 - [ ] **D-2** 🟢 B — Actualizar `arquitectura-ddd-hexagonal.md` y `Modelo de tablas.md` (#23)
 - [ ] **D-3** 🟢 B — Alinear `comensales.md` y `restaurant.md` con el vocabulario actual (atención → órdenes → ítems)
 
@@ -69,7 +72,7 @@ Lista única para ir eligiendo qué abordar: indica los códigos (por ejemplo, "
 ## Orden sugerido
 
 1. **C1 + C2**: migraciones y seeds; lo demás se apoya en un esquema versionado.
-2. **C4, C5, C6**: esfuerzo bajo y riesgo alto.
+2. **C5, C6**: esfuerzo bajo y riesgo alto.
 3. **R5 + R7**: fronteras protegidas antes de seguir creciendo.
 4. **T1**: el smoke dentro del repo da red de seguridad para lo que sigue.
 5. **C3**: permisos.

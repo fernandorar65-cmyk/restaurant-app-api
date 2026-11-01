@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../../../common/application/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { OrderItem } from '../../../../domain/entities/order-item.entity.js';
-import { AttentionStatus } from '../../../../domain/enums/attention-status.enum.js';
-import { OrderItemStatus } from '../../../../domain/enums/order-item-status.enum.js';
+import { OrderStatus } from '../../../../domain/enums/order-status.enum.js';
 import { OrderItemRepository } from '../../../../domain/repositories/order-item.repository.js';
 import { OrderItemOrmEntity } from '../entities/order-item.orm-entity.js';
 import { OrderItemMapper } from '../mappers/attention.mappers.js';
@@ -18,16 +20,24 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
     private readonly repository: Repository<OrderItemOrmEntity>,
   ) {}
 
-  async findById(id: string, tx?: TransactionContext): Promise<OrderItem | null> {
+  async findById(
+    id: string,
+    tx?: TransactionContext,
+  ): Promise<OrderItem | null> {
     const found = await transactionalRepository(this.repository, tx).findOne({
       where: { id },
+      relations: { status: true },
     });
     return found ? OrderItemMapper.toDomain(found) : null;
   }
 
-  async findByOrder(orderId: string, tx?: TransactionContext): Promise<OrderItem[]> {
+  async findByOrder(
+    orderId: string,
+    tx?: TransactionContext,
+  ): Promise<OrderItem[]> {
     const rows = await transactionalRepository(this.repository, tx).find({
       where: { orderId },
+      relations: { status: true },
       order: { createdAt: 'ASC' },
     });
     return rows.map((row) => OrderItemMapper.toDomain(row));
@@ -36,6 +46,7 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
   async findByAttention(attentionId: string): Promise<OrderItem[]> {
     const rows = await this.repository
       .createQueryBuilder('item')
+      .innerJoinAndSelect('item.status', 'status')
       .innerJoin('item.order', 'ord')
       .where('ord.attention_id = :attentionId', { attentionId })
       .orderBy('item.created_at', 'ASC')
@@ -46,13 +57,14 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
   async findForBoard(
     filter: {
       restaurantId: string;
-      statuses?: OrderItemStatus[];
+      statuses?: OrderStatus[];
       includeClosedAttentions?: boolean;
     },
     page: PageRequest,
   ): Promise<Page<OrderItem>> {
     const query = this.repository
       .createQueryBuilder('item')
+      .innerJoinAndSelect('item.status', 'status')
       .innerJoin('item.order', 'ord')
       .innerJoin('ord.attention', 'attention')
       .where('attention.restaurant_id = :restaurantId', {
@@ -62,12 +74,12 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
       .skip((page.page - 1) * page.limit)
       .take(page.limit);
     if (!filter.includeClosedAttentions) {
-      query.andWhere('attention.status IN (:...activeStatuses)', {
-        activeStatuses: [AttentionStatus.OPEN, AttentionStatus.BILL_REQUESTED],
-      });
+      query.andWhere(
+        'attention.closed_at IS NULL AND attention.cancelled_at IS NULL',
+      );
     }
     if (filter.statuses?.length) {
-      query.andWhere('item.current_status IN (:...statuses)', {
+      query.andWhere('status.canonical_state IN (:...statuses)', {
         statuses: filter.statuses,
       });
     }
@@ -97,7 +109,7 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
       .createQueryBuilder()
       .update(OrderItemOrmEntity)
       .set({
-        currentStatus: item.currentStatus,
+        orderStatusId: item.statusId,
         rejectionReason: item.rejectionReason,
       })
       .where('id = :id AND version = :expectedVersion', {

@@ -1,10 +1,11 @@
-import { OrderItemStatus } from '../enums/order-item-status.enum.js';
+import type { OrderStatus } from '../enums/order-status.enum.js';
+import type { StatusRef } from '../workflows.js';
 
 export interface OrderItemStatusHistoryProps {
   id: string;
   orderItemId: string;
-  previousStatus: OrderItemStatus | null;
-  newStatus: OrderItemStatus;
+  previousStatus: StatusRef<OrderStatus> | null;
+  newStatus: StatusRef<OrderStatus>;
   changedByUserId: string | null;
   reason: string | null;
   changedAt: Date;
@@ -21,7 +22,9 @@ export class OrderItemStatusHistory {
     return new OrderItemStatusHistory({ ...props, changedAt: new Date() });
   }
 
-  static fromPersistence(props: OrderItemStatusHistoryProps): OrderItemStatusHistory {
+  static fromPersistence(
+    props: OrderItemStatusHistoryProps,
+  ): OrderItemStatusHistory {
     return new OrderItemStatusHistory(props);
   }
 
@@ -31,10 +34,10 @@ export class OrderItemStatusHistory {
   get orderItemId(): string {
     return this.props.orderItemId;
   }
-  get previousStatus(): OrderItemStatus | null {
+  get previousStatus(): StatusRef<OrderStatus> | null {
     return this.props.previousStatus;
   }
-  get newStatus(): OrderItemStatus {
+  get newStatus(): StatusRef<OrderStatus> {
     return this.props.newStatus;
   }
   get changedByUserId(): string | null {

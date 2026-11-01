@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
+import type { FindOptionsRelations } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
 import { Order } from '../../../../domain/entities/order.entity.js';
@@ -14,6 +15,11 @@ export class TypeOrmOrderRepository
   extends TypeOrmBaseRepository<Order, OrderOrmEntity>
   implements OrderRepository
 {
+  protected override readonly relations: FindOptionsRelations<OrderOrmEntity> =
+    {
+      status: true,
+    };
+
   constructor(
     @InjectRepository(OrderOrmEntity)
     repository: Repository<OrderOrmEntity>,
@@ -39,21 +45,22 @@ export class TypeOrmOrderRepository
   ): Promise<Order | null> {
     const found = await this.getRepository(tx).findOne({
       where: { attentionId, requestId },
+      relations: this.relations,
     });
     return found ? this.toDomain(found) : null;
   }
 
-  async findByIdForUpdate(id: string, tx: TransactionContext): Promise<Order | null> {
-    const found = await this.getRepository(tx).findOne({
-      where: { id },
-      lock: { mode: 'pessimistic_write' },
-    });
-    return found ? this.toDomain(found) : null;
+  async findByIdForUpdate(
+    id: string,
+    tx: TransactionContext,
+  ): Promise<Order | null> {
+    return this.findByIdLocked(id, tx);
   }
 
   async findByAttention(attentionId: string): Promise<Order[]> {
     const rows = await this.repository.find({
       where: { attentionId },
+      relations: this.relations,
       order: { submittedAt: 'ASC' },
     });
     return rows.map((row) => this.toDomain(row));

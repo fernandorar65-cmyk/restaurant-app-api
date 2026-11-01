@@ -16,16 +16,25 @@ import { planAllocations } from './allocation-planner.js';
 import type { ChargeLine } from './allocation-planner.js';
 
 const at = (minute: number) => new Date(Date.UTC(2026, 9, 26, 12, minute));
-const item = (orderItemId: string, outstanding: number, minute: number): ChargeLine => ({
+const item = (
+  orderItemId: string,
+  outstanding: number,
+  minute: number,
+): ChargeLine => ({
   concept: AllocationConcept.ORDER_ITEM,
   orderItemId,
+  fulfillmentId: null,
   label: orderItemId,
   outstanding,
   createdAt: at(minute),
 });
 
 // The example of the specification: Lomo S/40, Causa S/20, Chicha S/10.
-const LINES = [item('chicha', 10, 3), item('lomo', 40, 1), item('causa', 20, 2)];
+const LINES = [
+  item('chicha', 10, 3),
+  item('lomo', 40, 1),
+  item('causa', 20, 2),
+];
 
 describe('planAllocations', () => {
   it('pays chosen products with chosen amounts (S/45 = lomo + half chicha)', () => {
@@ -49,6 +58,7 @@ describe('planAllocations', () => {
         {
           concept: AllocationConcept.DELIVERY_FEE,
           orderItemId: null,
+          fulfillmentId: 'fulfillment-1',
           label: 'envío',
           outstanding: 5,
           createdAt: at(0),
@@ -65,11 +75,48 @@ describe('planAllocations', () => {
     expect(plan.reduce((sum, line) => sum + line.amount, 0)).toBe(75);
   });
 
+  it('targets exactly one concept per allocation: a product or the fulfillment fee', () => {
+    const plan = planAllocations(
+      [
+        item('lomo', 40, 1),
+        {
+          concept: AllocationConcept.DELIVERY_FEE,
+          orderItemId: null,
+          fulfillmentId: 'fulfillment-1',
+          label: 'envío',
+          outstanding: 5,
+          createdAt: at(0),
+        },
+      ],
+      {
+        mode: AllocationMode.ITEMS,
+        allocations: [{ orderItemId: 'lomo', amount: 40 }, { amount: 5 }],
+      },
+    );
+    expect(plan).toEqual([
+      {
+        concept: AllocationConcept.ORDER_ITEM,
+        orderItemId: 'lomo',
+        fulfillmentId: null,
+        amount: 40,
+      },
+      {
+        concept: AllocationConcept.DELIVERY_FEE,
+        orderItemId: null,
+        fulfillmentId: 'fulfillment-1',
+        amount: 5,
+      },
+    ]);
+  });
+
   it('spreads a free amount deterministically, breaking date ties by id', () => {
-    const plan = planAllocations([item('b', 10, 1), item('a', 10, 1), item('c', 10, 0)], {
-      mode: AllocationMode.AMOUNT,
-      amount: 15.5,
-    });
+    const plan = planAllocations(
+      [item('b', 10, 1), item('a', 10, 1), item('c', 10, 0)],
+      {
+        mode: AllocationMode.AMOUNT,
+        amount: 15.5,
+      },
+    );
     expect(plan.map((line) => [line.orderItemId, line.amount])).toEqual([
       ['c', 10],
       ['a', 5.5],
@@ -138,8 +185,20 @@ describe('Payment', () => {
     notes: null,
     registeredByUserId: null,
     allocations: [
-      { id: 'a1', concept: AllocationConcept.ORDER_ITEM, orderItemId: 'lomo', amount: 40 },
-      { id: 'a2', concept: AllocationConcept.ORDER_ITEM, orderItemId: 'chicha', amount: 5 },
+      {
+        id: 'a1',
+        concept: AllocationConcept.ORDER_ITEM,
+        orderItemId: 'lomo',
+        fulfillmentId: null,
+        amount: 40,
+      },
+      {
+        id: 'a2',
+        concept: AllocationConcept.ORDER_ITEM,
+        orderItemId: 'chicha',
+        fulfillmentId: null,
+        amount: 5,
+      },
     ],
   };
 
@@ -150,14 +209,26 @@ describe('Payment', () => {
   });
 
   it('is paid on creation only when its status counts toward the balance', () => {
-    const manual = Payment.create({ ...base, status: PaymentStatusCode.PAID, amount: 45 });
-    const pending = Payment.create({ ...base, status: PaymentStatusCode.PENDING, amount: 45 });
+    const manual = Payment.create({
+      ...base,
+      status: PaymentStatusCode.PAID,
+      amount: 45,
+    });
+    const pending = Payment.create({
+      ...base,
+      status: PaymentStatusCode.PENDING,
+      amount: 45,
+    });
     expect(manual.paidAt).toBeInstanceOf(Date);
     expect(pending.paidAt).toBeNull();
   });
 
   it('applies gateway statuses idempotently and never goes back', () => {
-    const payment = Payment.create({ ...base, status: PaymentStatusCode.PENDING, amount: 45 });
+    const payment = Payment.create({
+      ...base,
+      status: PaymentStatusCode.PENDING,
+      amount: 45,
+    });
     expect(payment.changeStatus(PaymentStatusCode.PROCESSING)).toBe(true);
     expect(payment.changeStatus(PaymentStatusCode.PAID)).toBe(true);
     expect(payment.paidAt).toBeInstanceOf(Date);

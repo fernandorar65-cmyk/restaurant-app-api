@@ -18,8 +18,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { FulfillmentStatus } from '../../../domain/enums/fulfillment-status.enum.js';
-import { OrderItemStatus } from '../../../domain/enums/order-item-status.enum.js';
-import { ServiceType } from '../../../domain/enums/service-type.enum.js';
+import { FulfillmentMode } from '../../../domain/enums/fulfillment-mode.enum.js';
+import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
 
 export class OrderLineDto {
   @ApiProperty({ example: '424590bf-8d98-41c3-8ab9-e50440292401' })
@@ -113,21 +113,38 @@ export class FulfillmentDto {
 }
 
 export class OpenAttentionDto {
-  @ApiProperty({ enum: ServiceType })
-  @IsEnum(ServiceType)
-  serviceType: ServiceType;
+  @ApiPropertyOptional({
+    description:
+      'Tipo de servicio de la sede (GET /service-types). Alternativa a fulfillmentMode',
+  })
+  @IsOptional()
+  @IsUUID()
+  serviceTypeId?: string;
 
-  @ApiPropertyOptional({ description: 'Requerido en DINE_IN' })
+  @ApiPropertyOptional({
+    enum: FulfillmentMode,
+    description:
+      'Usa el primer tipo de servicio activo de la sede con esta modalidad',
+  })
+  @IsOptional()
+  @IsEnum(FulfillmentMode)
+  fulfillmentMode?: FulfillmentMode;
+
+  @ApiPropertyOptional({
+    description: 'Requerido si el tipo de servicio exige mesa',
+  })
   @IsOptional()
   @IsUUID()
   diningTableId?: string;
 
-  @ApiPropertyOptional({ description: 'Requerido en PICKUP / DELIVERY' })
+  @ApiPropertyOptional({ description: 'Requerido sin mesa ni serviceTypeId' })
   @IsOptional()
   @IsUUID()
   restaurantId?: string;
 
-  @ApiPropertyOptional({ description: 'Comensal registrado titular de la cuenta' })
+  @ApiPropertyOptional({
+    description: 'Comensal registrado titular de la cuenta',
+  })
   @IsOptional()
   @IsUUID()
   customerUserId?: string | null;
@@ -159,9 +176,22 @@ export class CancelOrderDto {
 }
 
 export class ChangeOrderItemStatusDto {
-  @ApiProperty({ enum: OrderItemStatus })
-  @IsEnum(OrderItemStatus)
-  status: OrderItemStatus;
+  @ApiPropertyOptional({
+    description:
+      'Estado de la sede (GET /order-statuses). Alternativa a status',
+  })
+  @IsOptional()
+  @IsUUID()
+  statusId?: string;
+
+  @ApiPropertyOptional({
+    enum: OrderStatus,
+    description:
+      'Usa el primer estado activo de la sede con este estado canónico',
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
 
   @ApiPropertyOptional({
     description:
@@ -193,7 +223,9 @@ export class ChangeFulfillmentStatusDto {
   @IsEnum(FulfillmentStatus)
   status: FulfillmentStatus;
 
-  @ApiPropertyOptional({ description: 'Hora estimada de listo (útil al confirmar)' })
+  @ApiPropertyOptional({
+    description: 'Hora estimada de listo (útil al confirmar)',
+  })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
@@ -201,18 +233,32 @@ export class ChangeFulfillmentStatusDto {
 }
 
 export class StartCustomerAttentionDto extends SubmitOrderDto {
-  @ApiProperty({ enum: ServiceType, example: ServiceType.DINE_IN })
-  @IsEnum(ServiceType)
-  serviceType: ServiceType;
+  @ApiPropertyOptional({
+    description:
+      'Tipo de servicio de la sede (GET /service-types). Alternativa a fulfillmentMode',
+  })
+  @IsOptional()
+  @IsUUID()
+  serviceTypeId?: string;
 
   @ApiPropertyOptional({
-    description: 'Token del QR de la mesa. Requerido en DINE_IN',
+    enum: FulfillmentMode,
+    description:
+      'Usa el primer tipo de servicio activo de la sede con esta modalidad',
+  })
+  @IsOptional()
+  @IsEnum(FulfillmentMode)
+  fulfillmentMode?: FulfillmentMode;
+
+  @ApiPropertyOptional({
+    description:
+      'Token del QR de la mesa. Requerido si el tipo de servicio exige mesa',
   })
   @IsOptional()
   @IsString()
   tableToken?: string;
 
-  @ApiPropertyOptional({ description: 'Requerido en PICKUP / DELIVERY' })
+  @ApiPropertyOptional({ description: 'Requerido sin mesa ni serviceTypeId' })
   @IsOptional()
   @IsUUID()
   restaurantId?: string;

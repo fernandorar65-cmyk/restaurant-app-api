@@ -6,6 +6,8 @@ import type { ProductOrderIssue } from '../../domain/entities/product.entity.js'
 import type { ServiceMode } from '../../domain/service-mode.js';
 import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
 import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import { SERVICE_TYPE_LOOKUP } from '../ports/service-type-lookup.port.js';
+import type { ServiceTypeLookupPort } from '../ports/service-type-lookup.port.js';
 import { ProductsService } from '../products/products.service.js';
 
 export interface CartValidationItemInput {
@@ -49,7 +51,7 @@ export interface CartValidationResult {
   serviceIssues: CartServiceIssue[];
   lines: CartValidationLine[];
   subtotal: number;
-  minimumAmount: number | null;
+  minimumAmount: number;
   deliveryFee: number;
   total: number;
 }
@@ -64,13 +66,15 @@ export class RestaurantNotAcceptingOrdersError extends BusinessRuleDomainError {
  * Re-checks the cart against the current catalog. Names and prices always
  * come from the server; a price sent by the browser only produces a
  * PRICE_CHANGED warning, it never replaces the real one. The restaurant's
- * settings for the service mode (enabled, minimum, delivery fee) also apply.
+ * service type for the mode (offered, minimum, delivery fee) also applies.
  */
 @Injectable()
 export class CartValidationService {
   constructor(
     @Inject(RESTAURANT_LOOKUP)
     private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(SERVICE_TYPE_LOOKUP)
+    private readonly serviceTypeLookup: ServiceTypeLookupPort,
     private readonly productsService: ProductsService,
   ) {}
 
@@ -93,13 +97,18 @@ export class CartValidationService {
     const lines: CartValidationLine[] = [];
 
     for (const item of input.items) {
-      const product = products.find((candidate) => candidate.id === item.productId);
+      const product = products.find(
+        (candidate) => candidate.id === item.productId,
+      );
       if (!product) {
         issues.push({ productId: item.productId, code: 'PRODUCT_NOT_FOUND' });
         continue;
       }
       if (product.restaurantId !== restaurant.id) {
-        issues.push({ productId: item.productId, code: 'PRODUCT_NOT_IN_RESTAURANT' });
+        issues.push({
+          productId: item.productId,
+          code: 'PRODUCT_NOT_IN_RESTAURANT',
+        });
         continue;
       }
       const orderIssue = product.orderIssue(input.serviceType);
@@ -123,30 +132,33 @@ export class CartValidationService {
       });
     }
 
-    const subtotal = roundMoney(lines.reduce((sum, line) => sum + line.subtotal, 0));
-    const orderMode = await this.restaurantLookup.findOrderMode(
+    const subtotal = roundMoney(
+      lines.reduce((sum, line) => sum + line.subtotal, 0),
+    );
+    const serviceType = await this.serviceTypeLookup.findActive(
       restaurant.id,
       input.serviceType,
     );
     const serviceIssues: CartServiceIssue[] = [];
-    if (!orderMode.isEnabled) {
+    if (!serviceType) {
       serviceIssues.push('MODE_DISABLED');
     }
-    if (orderMode.minimumAmount !== null && subtotal < orderMode.minimumAmount) {
+    const minimumAmount = serviceType?.minimumOrderAmount ?? 0;
+    if (subtotal < minimumAmount) {
       serviceIssues.push('BELOW_MINIMUM');
     }
+    // Dine-in has no pickup/delivery record, so no fee applies.
     const deliveryFee =
-      input.serviceType === 'DELIVERY' ? (orderMode.deliveryFee ?? 0) : 0;
+      input.serviceType === 'DINE_IN' ? 0 : (serviceType?.deliveryFee ?? 0);
     return {
       valid: issues.length === 0 && serviceIssues.length === 0,
       issues,
       serviceIssues,
       lines,
       subtotal,
-      minimumAmount: orderMode.minimumAmount,
+      minimumAmount,
       deliveryFee,
       total: roundMoney(subtotal + deliveryFee),
     };
   }
 }
-

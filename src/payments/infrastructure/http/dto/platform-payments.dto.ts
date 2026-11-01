@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { PaymentStatus } from '../../../domain/entities/payment-status.entity.js';
 import { ProviderEvent } from '../../../domain/entities/provider-event.entity.js';
 import { ProviderStatusMapping } from '../../../domain/entities/provider-status-mapping.entity.js';
@@ -22,7 +30,10 @@ export class RenamePaymentStatusDto {
 }
 
 export class PaymentStatusResponseDto {
-  @ApiProperty({ enum: PaymentStatusCode, description: 'Código estable e inmutable' })
+  @ApiProperty({
+    enum: PaymentStatusCode,
+    description: 'Código estable e inmutable',
+  })
   code: PaymentStatusCode;
 
   @ApiProperty()
@@ -37,6 +48,12 @@ export class PaymentStatusResponseDto {
   @ApiProperty({ description: 'Si reduce el saldo de la atención' })
   countsTowardBalance: boolean;
 
+  @ApiProperty({
+    description:
+      'Si un intento sin confirmar bloquea su monto para evitar cobros duplicados',
+  })
+  reservesBalance: boolean;
+
   @ApiProperty()
   allowsRefund: boolean;
 
@@ -50,6 +67,7 @@ export class PaymentStatusResponseDto {
     dto.description = status.description;
     dto.isTerminal = status.isTerminal;
     dto.countsTowardBalance = status.countsTowardBalance;
+    dto.reservesBalance = status.reservesBalance;
     dto.allowsRefund = status.allowsRefund;
     dto.isActive = status.isActive;
     return dto;
@@ -63,7 +81,10 @@ export class CreateProviderStatusMappingDto {
   @MaxLength(50)
   providerCode: string;
 
-  @ApiProperty({ example: 'approved', description: 'Estado tal como lo envía la pasarela' })
+  @ApiProperty({
+    example: 'approved',
+    description: 'Estado tal como lo envía la pasarela',
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(100)
@@ -108,7 +129,9 @@ export class ProviderStatusMappingResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromDomain(mapping: ProviderStatusMapping): ProviderStatusMappingResponseDto {
+  static fromDomain(
+    mapping: ProviderStatusMapping,
+  ): ProviderStatusMappingResponseDto {
     const dto = new ProviderStatusMappingResponseDto();
     dto.id = mapping.id;
     dto.providerCode = mapping.providerCode;
@@ -146,7 +169,9 @@ export class ProviderEventDto {
   @MaxLength(100)
   externalStatus?: string | null;
 
-  @ApiPropertyOptional({ description: 'Payload original (los datos de tarjeta se eliminan)' })
+  @ApiPropertyOptional({
+    description: 'Payload original (los datos de tarjeta se eliminan)',
+  })
   @IsOptional()
   @IsObject()
   payload?: Record<string, unknown>;
@@ -189,10 +214,16 @@ export class ProviderEventResponseDto {
   @ApiPropertyOptional({ nullable: true })
   resultMessage: string | null;
 
-  @ApiProperty({ description: 'true si el evento ya se había recibido (no se volvió a aplicar)' })
+  @ApiProperty({
+    description:
+      'true si el evento ya se había recibido (no se volvió a aplicar)',
+  })
   duplicate: boolean;
 
-  static fromDomain(event: ProviderEvent, duplicate = false): ProviderEventResponseDto {
+  static fromDomain(
+    event: ProviderEvent,
+    duplicate = false,
+  ): ProviderEventResponseDto {
     const dto = new ProviderEventResponseDto();
     dto.id = event.id;
     dto.providerCode = event.providerCode;

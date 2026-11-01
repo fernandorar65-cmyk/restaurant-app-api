@@ -1,4 +1,4 @@
-import type { ServiceType } from '../../domain/enums/service-type.enum.js';
+import type { FulfillmentMode } from '../../domain/enums/fulfillment-mode.enum.js';
 
 export const PRODUCT_LOOKUP = Symbol('PRODUCT_LOOKUP');
 
@@ -19,6 +19,6 @@ export interface ProductForOrder {
 export interface ProductLookupPort {
   findForOrder(
     productIds: string[],
-    serviceType: ServiceType,
+    fulfillmentMode: FulfillmentMode,
   ): Promise<ProductForOrder[]>;
 }

@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { entities } from './entities.js';
+import { migrations } from './migrations.js';
 
+// Used by the TypeORM CLI over the compiled build (npm run migration:run).
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -10,5 +12,5 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_DATABASE ?? 'restaurant_api',
   entities,
-  migrations: ['src/common/persistence/database/migrations/*.ts'],
+  migrations,
 });

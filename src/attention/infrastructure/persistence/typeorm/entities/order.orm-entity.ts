@@ -10,24 +10,18 @@ import {
 import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
 import { inValues } from '../../../../../common/persistence/column-options.js';
 import { OrderSource } from '../../../../domain/enums/order-source.enum.js';
-import { OrderStatus } from '../../../../domain/enums/order-status.enum.js';
 import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { AttentionParticipantOrmEntity } from './attention-participant.orm-entity.js';
 import type { AttentionOrmEntity } from './attention.orm-entity.js';
+import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
 
 // One order sent from the cart or registered by a waiter. request_id makes
 // the submission idempotent within the attention.
 @Entity('orders')
 @Unique('uq_orders_attention_request', ['attentionId', 'requestId'])
 @Index('idx_orders_attention_submitted', ['attentionId', 'submittedAt'])
-@Check(
-  'chk_orders_source',
-  inValues('source', Object.values(OrderSource)),
-)
-@Check(
-  'chk_orders_status',
-  inValues('status', Object.values(OrderStatus)),
-)
+@Index('idx_orders_status', ['orderStatusId'])
+@Check('chk_orders_source', inValues('source', Object.values(OrderSource)))
 @Check(
   'chk_orders_confirmed_at',
   'confirmed_at IS NULL OR confirmed_at >= submitted_at',
@@ -36,7 +30,7 @@ export class OrderOrmEntity extends BaseOrmEntity {
   @Column({ name: 'attention_id', type: 'uuid' })
   attentionId: string;
 
-  @ManyToOne('AttentionOrmEntity', { onDelete: 'CASCADE' })
+  @ManyToOne('AttentionOrmEntity')
   @JoinColumn({ name: 'attention_id' })
   attention?: AttentionOrmEntity;
 
@@ -60,8 +54,13 @@ export class OrderOrmEntity extends BaseOrmEntity {
   @JoinColumn({ name: 'submitted_by_participant_id' })
   submittedByParticipant?: AttentionParticipantOrmEntity;
 
-  @Column({ type: 'varchar', length: 20, default: OrderStatus.SUBMITTED })
-  status: OrderStatus;
+  // Derived from its items; the row is the restaurant's status for that state.
+  @Column({ name: 'order_status_id', type: 'uuid' })
+  orderStatusId: string;
+
+  @ManyToOne('OrderStatusOrmEntity')
+  @JoinColumn({ name: 'order_status_id' })
+  status?: OrderStatusOrmEntity;
 
   @Column({
     name: 'submitted_at',

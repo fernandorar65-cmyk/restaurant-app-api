@@ -13,7 +13,9 @@ import { entities } from '../../src/common/persistence/database/entities.js';
 // categories linked to products and menu sections, order_batches renamed
 // to orders, payments with status catalogs, gateway mappings and events
 // (refund tables modeled, refunds not enabled yet), and inventory split into
-// master supplies, stock per restaurant and signed, immutable movements.
+// master supplies, stock per restaurant and signed, immutable movements;
+// finally, configurable status catalogs and service types per restaurant
+// (attention) replaced the varchar statuses and restaurant_order_modes.
 const EXPECTED_TABLES = [
   // iam
   'users',
@@ -27,7 +29,6 @@ const EXPECTED_TABLES = [
   'restaurants',
   'membership_restaurants',
   'employees',
-  'restaurant_order_modes',
   'restaurant_floors',
   'dining_tables',
   'work_areas',
@@ -41,6 +42,9 @@ const EXPECTED_TABLES = [
   'menu_products',
   'product_ingredients',
   // attention
+  'attention_statuses',
+  'order_statuses',
+  'service_types',
   'attentions',
   'attention_participants',
   'orders',
@@ -72,8 +76,10 @@ const EXPECTED_TABLES = [
   'daily_closure_payment_totals',
 ];
 
-// Not in the SQL model; required by login/refresh and password reset.
+// Not in the SQL model; required by login/refresh and password reset, plus
+// the technical error log.
 const AUTH_SUPPORT_TABLES = ['refresh_tokens', 'password_reset_tokens'];
+const TECHNICAL_TABLES = ['error_logs'];
 
 const connection = {
   type: 'postgres' as const,
@@ -89,7 +95,10 @@ describe('Database model (TypeORM entities)', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    admin = await new DataSource({ ...connection, database: 'postgres' }).initialize();
+    admin = await new DataSource({
+      ...connection,
+      database: 'postgres',
+    }).initialize();
     await admin.query(`CREATE DATABASE "${databaseName}"`);
 
     const options: DataSourceOptions = {
@@ -107,14 +116,17 @@ describe('Database model (TypeORM entities)', () => {
     await admin?.destroy();
   });
 
-  it('creates the tables of the model plus the auth support tables', async () => {
+  it('creates the 53 tables: 50 of the model, 2 of auth support and 1 technical', async () => {
     const rows: { table_name: string }[] = await dataSource.query(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`,
     );
     const tables = rows.map((row) => row.table_name).sort();
 
-    expect(tables).toEqual([...EXPECTED_TABLES, ...AUTH_SUPPORT_TABLES].sort());
+    expect(EXPECTED_TABLES).toHaveLength(50);
+    expect(tables).toEqual(
+      [...EXPECTED_TABLES, ...AUTH_SUPPORT_TABLES, ...TECHNICAL_TABLES].sort(),
+    );
   });
 
   it('creates the partial unique indexes', async () => {
@@ -126,7 +138,7 @@ describe('Database model (TypeORM entities)', () => {
     const byName = new Map(rows.map((row) => [row.indexname, row.indexdef]));
 
     expect(byName.get('uq_attentions_active_table')).toMatch(
-      /UNIQUE INDEX .* WHERE .*OPEN.*BILL_REQUESTED/,
+      /UNIQUE INDEX .* WHERE .*closed_at IS NULL.*cancelled_at IS NULL/,
     );
     expect(byName.get('uq_payments_provider_payment')).toMatch(
       /UNIQUE INDEX .* WHERE .*provider_payment_id IS NOT NULL/,
@@ -151,17 +163,42 @@ describe('Database model (TypeORM entities)', () => {
        VALUES ($1, $2, 'M1', 'Mesa 1') RETURNING id`,
       [restaurant.id, floor.id],
     );
-    const openAttention = (number: string) =>
+    const [serviceType] = await dataSource.query(
+      `INSERT INTO service_types (restaurant_id, code, name, fulfillment_mode, requires_table, sort_order)
+       VALUES ($1, 'DINE_IN', 'En mesa', 'DINE_IN', true, 10) RETURNING id`,
+      [restaurant.id],
+    );
+    const [open] = await dataSource.query(
+      `INSERT INTO attention_statuses (restaurant_id, code, name, canonical_state, sort_order, is_initial)
+       VALUES ($1, 'OPEN', 'Abierta', 'OPEN', 10, true) RETURNING id`,
+      [restaurant.id],
+    );
+    const openAttention = (number: string, closedAt: Date | null = null) =>
       dataSource.query(
-        `INSERT INTO attentions (restaurant_id, dining_table_id, attention_number, service_type)
-         VALUES ($1, $2, $3, 'DINE_IN')`,
-        [restaurant.id, table.id, number],
+        `INSERT INTO attentions (restaurant_id, dining_table_id, attention_number, service_type_id, attention_status_id, closed_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [restaurant.id, table.id, number, serviceType.id, open.id, closedAt],
       );
 
+    await openAttention('A-0', new Date(Date.now() + 60_000));
     await openAttention('A-1');
     await expect(openAttention('A-2')).rejects.toThrow(
       /uq_attentions_active_table/,
     );
+    await expect(
+      dataSource.query(
+        `INSERT INTO attention_statuses (restaurant_id, code, name, canonical_state, sort_order, is_initial)
+         VALUES ($1, 'ABIERTA', 'Otra inicial', 'OPEN', 5, true)`,
+        [restaurant.id],
+      ),
+    ).rejects.toThrow(/uq_attention_statuses_initial/);
+    await expect(
+      dataSource.query(
+        `INSERT INTO service_types (restaurant_id, code, name, fulfillment_mode, delivery_fee, sort_order)
+         VALUES ($1, 'DELIVERY', 'Delivery', 'DELIVERY', -1, 30)`,
+        [restaurant.id],
+      ),
+    ).rejects.toThrow(/chk_service_types_fee/);
   });
 
   it('keeps one consistent QR per table and unique names ignoring case', async () => {
@@ -244,6 +281,14 @@ describe('Database model (TypeORM entities)', () => {
   });
 
   it('keeps payment allocations consistent with their target', async () => {
+    const [organization] = await dataSource.query(
+      `INSERT INTO organizations (name) VALUES ('Org Pagos') RETURNING id`,
+    );
+    const [restaurant] = await dataSource.query(
+      `INSERT INTO restaurants (organization_id, code, slug, name)
+       VALUES ($1, 'PAY', 'pay', 'Sede Pagos') RETURNING id`,
+      [organization.id],
+    );
     const [status] = await dataSource.query(
       `INSERT INTO payment_statuses (code, name, is_terminal, counts_toward_balance, allows_refund)
        VALUES ('PAID', 'Pagado', false, true, true) RETURNING id`,
@@ -251,22 +296,53 @@ describe('Database model (TypeORM entities)', () => {
     const [payment] = await dataSource.query(
       `INSERT INTO payments (organization_id, restaurant_id, attention_id, payment_status_id,
          payment_method, allocation_mode, amount, currency_code, request_id)
-       VALUES (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), $1,
+       VALUES ($1, $2, gen_random_uuid(), $3,
          'CASH', 'FULL', 10, 'PEN', gen_random_uuid()) RETURNING id`,
-      [status.id],
+      [organization.id, restaurant.id, status.id],
     );
-    const allocate = (concept: string, orderItemId: string | null, amount = 5) =>
+    // attention_id stays a logical reference; organization and restaurant don't.
+    await expect(
       dataSource.query(
-        `INSERT INTO payment_allocations (payment_id, concept, order_item_id, allocated_amount)
-         VALUES ($1, $2, $3, $4)`,
-        [payment.id, concept, orderItemId, amount],
+        `INSERT INTO payments (organization_id, restaurant_id, attention_id, payment_status_id,
+           payment_method, allocation_mode, amount, currency_code, request_id)
+         VALUES (gen_random_uuid(), $1, gen_random_uuid(), $2, 'CASH', 'FULL', 10, 'PEN', gen_random_uuid())`,
+        [restaurant.id, status.id],
+      ),
+    ).rejects.toThrow(/foreign key/);
+    const fulfillmentId = '00000000-0000-4000-8000-000000000001';
+    const allocate = (
+      concept: string,
+      orderItemId: string | null,
+      fulfillment: string | null,
+      amount = 5,
+    ) =>
+      dataSource.query(
+        `INSERT INTO payment_allocations (payment_id, concept, order_item_id, fulfillment_id, allocated_amount)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [payment.id, concept, orderItemId, fulfillment, amount],
       );
-    await expect(allocate('ORDER_ITEM', null)).rejects.toThrow(/chk_allocations_target/);
-    await expect(allocate('DELIVERY_FEE', null, 0)).rejects.toThrow(/chk_allocations_amount/);
-    await allocate('DELIVERY_FEE', null);
-    await expect(allocate('DELIVERY_FEE', null)).rejects.toThrow(
+    await expect(allocate('ORDER_ITEM', null, null)).rejects.toThrow(
+      /chk_allocations_target/,
+    );
+    await expect(allocate('DELIVERY_FEE', null, null)).rejects.toThrow(
+      /chk_allocations_target/,
+    );
+    await expect(
+      allocate('ORDER_ITEM', fulfillmentId, fulfillmentId),
+    ).rejects.toThrow(/chk_allocations_target/);
+    await expect(
+      allocate('DELIVERY_FEE', null, fulfillmentId, 0),
+    ).rejects.toThrow(/chk_allocations_amount/);
+    await allocate('DELIVERY_FEE', null, fulfillmentId);
+    await expect(allocate('DELIVERY_FEE', null, fulfillmentId)).rejects.toThrow(
       /uq_allocations_payment_delivery_fee/,
     );
+    await expect(
+      dataSource.query(
+        `INSERT INTO payment_statuses (code, name, is_terminal, counts_toward_balance, reserves_balance, allows_refund)
+         VALUES ('BOTH', 'x', false, true, true, false)`,
+      ),
+    ).rejects.toThrow(/chk_payment_statuses_effect/);
     await expect(
       dataSource.query(
         `INSERT INTO payment_statuses (code, name, is_terminal, counts_toward_balance, allows_refund)
@@ -305,17 +381,28 @@ describe('Database model (TypeORM entities)', () => {
       `INSERT INTO restaurant_supplies (restaurant_id, supply_id) VALUES ($1, $2) RETURNING id`,
       [restaurant.id, supply.id],
     );
-    const move = (previous: number, delta: number, resulting: number, key: string | null = null) =>
+    const move = (
+      previous: number,
+      delta: number,
+      resulting: number,
+      key: string | null = null,
+    ) =>
       dataSource.query(
         `INSERT INTO inventory_movements (restaurant_supply_id, movement_type_id, quantity_delta,
            previous_quantity, resulting_quantity, idempotency_key)
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [stock.id, type.id, delta, previous, resulting, key],
       );
-    await expect(move(0, 10, 9)).rejects.toThrow(/chk_inventory_movements_balance/);
-    await expect(move(0, 0, 0)).rejects.toThrow(/chk_inventory_movements_delta/);
+    await expect(move(0, 10, 9)).rejects.toThrow(
+      /chk_inventory_movements_balance/,
+    );
+    await expect(move(0, 0, 0)).rejects.toThrow(
+      /chk_inventory_movements_delta/,
+    );
     await move(0, 10, 10, 'k1');
-    await expect(move(10, 1, 11, 'k1')).rejects.toThrow(/uq_inventory_movements_idempotency/);
+    await expect(move(10, 1, 11, 'k1')).rejects.toThrow(
+      /uq_inventory_movements_idempotency/,
+    );
     await expect(
       dataSource.query(
         `INSERT INTO restaurant_supplies (restaurant_id, supply_id) VALUES ($1, $2)`,

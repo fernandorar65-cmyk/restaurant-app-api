@@ -8,6 +8,11 @@ export interface PaymentStatusDefinition {
   isTerminal: boolean;
   /** Only these statuses reduce what the attention owes. */
   countsTowardBalance: boolean;
+  /**
+   * Unconfirmed attempts that still block their amount, so no one else can
+   * charge it until they are confirmed or abandoned (avoids double charges).
+   */
+  reservesBalance: boolean;
   allowsRefund: boolean;
 }
 
@@ -32,6 +37,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Intento de cobro creado, pendiente de confirmación',
     isTerminal: false,
     countsTowardBalance: false,
+    reservesBalance: true,
     allowsRefund: false,
   },
   {
@@ -40,6 +46,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'La pasarela está procesando el cobro',
     isTerminal: false,
     countsTowardBalance: false,
+    reservesBalance: true,
     allowsRefund: false,
   },
   {
@@ -48,6 +55,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Pago confirmado; reduce el saldo',
     isTerminal: false,
     countsTowardBalance: true,
+    reservesBalance: false,
     allowsRefund: true,
   },
   {
@@ -56,6 +64,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Intento fallido o rechazado',
     isTerminal: true,
     countsTowardBalance: false,
+    reservesBalance: false,
     allowsRefund: false,
   },
   {
@@ -64,6 +73,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Intento anulado antes de completarse',
     isTerminal: true,
     countsTowardBalance: false,
+    reservesBalance: false,
     allowsRefund: false,
   },
   {
@@ -72,6 +82,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Se devolvió una parte del importe pagado',
     isTerminal: false,
     countsTowardBalance: true,
+    reservesBalance: false,
     allowsRefund: true,
   },
   {
@@ -80,6 +91,7 @@ export const PAYMENT_STATUSES: PaymentStatusDefinition[] = [
     description: 'Se devolvió todo el importe pagado',
     isTerminal: true,
     countsTowardBalance: true,
+    reservesBalance: false,
     allowsRefund: false,
   },
 ];
@@ -122,8 +134,12 @@ export const REFUND_STATUSES: RefundStatusDefinition[] = [
   },
 ];
 
-const BY_CODE = new Map(PAYMENT_STATUSES.map((status) => [status.code, status]));
+const BY_CODE = new Map(
+  PAYMENT_STATUSES.map((status) => [status.code, status]),
+);
 
-export function paymentStatusDefinition(code: PaymentStatusCode): PaymentStatusDefinition {
+export function paymentStatusDefinition(
+  code: PaymentStatusCode,
+): PaymentStatusDefinition {
   return BY_CODE.get(code) as PaymentStatusDefinition;
 }

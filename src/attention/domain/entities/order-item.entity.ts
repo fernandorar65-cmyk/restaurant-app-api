@@ -1,6 +1,7 @@
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import { roundMoney } from '../../../common/domain/value-objects/money.js';
-import { OrderItemStatus } from '../enums/order-item-status.enum.js';
+import { OrderStatus } from '../enums/order-status.enum.js';
+import type { StatusRef } from '../workflows.js';
 import {
   InvalidOrderItemTransitionError,
   RejectionReasonRequiredError,
@@ -18,27 +19,34 @@ export interface OrderItemProps {
   quantity: number;
   subtotal: number;
   customerNote: string | null;
-  currentStatus: OrderItemStatus;
+  status: StatusRef<OrderStatus>;
   rejectionReason: string | null;
   version: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const ALLOWED_TRANSITIONS: Record<OrderItemStatus, OrderItemStatus[]> = {
-  [OrderItemStatus.SUBMITTED]: [
-    OrderItemStatus.PREPARING,
-    OrderItemStatus.REJECTED,
-    OrderItemStatus.CANCELLED,
+/** Kitchen flow between canonical states; CONFIRMED only applies to orders. */
+const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.SUBMITTED]: [
+    OrderStatus.IN_PREPARATION,
+    OrderStatus.REJECTED,
+    OrderStatus.CANCELLED,
   ],
-  [OrderItemStatus.PREPARING]: [OrderItemStatus.READY, OrderItemStatus.CANCELLED],
-  [OrderItemStatus.READY]: [OrderItemStatus.DELIVERED, OrderItemStatus.CANCELLED],
-  [OrderItemStatus.DELIVERED]: [],
-  [OrderItemStatus.REJECTED]: [],
-  [OrderItemStatus.CANCELLED]: [],
+  [OrderStatus.CONFIRMED]: [],
+  [OrderStatus.IN_PREPARATION]: [OrderStatus.READY, OrderStatus.CANCELLED],
+  [OrderStatus.READY]: [OrderStatus.SERVED, OrderStatus.CANCELLED],
+  [OrderStatus.SERVED]: [],
+  [OrderStatus.REJECTED]: [],
+  [OrderStatus.CANCELLED]: [],
 };
 
-const NON_BILLABLE = [OrderItemStatus.REJECTED, OrderItemStatus.CANCELLED];
+const FINAL_STATES = [
+  OrderStatus.SERVED,
+  OrderStatus.REJECTED,
+  OrderStatus.CANCELLED,
+];
+const NON_BILLABLE = [OrderStatus.REJECTED, OrderStatus.CANCELLED];
 
 export class OrderItem {
   private constructor(private props: OrderItemProps) {}
@@ -46,8 +54,10 @@ export class OrderItem {
   /** Returns the item together with its initial history entry. */
   static create(params: {
     id: string;
-    /** Id for the initial SUBMITTED history entry. */
+    /** Id for the initial history entry. */
     historyId: string;
+    /** The restaurant's initial order status (canonical SUBMITTED). */
+    status: StatusRef<OrderStatus>;
     orderId: string;
     productId: string;
     productName: string;
@@ -57,7 +67,9 @@ export class OrderItem {
     requestedByParticipantId?: string | null;
   }): { item: OrderItem; history: OrderItemStatusHistory } {
     if (!Number.isInteger(params.quantity) || params.quantity < 1) {
-      throw new ValidationDomainError('La cantidad debe ser un entero mayor a 0');
+      throw new ValidationDomainError(
+        'La cantidad debe ser un entero mayor a 0',
+      );
     }
     const now = new Date();
     const item = new OrderItem({
@@ -70,7 +82,7 @@ export class OrderItem {
       quantity: params.quantity,
       subtotal: roundMoney(params.unitPrice * params.quantity),
       customerNote: params.customerNote ?? null,
-      currentStatus: OrderItemStatus.SUBMITTED,
+      status: params.status,
       rejectionReason: null,
       version: 0,
       createdAt: now,
@@ -80,7 +92,7 @@ export class OrderItem {
       id: params.historyId,
       orderItemId: item.id,
       previousStatus: null,
-      newStatus: OrderItemStatus.SUBMITTED,
+      newStatus: params.status,
       changedByUserId: null,
       reason: null,
       versionBefore: null,
@@ -94,27 +106,33 @@ export class OrderItem {
 
   /**
    * Moves the item along the kitchen flow, rejecting arbitrary jumps (e.g.
-   * SUBMITTED -> DELIVERED). Returns the history entry to persist with it.
+   * SUBMITTED -> SERVED). Within a non-final state the item may also move
+   * between the restaurant's own statuses (e.g. "En horno" -> "Emplatado").
+   * Returns the history entry to persist with it.
    */
   changeStatus(
-    target: OrderItemStatus,
+    target: StatusRef<OrderStatus>,
     options: {
       historyId: string;
       reason?: string | null;
       changedByUserId?: string | null;
     },
   ): OrderItemStatusHistory {
-    const previous = this.props.currentStatus;
-    if (!ALLOWED_TRANSITIONS[previous].includes(target)) {
-      throw new InvalidOrderItemTransitionError(previous, target);
+    const previous = this.props.status;
+    const from = previous.canonicalState;
+    const to = target.canonicalState;
+    const sameStateMove =
+      from === to && previous.id !== target.id && !FINAL_STATES.includes(from);
+    if (!sameStateMove && !ALLOWED_TRANSITIONS[from].includes(to)) {
+      throw new InvalidOrderItemTransitionError(from, to);
     }
     const reason = options.reason?.trim() || null;
-    if (target === OrderItemStatus.REJECTED && !reason) {
+    if (to === OrderStatus.REJECTED && !reason) {
       throw new RejectionReasonRequiredError();
     }
     const versionBefore = this.props.version;
-    this.props.currentStatus = target;
-    if (target === OrderItemStatus.REJECTED) {
+    this.props.status = target;
+    if (to === OrderStatus.REJECTED) {
       this.props.rejectionReason = reason;
     }
     this.props.updatedAt = new Date();
@@ -130,7 +148,7 @@ export class OrderItem {
   }
 
   get isBillable(): boolean {
-    return !NON_BILLABLE.includes(this.props.currentStatus);
+    return !NON_BILLABLE.includes(this.currentStatus);
   }
 
   get id(): string {
@@ -160,8 +178,12 @@ export class OrderItem {
   get customerNote(): string | null {
     return this.props.customerNote;
   }
-  get currentStatus(): OrderItemStatus {
-    return this.props.currentStatus;
+  /** Canonical state of the current status. */
+  get currentStatus(): OrderStatus {
+    return this.props.status.canonicalState;
+  }
+  get statusId(): string {
+    return this.props.status.id;
   }
   get rejectionReason(): string | null {
     return this.props.rejectionReason;

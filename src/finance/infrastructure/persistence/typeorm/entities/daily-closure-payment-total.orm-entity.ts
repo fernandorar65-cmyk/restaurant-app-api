@@ -27,7 +27,7 @@ export class DailyClosurePaymentTotalOrmEntity {
   @PrimaryColumn({ name: 'payment_method', type: 'varchar', length: 30 })
   paymentMethod: PaymentMethod;
 
-  @ManyToOne('DailyClosureOrmEntity', { onDelete: 'CASCADE' })
+  @ManyToOne('DailyClosureOrmEntity')
   @JoinColumn({ name: 'daily_closure_id' })
   dailyClosure?: DailyClosureOrmEntity;
 

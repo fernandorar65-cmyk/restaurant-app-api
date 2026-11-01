@@ -10,6 +10,38 @@ import { FulfillmentOrmEntity } from '../entities/fulfillment.orm-entity.js';
 import { OrderOrmEntity } from '../entities/order.orm-entity.js';
 import { OrderItemStatusHistoryOrmEntity } from '../entities/order-item-status-history.orm-entity.js';
 import { OrderItemOrmEntity } from '../entities/order-item.orm-entity.js';
+import { ServiceType } from '../../../../domain/entities/service-type.entity.js';
+import { WorkflowStatus } from '../../../../domain/entities/workflow-status.entity.js';
+import type {
+  StatusRef,
+  WorkflowDefinition,
+} from '../../../../domain/workflows.js';
+import { ServiceTypeOrmEntity } from '../entities/service-type.orm-entity.js';
+import {
+  AttentionStatusOrmEntity,
+  OrderStatusOrmEntity,
+} from '../entities/workflow-status.orm-entity.js';
+
+/**
+ * Domain entities carry the canonical state of their status, so the status
+ * relation must be loaded (joined) whenever a row is mapped.
+ */
+function statusRef<C extends string>(
+  id: string,
+  status: { canonicalState: C } | null | undefined,
+): StatusRef<C> {
+  if (!status) {
+    throw new Error(`Status ${id} was not loaded with its row`);
+  }
+  return { id, canonicalState: status.canonicalState };
+}
+
+/** Keeps the canonical state on the saved row so it maps back without a reload. */
+function statusRelation<T>(ref: StatusRef<string>): T {
+  return { id: ref.id, canonicalState: ref.canonicalState } as T;
+}
+
+export const WORKFLOW_STATUS_RELATIONS = { status: true } as const;
 
 export class AttentionMapper {
   static toDomain(orm: AttentionOrmEntity): Attention {
@@ -19,8 +51,9 @@ export class AttentionMapper {
       diningTableId: orm.diningTableId,
       customerUserId: orm.customerUserId,
       attentionNumber: orm.attentionNumber,
-      serviceType: orm.serviceType,
-      status: orm.status,
+      serviceTypeId: orm.serviceTypeId,
+      fulfillmentMode: serviceTypeOf(orm).fulfillmentMode,
+      status: statusRef(orm.attentionStatusId, orm.status),
       billRequestedAt: orm.billRequestedAt,
       openedAt: orm.openedAt,
       closedAt: orm.closedAt,
@@ -42,8 +75,16 @@ export class AttentionMapper {
     orm.diningTableId = domain.diningTableId;
     orm.customerUserId = domain.customerUserId;
     orm.attentionNumber = domain.attentionNumber;
-    orm.serviceType = domain.serviceType;
-    orm.status = domain.status;
+    orm.serviceTypeId = domain.serviceTypeId;
+    orm.serviceType = {
+      id: domain.serviceTypeId,
+      fulfillmentMode: domain.fulfillmentMode,
+    } as ServiceTypeOrmEntity;
+    orm.attentionStatusId = domain.statusId;
+    orm.status = statusRelation<AttentionStatusOrmEntity>({
+      id: domain.statusId,
+      canonicalState: domain.status,
+    });
     orm.billRequestedAt = domain.billRequestedAt;
     orm.openedAt = domain.openedAt;
     orm.closedAt = domain.closedAt;
@@ -67,7 +108,9 @@ export class AttentionParticipantMapper {
     });
   }
 
-  static toPersistence(domain: AttentionParticipant): AttentionParticipantOrmEntity {
+  static toPersistence(
+    domain: AttentionParticipant,
+  ): AttentionParticipantOrmEntity {
     const orm = new AttentionParticipantOrmEntity();
     orm.id = domain.id;
     orm.attentionId = domain.attentionId;
@@ -89,7 +132,7 @@ export class OrderMapper {
       source: orm.source,
       submittedByUserId: orm.submittedByUserId,
       submittedByParticipantId: orm.submittedByParticipantId,
-      status: orm.status,
+      status: statusRef(orm.orderStatusId, orm.status),
       submittedAt: orm.submittedAt,
       confirmedAt: orm.confirmedAt,
       createdAt: orm.createdAt,
@@ -108,7 +151,11 @@ export class OrderMapper {
     orm.source = domain.source;
     orm.submittedByUserId = domain.submittedByUserId;
     orm.submittedByParticipantId = domain.submittedByParticipantId;
-    orm.status = domain.status;
+    orm.orderStatusId = domain.statusId;
+    orm.status = statusRelation<OrderStatusOrmEntity>({
+      id: domain.statusId,
+      canonicalState: domain.status,
+    });
     orm.submittedAt = domain.submittedAt;
     orm.confirmedAt = domain.confirmedAt;
     return orm;
@@ -127,7 +174,7 @@ export class OrderItemMapper {
       quantity: orm.quantity,
       subtotal: orm.subtotal,
       customerNote: orm.customerNote,
-      currentStatus: orm.currentStatus,
+      status: statusRef(orm.orderStatusId, orm.status),
       rejectionReason: orm.rejectionReason,
       version: orm.version,
       createdAt: orm.createdAt,
@@ -146,19 +193,27 @@ export class OrderItemMapper {
     orm.quantity = domain.quantity;
     orm.subtotal = domain.subtotal;
     orm.customerNote = domain.customerNote;
-    orm.currentStatus = domain.currentStatus;
+    orm.orderStatusId = domain.statusId;
+    orm.status = statusRelation<OrderStatusOrmEntity>({
+      id: domain.statusId,
+      canonicalState: domain.currentStatus,
+    });
     orm.rejectionReason = domain.rejectionReason;
     return orm;
   }
 }
 
 export class OrderItemStatusHistoryMapper {
-  static toDomain(orm: OrderItemStatusHistoryOrmEntity): OrderItemStatusHistory {
+  static toDomain(
+    orm: OrderItemStatusHistoryOrmEntity,
+  ): OrderItemStatusHistory {
     return OrderItemStatusHistory.fromPersistence({
       id: orm.id,
       orderItemId: orm.orderItemId,
-      previousStatus: orm.previousStatus,
-      newStatus: orm.newStatus,
+      previousStatus: orm.previousStatusId
+        ? statusRef(orm.previousStatusId, orm.previousStatus)
+        : null,
+      newStatus: statusRef(orm.newStatusId, orm.newStatus),
       changedByUserId: orm.changedByUserId,
       reason: orm.reason,
       changedAt: orm.changedAt,
@@ -172,8 +227,12 @@ export class OrderItemStatusHistoryMapper {
     const orm = new OrderItemStatusHistoryOrmEntity();
     orm.id = domain.id;
     orm.orderItemId = domain.orderItemId;
-    orm.previousStatus = domain.previousStatus;
-    orm.newStatus = domain.newStatus;
+    orm.previousStatusId = domain.previousStatus?.id ?? null;
+    orm.previousStatus = domain.previousStatus
+      ? statusRelation<OrderStatusOrmEntity>(domain.previousStatus)
+      : null;
+    orm.newStatusId = domain.newStatus.id;
+    orm.newStatus = statusRelation<OrderStatusOrmEntity>(domain.newStatus);
     orm.changedByUserId = domain.changedByUserId;
     orm.reason = domain.reason;
     orm.changedAt = domain.changedAt;
@@ -225,6 +284,93 @@ export class FulfillmentMapper {
     orm.deliveryFee = domain.deliveryFee;
     orm.eatAtRestaurant = domain.eatAtRestaurant;
     orm.deliveredAt = domain.deliveredAt;
+    return orm;
+  }
+}
+
+function serviceTypeOf(orm: AttentionOrmEntity): ServiceTypeOrmEntity {
+  if (!orm.serviceType) {
+    throw new Error(
+      `Service type ${orm.serviceTypeId} was not loaded with its attention`,
+    );
+  }
+  return orm.serviceType;
+}
+
+export class WorkflowStatusMapper {
+  static toDomain<C extends string>(
+    workflow: WorkflowDefinition<C>,
+    orm: AttentionStatusOrmEntity | OrderStatusOrmEntity,
+  ): WorkflowStatus<C> {
+    return WorkflowStatus.fromPersistence(workflow, {
+      id: orm.id,
+      restaurantId: orm.restaurantId,
+      code: orm.code,
+      name: orm.name,
+      canonicalState: orm.canonicalState as C,
+      color: orm.color,
+      sortOrder: orm.sortOrder,
+      isInitial: orm.isInitial,
+      isFinal: orm.isFinal,
+      isActive: orm.isActive,
+      createdAt: orm.createdAt,
+      updatedAt: orm.updatedAt,
+    });
+  }
+
+  static toPersistence<
+    C extends string,
+    T extends AttentionStatusOrmEntity | OrderStatusOrmEntity,
+  >(domain: WorkflowStatus<C>, orm: T): T {
+    orm.id = domain.id;
+    orm.restaurantId = domain.restaurantId;
+    orm.code = domain.code;
+    orm.name = domain.name;
+    orm.canonicalState = domain.canonicalState as never;
+    orm.color = domain.color;
+    orm.sortOrder = domain.sortOrder;
+    orm.isInitial = domain.isInitial;
+    orm.isFinal = domain.isFinal;
+    orm.isActive = domain.isActive;
+    return orm;
+  }
+}
+
+export class ServiceTypeMapper {
+  static toDomain(orm: ServiceTypeOrmEntity): ServiceType {
+    return ServiceType.fromPersistence({
+      id: orm.id,
+      restaurantId: orm.restaurantId,
+      code: orm.code,
+      name: orm.name,
+      fulfillmentMode: orm.fulfillmentMode,
+      requiresTable: orm.requiresTable,
+      requiresCustomerAddress: orm.requiresCustomerAddress,
+      minimumOrderAmount: orm.minimumOrderAmount,
+      deliveryFee: orm.deliveryFee,
+      sortOrder: orm.sortOrder,
+      isActive: orm.isActive,
+      createdAt: orm.createdAt,
+      updatedAt: orm.updatedAt,
+    });
+  }
+
+  static toPersistence(
+    domain: ServiceType,
+    existing?: ServiceTypeOrmEntity,
+  ): ServiceTypeOrmEntity {
+    const orm = existing ?? new ServiceTypeOrmEntity();
+    orm.id = domain.id;
+    orm.restaurantId = domain.restaurantId;
+    orm.code = domain.code;
+    orm.name = domain.name;
+    orm.fulfillmentMode = domain.fulfillmentMode;
+    orm.requiresTable = domain.requiresTable;
+    orm.requiresCustomerAddress = domain.requiresCustomerAddress;
+    orm.minimumOrderAmount = domain.minimumOrderAmount;
+    orm.deliveryFee = domain.deliveryFee;
+    orm.sortOrder = domain.sortOrder;
+    orm.isActive = domain.isActive;
     return orm;
   }
 }

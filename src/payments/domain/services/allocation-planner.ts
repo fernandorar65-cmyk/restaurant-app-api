@@ -14,6 +14,8 @@ export interface ChargeLine {
   concept: AllocationConcept;
   /** Null for the delivery fee. */
   orderItemId: string | null;
+  /** Pickup/delivery record of the delivery fee; null for products. */
+  fulfillmentId: string | null;
   label: string;
   /** What is still free to pay (total minus confirmed and in-flight payments). */
   outstanding: number;
@@ -29,6 +31,7 @@ export interface RequestedAllocation {
 export interface PlannedAllocation {
   concept: AllocationConcept;
   orderItemId: string | null;
+  fulfillmentId: string | null;
   amount: number;
 }
 
@@ -66,8 +69,13 @@ export function planAllocations(
   lines: ChargeLine[],
   request: AllocationRequest,
 ): PlannedAllocation[] {
-  const ordered = sortChargeLines(lines).filter((line) => toCents(line.outstanding) > 0);
-  const totalOutstanding = ordered.reduce((sum, line) => sum + toCents(line.outstanding), 0);
+  const ordered = sortChargeLines(lines).filter(
+    (line) => toCents(line.outstanding) > 0,
+  );
+  const totalOutstanding = ordered.reduce(
+    (sum, line) => sum + toCents(line.outstanding),
+    0,
+  );
 
   if (request.mode === AllocationMode.ITEMS) {
     return planExplicit(lines, request.allocations);
@@ -79,10 +87,15 @@ export function planAllocations(
   if (request.mode === AllocationMode.AMOUNT) {
     remaining = toCents(request.amount);
     if (remaining <= 0) {
-      throw new InvalidPaymentAmountError('El monto del pago debe ser mayor a 0');
+      throw new InvalidPaymentAmountError(
+        'El monto del pago debe ser mayor a 0',
+      );
     }
     if (remaining > totalOutstanding) {
-      throw new PaymentExceedsBalanceError(request.amount, fromCents(totalOutstanding));
+      throw new PaymentExceedsBalanceError(
+        request.amount,
+        fromCents(totalOutstanding),
+      );
     }
   }
 
@@ -92,7 +105,12 @@ export function planAllocations(
       break;
     }
     const cents = Math.min(remaining, toCents(line.outstanding));
-    planned.push({ concept: line.concept, orderItemId: line.orderItemId, amount: fromCents(cents) });
+    planned.push({
+      concept: line.concept,
+      orderItemId: line.orderItemId,
+      fulfillmentId: line.fulfillmentId,
+      amount: fromCents(cents),
+    });
     remaining -= cents;
   }
   return planned;
@@ -125,15 +143,31 @@ function planExplicit(
     }
     const cents = toCents(allocation.amount);
     if (cents <= 0) {
-      throw new InvalidPaymentAmountError('Cada monto asignado debe ser mayor a 0');
+      throw new InvalidPaymentAmountError(
+        'Cada monto asignado debe ser mayor a 0',
+      );
     }
     if (cents > toCents(line.outstanding)) {
-      throw new AllocationExceedsItemBalanceError(line.label, allocation.amount, line.outstanding);
+      throw new AllocationExceedsItemBalanceError(
+        line.label,
+        allocation.amount,
+        line.outstanding,
+      );
     }
-    return { concept: line.concept, orderItemId: line.orderItemId, amount: fromCents(cents) };
+    return {
+      concept: line.concept,
+      orderItemId: line.orderItemId,
+      fulfillmentId: line.fulfillmentId,
+      amount: fromCents(cents),
+    };
   });
 }
 
 export function sumAllocations(allocations: { amount: number }[]): number {
-  return fromCents(allocations.reduce((sum, allocation) => sum + toCents(allocation.amount), 0));
+  return fromCents(
+    allocations.reduce(
+      (sum, allocation) => sum + toCents(allocation.amount),
+      0,
+    ),
+  );
 }

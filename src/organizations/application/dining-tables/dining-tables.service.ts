@@ -19,7 +19,7 @@ import { DINING_TABLE_REPOSITORY } from '../../domain/repositories/dining-table.
 import type { DiningTableRepository } from '../../domain/repositories/dining-table.repository.js';
 import { RestaurantFloorsService } from '../restaurant-floors/restaurant-floors.service.js';
 import { RestaurantsService } from '../restaurants/restaurants.service.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateDiningTableInput extends DiningTableDetails {
   floorId: string;

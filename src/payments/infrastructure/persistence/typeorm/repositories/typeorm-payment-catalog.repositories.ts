@@ -5,12 +5,12 @@ import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialE
 import type {
   Page,
   PageRequest,
-} from '../../../../../common/application/pagination.js';
+} from '../../../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import {
   transactionalRepository,
   withoutUndefined,
-} from '../../../../../common/persistence/typeorm-base.repository.js';
+} from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { PaymentStatus } from '../../../../domain/entities/payment-status.entity.js';
 import { ProviderEvent } from '../../../../domain/entities/provider-event.entity.js';
 import { ProviderStatusMapping } from '../../../../domain/entities/provider-status-mapping.entity.js';

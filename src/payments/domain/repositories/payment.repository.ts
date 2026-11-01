@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Payment } from '../entities/payment.entity.js';
 import type { AllocationConcept } from '../enums/allocation-concept.enum.js';

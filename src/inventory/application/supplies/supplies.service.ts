@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { Supply } from '../../domain/entities/supply.entity.js';
 import type { SupplyDetails } from '../../domain/entities/supply.entity.js';
 import {
@@ -16,8 +16,8 @@ import { SUPPLY_REPOSITORY } from '../../domain/repositories/supply.repository.j
 import type { SupplyRepository } from '../../domain/repositories/supply.repository.js';
 import { InventoryCatalogService } from '../inventory-catalog/inventory-catalog.service.js';
 import { InventoryCategoriesService } from '../inventory-categories/inventory-categories.service.js';
-import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
-import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 
 export interface CreateSupplyInput extends SupplyDetails {
   organizationId: string;
@@ -40,7 +40,7 @@ export class SuppliesService {
     @Inject(SUPPLY_REPOSITORY) private readonly supplyRepository: SupplyRepository,
     @Inject(INVENTORY_MOVEMENT_REPOSITORY)
     private readonly movementRepository: InventoryMovementRepository,
-    @Inject(ORGANIZATION_LOOKUP) private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP) private readonly organizationLookup: TenantLookup,
     private readonly categoriesService: InventoryCategoriesService,
     private readonly catalogService: InventoryCatalogService,
   ) {}

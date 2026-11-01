@@ -18,7 +18,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
@@ -31,6 +31,10 @@ import {
   UpdateWorkAreaDto,
   WorkAreaResponseDto,
 } from '../dto/work-structure/work-structure.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Work areas of an organization (Cocina, Sala...). They never grant permissions. */
 @ApiTags('organizations/work-areas')
@@ -38,13 +42,17 @@ import {
 export class WorkAreasController {
   constructor(private readonly workAreasService: WorkAreasService) {}
 
+  @Authorize('staff.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un área laboral' })
   @ApiCreatedResponse({ type: WorkAreaResponseDto })
   async create(@Body() dto: CreateWorkAreaDto): Promise<WorkAreaResponseDto> {
-    return WorkAreaResponseDto.fromDomain(await this.workAreasService.create(dto));
+    return WorkAreaResponseDto.fromDomain(
+      await this.workAreasService.create(dto),
+    );
   }
 
+  @Authorize(null, Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar áreas laborales' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -54,23 +62,32 @@ export class WorkAreasController {
     @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
-    @Query('isActive', new ParseBoolPipe({ optional: true })) isActive?: boolean,
+    @Query('isActive', new ParseBoolPipe({ optional: true }))
+    isActive?: boolean,
   ): Promise<PageResponse<WorkAreaResponseDto>> {
     const workAreas = await this.workAreasService.findPage(
       { organizationId, isActive },
       page,
     );
-    return toPageResponse(workAreas, (workArea) => WorkAreaResponseDto.fromDomain(workArea));
+    return toPageResponse(workAreas, (workArea) =>
+      WorkAreaResponseDto.fromDomain(workArea),
+    );
   }
 
+  @Authorize(null, Scope.resource('work-area'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un área laboral' })
   @ApiOkResponse({ type: WorkAreaResponseDto })
   @ApiNotFoundResponse({ description: 'Área no encontrada' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<WorkAreaResponseDto> {
-    return WorkAreaResponseDto.fromDomain(await this.workAreasService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<WorkAreaResponseDto> {
+    return WorkAreaResponseDto.fromDomain(
+      await this.workAreasService.findOne(id),
+    );
   }
 
+  @Authorize('staff.manage', Scope.resource('work-area'))
   @Patch(':id')
   @ApiOperation({ summary: 'Editar, activar o desactivar un área laboral' })
   @ApiOkResponse({ type: WorkAreaResponseDto })
@@ -78,16 +95,22 @@ export class WorkAreasController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateWorkAreaDto,
   ): Promise<WorkAreaResponseDto> {
-    return WorkAreaResponseDto.fromDomain(await this.workAreasService.update(id, dto));
+    return WorkAreaResponseDto.fromDomain(
+      await this.workAreasService.update(id, dto),
+    );
   }
 
+  @Authorize('staff.manage', Scope.resource('work-area'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un área laboral (baja lógica)',
-    description: 'No se borra: puestos y empleados pueden seguir apuntando a ella',
+    description:
+      'No se borra: puestos y empleados pueden seguir apuntando a ella',
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.workAreasService.deactivate(id);
     return { id };
   }

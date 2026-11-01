@@ -17,7 +17,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
@@ -31,6 +31,10 @@ import {
   OrderItemHistoryResponseDto,
   OrderItemResponseDto,
 } from '../dto/attention-responses.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Kitchen and floor: follow each dish through its states. */
 @ApiTags('attention/order-items')
@@ -38,6 +42,7 @@ import {
 export class OrderItemsController {
   constructor(private readonly itemsService: OrderItemsService) {}
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({
     summary: 'Platos de un restaurante (tablero de cocina)',
@@ -79,6 +84,7 @@ export class OrderItemsController {
     );
   }
 
+  @Authorize(null, Scope.resource('order-item'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un plato' })
   @ApiOkResponse({ type: OrderItemResponseDto })
@@ -90,6 +96,7 @@ export class OrderItemsController {
     return OrderItemResponseDto.fromDomain(item);
   }
 
+  @Authorize('kitchen.manage', Scope.resource('order-item'))
   @Patch(':id/status')
   @ApiOperation({
     summary: 'Cambiar el estado de un plato',
@@ -115,6 +122,7 @@ export class OrderItemsController {
     return OrderItemResponseDto.fromDomain(item);
   }
 
+  @Authorize(null, Scope.resource('order-item'))
   @Get(':id/history')
   @ApiOperation({ summary: 'Historial de estados del plato' })
   @ApiOkResponse({ type: [OrderItemHistoryResponseDto] })

@@ -1,12 +1,13 @@
+import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Role } from '../../../../domain/entities/role.entity.js';
 import { RoleRepository } from '../../../../domain/repositories/role.repository.js';
 import { RoleOrmEntity } from '../entities/role.orm-entity.js';
 import { RoleMapper } from '../mappers/role.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmRoleRepository
@@ -38,8 +39,12 @@ export class TypeOrmRoleRepository
     }, page);
   }
 
-  async findByCode(organizationId: string, code: string): Promise<Role | null> {
-    const found = await this.repository.findOne({
+  async findByCode(
+    organizationId: string,
+    code: string,
+    tx?: TransactionContext,
+  ): Promise<Role | null> {
+    const found = await this.getRepository(tx).findOne({
       where: { organizationId, code },
     });
     return found ? this.toDomain(found) : null;

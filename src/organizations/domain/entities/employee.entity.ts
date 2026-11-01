@@ -80,31 +80,33 @@ export class Employee {
   }
 
   private applyDetails(params: EmployeeDetails): void {
+    const next = { ...this.props };
     if (params.employeeCode !== undefined) {
-      this.props.employeeCode = requireText(
+      next.employeeCode = requireText(
         params.employeeCode,
         'El código del empleado',
         { max: 50 },
       );
     }
     if (params.documentNumber !== undefined) {
-      this.props.documentNumber = params.documentNumber;
+      next.documentNumber = params.documentNumber;
     }
     if (params.jobPositionId !== undefined) {
-      this.props.jobPositionId = params.jobPositionId;
+      next.jobPositionId = params.jobPositionId;
     }
     if (params.hiredAt !== undefined) {
-      this.props.hiredAt = params.hiredAt;
+      next.hiredAt = params.hiredAt;
     }
     if (params.terminatedAt !== undefined) {
-      this.props.terminatedAt = params.terminatedAt;
+      next.terminatedAt = params.terminatedAt;
     }
-    const { hiredAt, terminatedAt } = this.props;
+    const { hiredAt, terminatedAt } = next;
     if (hiredAt && terminatedAt && terminatedAt < hiredAt) {
       throw new ValidationDomainError(
         'La fecha de cese no puede ser anterior a la de ingreso',
       );
     }
+    this.props = next;
   }
 
   get id(): string {

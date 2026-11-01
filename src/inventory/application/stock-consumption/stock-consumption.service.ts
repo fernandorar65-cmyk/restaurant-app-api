@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import { INVENTORY_SETTINGS } from '../inventory-settings.js';
+import type { InventorySettings } from '../inventory-settings.js';
 import { INVENTORY_MOVEMENT_REPOSITORY } from '../../domain/repositories/inventory-movement.repository.js';
 import type { InventoryMovementRepository } from '../../domain/repositories/inventory-movement.repository.js';
 import { PRODUCT_RECIPE_REPOSITORY } from '../../domain/repositories/product-recipe.repository.js';
@@ -50,11 +51,11 @@ export class StockConsumptionService {
     private readonly movementRepository: InventoryMovementRepository,
     @Inject(PRODUCT_LOOKUP) private readonly productLookup: ProductLookupPort,
     @Inject(TRANSACTION_RUNNER) private readonly transactionRunner: TransactionRunner,
-    private readonly config: ConfigService,
+    @Inject(INVENTORY_SETTINGS) private readonly settings: InventorySettings,
   ) {}
 
   get isEnabled(): boolean {
-    return this.config.get<string>('INVENTORY_AUTO_CONSUMPTION') === 'true';
+    return this.settings.autoConsumption;
   }
 
   async consumeForProduct(input: ConsumeForProductInput): Promise<ConsumptionLine[]> {

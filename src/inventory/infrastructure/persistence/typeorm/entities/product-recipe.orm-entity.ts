@@ -3,14 +3,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
-import type { ProductOrmEntity } from '../../../../../catalog/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { SupplyOrmEntity } from './supply.orm-entity.js';
 
 @Entity('product_recipes')
@@ -18,15 +18,12 @@ import type { SupplyOrmEntity } from './supply.orm-entity.js';
 @Check('chk_recipes_quantity', 'quantity_required > 0')
 @Check('chk_recipes_waste', 'waste_percentage BETWEEN 0 AND 100')
 export class ProductRecipeOrmEntity {
+  @ForeignKey('ProductOrmEntity', { onDelete: 'CASCADE' })
   @PrimaryColumn({ name: 'product_id', type: 'uuid' })
   productId: string;
 
   @PrimaryColumn({ name: 'supply_id', type: 'uuid' })
   supplyId: string;
-
-  @ManyToOne('ProductOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'product_id' })
-  product?: ProductOrmEntity;
 
   @ManyToOne('SupplyOrmEntity', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'supply_id' })

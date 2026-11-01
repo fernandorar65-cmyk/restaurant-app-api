@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
-import { entities } from '../../src/common/persistence/database/entities.js';
-import { migrations } from '../../src/common/persistence/database/migrations.js';
-import { InitialSchema1761955200000 } from '../../src/common/persistence/database/migrations/1761955200000-InitialSchema.js';
+import { entities } from '../../src/common/infrastructure/persistence/database/entities.js';
+import { migrations } from '../../src/common/infrastructure/persistence/database/migrations.js';
+import { InitialSchema1761955200000 } from '../../src/common/infrastructure/persistence/database/migrations/1761955200000-InitialSchema.js';
 import {
   connection,
   createTestDatabase,
@@ -217,6 +217,8 @@ describe('Migrations', () => {
     });
 
     it('can be reverted and applied again', async () => {
+      // AccessCatalog first, then ConfigurableCatalogs.
+      await database.dataSource.undoLastMigration({ transaction: 'each' });
       await database.dataSource.undoLastMigration({ transaction: 'each' });
       expect(
         await query(

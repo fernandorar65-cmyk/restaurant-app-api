@@ -21,27 +21,37 @@ import { MembershipsService } from '../../../application/memberships/memberships
 import { CreateMembershipDto } from '../dto/memberships/create-membership.dto.js';
 import { MembershipResponseDto } from '../dto/memberships/membership-response.dto.js';
 import { UpdateMembershipDto } from '../dto/memberships/update-membership.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('iam/memberships')
 @Controller('memberships')
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
+  @Authorize('staff.manage', Scope.organization('body'))
   @Post()
-  @ApiOperation({ summary: 'Vincular un usuario a una organización con un rol y sedes' })
+  @ApiOperation({
+    summary: 'Vincular un usuario a una organización con un rol y sedes',
+  })
   @ApiCreatedResponse({ type: MembershipResponseDto })
-  async create(@Body() dto: CreateMembershipDto): Promise<MembershipResponseDto> {
+  async create(
+    @Body() dto: CreateMembershipDto,
+  ): Promise<MembershipResponseDto> {
     const membership = await this.membershipsService.create(dto);
     return MembershipResponseDto.fromDomain(membership);
   }
 
+  @Authorize('staff.read', Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar membresías' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -53,15 +63,19 @@ export class MembershipsController {
     organizationId?: string,
     @Query('userId', new ParseUUIDPipe({ optional: true })) userId?: string,
   ): Promise<PageResponse<MembershipResponseDto>> {
-    const memberships = await this.membershipsService.findPage({
-      organizationId,
-      userId,
-    }, page);
+    const memberships = await this.membershipsService.findPage(
+      {
+        organizationId,
+        userId,
+      },
+      page,
+    );
     return toPageResponse(memberships, (membership) =>
       MembershipResponseDto.fromDomain(membership),
     );
   }
 
+  @Authorize('staff.read', Scope.resource('membership'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una membresía por id' })
   @ApiOkResponse({ type: MembershipResponseDto })
@@ -73,6 +87,7 @@ export class MembershipsController {
     return MembershipResponseDto.fromDomain(membership);
   }
 
+  @Authorize('staff.manage', Scope.resource('membership'))
   @Patch(':id')
   @ApiOperation({ summary: 'Cambiar rol, sedes o estado de una membresía' })
   @ApiOkResponse({ type: MembershipResponseDto })
@@ -85,6 +100,7 @@ export class MembershipsController {
     return MembershipResponseDto.fromDomain(membership);
   }
 
+  @Authorize('staff.manage', Scope.resource('membership'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una membresía (baja lógica)',
@@ -92,7 +108,9 @@ export class MembershipsController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Membresía no encontrada' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.membershipsService.deactivate(id);
     return { id };
   }

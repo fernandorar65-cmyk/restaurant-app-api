@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProductsService } from '../../../catalog/application/products/products.service.js';
+import { ProductsService } from '../../../catalog/public-api.js';
 import {
   ProductForOrder,
   ProductLookupPort,

@@ -1,13 +1,14 @@
 import type {
   Page,
   PageRequest,
-} from '../../../common/application/pagination.js';
+} from '../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { OrderItem } from '../entities/order-item.entity.js';
 import { OrderStatus } from '../enums/order-status.enum.js';
 
 export const ORDER_ITEM_REPOSITORY = Symbol('ORDER_ITEM_REPOSITORY');
 
+/** Read side of order items (kitchen board, bills); items change through their Order. */
 export interface OrderItemRepository {
   findById(id: string, tx?: TransactionContext): Promise<OrderItem | null>;
   findByOrder(orderId: string, tx?: TransactionContext): Promise<OrderItem[]>;
@@ -24,14 +25,4 @@ export interface OrderItemRepository {
     },
     page: PageRequest,
   ): Promise<Page<OrderItem>>;
-  insert(item: OrderItem, tx?: TransactionContext): Promise<OrderItem>;
-  /**
-   * Persists a status change only if the stored version still equals
-   * expectedVersion (optimistic lock). Returns false when it doesn't.
-   */
-  updateStatus(
-    item: OrderItem,
-    expectedVersion: number,
-    tx?: TransactionContext,
-  ): Promise<boolean>;
 }

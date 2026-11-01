@@ -8,7 +8,7 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { MenuSectionOrmEntity } from './menu-section.orm-entity.js';
 import type { MenuOrmEntity } from './menu.orm-entity.js';
 import type { ProductOrmEntity } from './product.orm-entity.js';

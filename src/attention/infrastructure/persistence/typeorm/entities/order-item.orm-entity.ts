@@ -2,14 +2,14 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   VersionColumn,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
-import type { ProductOrmEntity } from '../../../../../catalog/infrastructure/persistence/typeorm/entities/product.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { AttentionParticipantOrmEntity } from './attention-participant.orm-entity.js';
 import type { OrderOrmEntity } from './order.orm-entity.js';
 import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
@@ -32,12 +32,9 @@ export class OrderItemOrmEntity extends BaseOrmEntity {
   @JoinColumn({ name: 'order_id' })
   order?: OrderOrmEntity;
 
+  @ForeignKey('ProductOrmEntity')
   @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
-
-  @ManyToOne('ProductOrmEntity')
-  @JoinColumn({ name: 'product_id' })
-  product?: ProductOrmEntity;
 
   @Column({ name: 'requested_by_participant_id', type: 'uuid', nullable: true })
   requestedByParticipantId: string | null;

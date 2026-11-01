@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { ErrorLog, type ErrorLogLevel } from '../entities/error-log.entity.js';
 
 export const ERROR_LOG_REPOSITORY = Symbol('ERROR_LOG_REPOSITORY');

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { DiningTablesService } from '../../../organizations/application/dining-tables/dining-tables.service.js';
-import { DiningTableNotFoundError } from '../../../organizations/domain/exceptions/dining-table.errors.js';
+import {
+  DiningTableNotFoundError,
+  DiningTablesService,
+} from '../../../organizations/public-api.js';
 import {
   DiningTableLookupPort,
   DiningTableSnapshot,

@@ -1,3 +1,4 @@
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { AllocationConcept } from '../enums/allocation-concept.enum.js';
 import { AllocationMode } from '../enums/allocation-mode.enum.js';
 import {
@@ -40,8 +41,8 @@ export type AllocationRequest =
   | { mode: AllocationMode.AMOUNT; amount: number }
   | { mode: AllocationMode.ITEMS; allocations: RequestedAllocation[] };
 
-const toCents = (amount: number): number => Math.round(amount * 100);
-const fromCents = (cents: number): number => cents / 100;
+const toCents = (amount: number): number => Money.of(amount).cents;
+const fromCents = (cents: number): number => Money.fromCents(cents).amount;
 
 /**
  * Deterministic order for automatic distribution: products by creation

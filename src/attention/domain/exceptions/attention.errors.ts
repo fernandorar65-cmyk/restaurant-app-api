@@ -92,6 +92,12 @@ export class InvalidTableQrTokenError extends NotFoundDomainError {
   }
 }
 
+export class EmptyOrderError extends ValidationDomainError {
+  constructor() {
+    super('La orden debe tener al menos un producto');
+  }
+}
+
 export class OrderAlreadyFinishedError extends BusinessRuleDomainError {
   constructor(status: string) {
     super(

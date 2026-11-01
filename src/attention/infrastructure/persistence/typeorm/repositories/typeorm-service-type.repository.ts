@@ -5,7 +5,7 @@ import type { TransactionContext } from '../../../../../common/domain/transactio
 import {
   TypeOrmBaseRepository,
   transactionalRepository,
-} from '../../../../../common/persistence/typeorm-base.repository.js';
+} from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { ServiceType } from '../../../../domain/entities/service-type.entity.js';
 import { DuplicateServiceTypeCodeError } from '../../../../domain/exceptions/attention.errors.js';
 import type { ServiceTypeRepository } from '../../../../domain/repositories/service-type.repository.js';

@@ -1,7 +1,7 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Attention } from '../entities/attention.entity.js';
 import { AttentionStatus } from '../enums/attention-status.enum.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const ATTENTION_REPOSITORY = Symbol('ATTENTION_REPOSITORY');
 

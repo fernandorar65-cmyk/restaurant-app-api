@@ -7,8 +7,8 @@ import {
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { CreatedOnlyOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
+import { CreatedOnlyOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { PaymentAllocationOrmEntity } from './payment-allocation.orm-entity.js';
 import type { RefundOrmEntity } from './refund.orm-entity.js';
 

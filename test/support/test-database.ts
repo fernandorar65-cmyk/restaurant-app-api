@@ -3,8 +3,8 @@ import 'reflect-metadata';
 import { randomBytes } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import type { MigrationInterface } from 'typeorm';
-import { entities } from '../../src/common/persistence/database/entities.js';
-import { migrations } from '../../src/common/persistence/database/migrations.js';
+import { entities } from '../../src/common/infrastructure/persistence/database/entities.js';
+import { migrations } from '../../src/common/infrastructure/persistence/database/migrations.js';
 
 // Throwaway databases on the docker-compose Postgres (see .env).
 export const connection = {

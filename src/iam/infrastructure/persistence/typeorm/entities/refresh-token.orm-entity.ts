@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { UserOrmEntity } from './user.orm-entity.js';
 
 // Auth support table (not part of the 38-table business model): one row per

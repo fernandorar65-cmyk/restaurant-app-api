@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { CustomerProfile } from '../../../../domain/entities/customer-profile.entity.js';
 import { CustomerProfileRepository } from '../../../../domain/repositories/customer-profile.repository.js';
 import { CustomerProfileOrmEntity } from '../entities/customer-profile.orm-entity.js';

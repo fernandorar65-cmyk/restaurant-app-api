@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
-import { ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
 import { InventoryCatalogService } from '../../../application/inventory-catalog/inventory-catalog.service.js';
 import {
@@ -8,6 +13,7 @@ import {
   UnitOfMeasureResponseDto,
   UpdateUnitOfMeasureDto,
 } from '../dto/inventory-catalog.dto.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Read access to the ACMR inventory catalogs (to fill forms). */
 @ApiTags('inventory/catalog')
@@ -15,13 +21,17 @@ import {
 export class InventoryCatalogController {
   constructor(private readonly catalogService: InventoryCatalogService) {}
 
+  @Authenticated()
   @Get('units-of-measure')
   @ApiOperation({ summary: 'Unidades de medida del catálogo de ACMR' })
   @ApiOkResponse({ type: [UnitOfMeasureResponseDto] })
   async listUnits(): Promise<UnitOfMeasureResponseDto[]> {
-    return (await this.catalogService.listUnits()).map((unit) => UnitOfMeasureResponseDto.from(unit));
+    return (await this.catalogService.listUnits()).map((unit) =>
+      UnitOfMeasureResponseDto.from(unit),
+    );
   }
 
+  @Authenticated()
   @Get('inventory-movement-types')
   @ApiOperation({ summary: 'Tipos de movimiento y su efecto sobre el stock' })
   @ApiOkResponse({ type: [MovementTypeResponseDto] })
@@ -50,7 +60,9 @@ export class PlatformInventoryController {
     @Param('code') code: string,
     @Body() dto: UpdateUnitOfMeasureDto,
   ): Promise<UnitOfMeasureResponseDto> {
-    return UnitOfMeasureResponseDto.from(await this.catalogService.updateUnit(code, dto));
+    return UnitOfMeasureResponseDto.from(
+      await this.catalogService.updateUnit(code, dto),
+    );
   }
 
   @Patch('inventory-movement-types/:code')

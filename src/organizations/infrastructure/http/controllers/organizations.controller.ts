@@ -19,19 +19,28 @@ import { OrganizationsService } from '../../../application/organizations/organiz
 import { CreateOrganizationDto } from '../dto/organizations/create-organization.dto.js';
 import { OrganizationResponseDto } from '../dto/organizations/organization-response.dto.js';
 import { UpdateOrganizationDto } from '../dto/organizations/update-organization.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authenticated,
+  Authorize,
+  CurrentActor,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import type { Actor } from '../../../../common/domain/access.js';
+import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
 
 @ApiTags('organizations/organizations')
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
+  @PlatformAdmin()
   @Post()
   @ApiOperation({ summary: 'Crear una organización' })
   @ApiCreatedResponse({ type: OrganizationResponseDto })
@@ -42,18 +51,24 @@ export class OrganizationsController {
     return OrganizationResponseDto.fromDomain(organization);
   }
 
+  @Authenticated()
   @Get()
   @ApiOperation({ summary: 'Listar organizaciones' })
   @ApiPaginatedResponse(OrganizationResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
+    @CurrentActor() actor: Actor,
   ): Promise<PageResponse<OrganizationResponseDto>> {
-    const organizations = await this.organizationsService.findPage(page);
+    // Only the organizations the user belongs to (all for ACMR administrators).
+    const organizations = await this.organizationsService.findPage(page, {
+      ids: actor.isPlatformAdmin ? undefined : actor.organizationIds,
+    });
     return toPageResponse(organizations, (organization) =>
       OrganizationResponseDto.fromDomain(organization),
     );
   }
 
+  @Authorize(null, Scope.resource('organization'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una organización por id' })
   @ApiOkResponse({ type: OrganizationResponseDto })
@@ -65,6 +80,7 @@ export class OrganizationsController {
     return OrganizationResponseDto.fromDomain(organization);
   }
 
+  @Authorize('organizations.manage', Scope.resource('organization'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una organización' })
   @ApiOkResponse({ type: OrganizationResponseDto })
@@ -77,6 +93,7 @@ export class OrganizationsController {
     return OrganizationResponseDto.fromDomain(organization);
   }
 
+  @Authorize('organizations.manage', Scope.resource('organization'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una organización (baja lógica)',
@@ -84,7 +101,9 @@ export class OrganizationsController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.organizationsService.deactivate(id);
     return { id };
   }

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Raw, Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Product } from '../../../../domain/entities/product.entity.js';
 import { ProductRepository } from '../../../../domain/repositories/product.repository.js';
 import { ProductOrmEntity } from '../entities/product.orm-entity.js';
 import { ProductMapper } from '../mappers/product.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmProductRepository

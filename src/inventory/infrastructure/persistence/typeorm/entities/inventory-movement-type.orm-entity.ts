@@ -1,6 +1,6 @@
 import { Check, Column, Entity, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { MovementEffect } from '../../../../domain/enums/movement-effect.enum.js';
 
 /** Platform-wide catalog maintained by ACMR; the effect decides the balance. */

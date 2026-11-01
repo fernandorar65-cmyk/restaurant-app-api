@@ -1,5 +1,5 @@
 import { Check, Column, Entity, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 
 /** Separate from payment_statuses: refunds have their own cycle. */
 @Entity('refund_statuses')

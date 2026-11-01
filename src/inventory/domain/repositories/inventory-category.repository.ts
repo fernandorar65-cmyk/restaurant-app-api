@@ -1,5 +1,5 @@
 import { InventoryCategory } from '../entities/inventory-category.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const INVENTORY_CATEGORY_REPOSITORY = Symbol('INVENTORY_CATEGORY_REPOSITORY');
 

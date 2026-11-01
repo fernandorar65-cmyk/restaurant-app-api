@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { WorkArea } from '../../../../domain/entities/work-area.entity.js';
 import { WorkAreaRepository } from '../../../../domain/repositories/work-area.repository.js';
 import { WorkAreaOrmEntity } from '../entities/work-area.orm-entity.js';

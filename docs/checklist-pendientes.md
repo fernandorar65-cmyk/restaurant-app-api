@@ -7,8 +7,8 @@ Lista única para ir eligiendo qué abordar: indica los códigos (por ejemplo, "
 ## 1. Críticos antes de cualquier ambiente compartido
 
 - [x] **C1** 🔴 M — Migración inicial con el modelo actual y `synchronize: false` (#8). *Hecho: `InitialSchema` (adopta bases creadas por `synchronize`) + `ConfigurableCatalogs`; `synchronize` apagado en todo entorno salvo `DB_SYNCHRONIZE=true` local*
-- [ ] **C2** 🔴 B — Seed idempotente de permisos y roles base (#9). *Conviene junto con C1*
-- [ ] **C3** 🔴 A — Permisos por endpoint y alcance por organización y sede según la membresía (#5)
+- [x] **C2** 🔴 B — Seed idempotente de permisos y roles base (#9). *Hecho: ver A1 en [pendientes-evaluacion-arquitectura.md](pendientes-evaluacion-arquitectura.md)*
+- [x] **C3** 🔴 A — Permisos por endpoint y alcance por organización y sede según la membresía (#5). *Hecho: ver [autorizacion.md](autorizacion.md)*
 - [x] **C4** 🔴 B — Secretos JWT obligatorios: la app no arranca sin ellos (#6). *Hecho con `validateEnvironment`: en producción además exige 32 caracteres y valores distintos a los de ejemplo*
 - [ ] **C5** 🔴 B — Una orden no puede reabrir una atención cerrada o cancelada: leerla con bloqueo dentro de la transacción (#1)
 - [ ] **C6** 🔴 B — `requestBill`, `close` y `cancel` sin pisar cambios simultáneos (#2)

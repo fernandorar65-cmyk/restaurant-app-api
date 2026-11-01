@@ -1,7 +1,7 @@
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import type { PaymentMethod } from '../../../common/domain/payment-method.enum.js';
 import { BusinessDate } from '../../../common/domain/value-objects/business-date.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
 import { ExpenseStatus } from '../enums/expense-status.enum.js';
 import { ExpenseVoidedError } from '../exceptions/finance.errors.js';
@@ -13,8 +13,7 @@ export interface ExpenseProps {
   inventoryMovementId: string | null;
   description: string;
   amount: number;
-  /** Business date 'YYYY-MM-DD'. */
-  expenseDate: string;
+  expenseDate: BusinessDate;
   paymentMethod: PaymentMethod | null;
   registeredByUserId: string | null;
   status: ExpenseStatus;
@@ -57,7 +56,7 @@ export class Expense {
       inventoryMovementId: params.inventoryMovementId ?? null,
       description: '',
       amount: 0,
-      expenseDate: '',
+      expenseDate: BusinessDate.create(params.expenseDate),
       paymentMethod: null,
       registeredByUserId: params.registeredByUserId ?? null,
       status: ExpenseStatus.REGISTERED,
@@ -95,18 +94,24 @@ export class Expense {
       this.props.categoryId = params.categoryId;
     }
     if (params.description !== undefined) {
-      this.props.description = requireText(params.description, 'La descripción', {
-        max: 500,
-      });
+      this.props.description = requireText(
+        params.description,
+        'La descripción',
+        {
+          max: 500,
+        },
+      );
     }
     if (params.amount !== undefined) {
       if (params.amount <= 0) {
-        throw new ValidationDomainError('El monto del gasto debe ser mayor a 0');
+        throw new ValidationDomainError(
+          'El monto del gasto debe ser mayor a 0',
+        );
       }
-      this.props.amount = roundMoney(params.amount);
+      this.props.amount = Money.of(params.amount).amount;
     }
     if (params.expenseDate !== undefined) {
-      this.props.expenseDate = BusinessDate.create(params.expenseDate).value;
+      this.props.expenseDate = BusinessDate.create(params.expenseDate);
     }
     if (params.paymentMethod !== undefined) {
       this.props.paymentMethod = params.paymentMethod;
@@ -131,8 +136,9 @@ export class Expense {
   get amount(): number {
     return this.props.amount;
   }
+  /** Business date 'YYYY-MM-DD'. */
   get expenseDate(): string {
-    return this.props.expenseDate;
+    return this.props.expenseDate.value;
   }
   get paymentMethod(): PaymentMethod | null {
     return this.props.paymentMethod;

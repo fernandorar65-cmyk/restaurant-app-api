@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { AttentionParticipant } from '../../../../domain/entities/attention-participant.entity.js';
 import { AttentionParticipantRepository } from '../../../../domain/repositories/attention-participant.repository.js';
 import { AttentionParticipantOrmEntity } from '../entities/attention-participant.orm-entity.js';

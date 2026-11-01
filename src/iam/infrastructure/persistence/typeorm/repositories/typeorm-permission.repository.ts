@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Permission } from '../../../../domain/entities/permission.entity.js';
 import { PermissionRepository } from '../../../../domain/repositories/permission.repository.js';
 import { PermissionOrmEntity } from '../entities/permission.orm-entity.js';
 import { PermissionMapper } from '../mappers/permission.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmPermissionRepository

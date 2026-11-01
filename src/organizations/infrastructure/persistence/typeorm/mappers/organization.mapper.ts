@@ -1,3 +1,5 @@
+import { CurrencyCode } from '../../../../../common/domain/value-objects/currency-code.js';
+import { TimeZone } from '../../../../../common/domain/value-objects/time-zone.js';
 import { Organization } from '../../../../domain/entities/organization.entity.js';
 import { OrganizationOrmEntity } from '../entities/organization.orm-entity.js';
 
@@ -8,8 +10,8 @@ export class OrganizationMapper {
       name: orm.name,
       legalName: orm.legalName,
       taxIdentifier: orm.taxIdentifier,
-      currencyCode: orm.currencyCode,
-      timezone: orm.timezone,
+      currencyCode: CurrencyCode.rehydrate(orm.currencyCode),
+      timezone: TimeZone.rehydrate(orm.timezone),
       status: orm.status,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,

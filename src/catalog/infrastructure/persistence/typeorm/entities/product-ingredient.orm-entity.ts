@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { ProductOrmEntity } from './product.orm-entity.js';
 
 @Entity('product_ingredients')

@@ -18,7 +18,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
@@ -31,6 +31,10 @@ import {
   JobPositionResponseDto,
   UpdateJobPositionDto,
 } from '../dto/work-structure/work-structure.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Job positions (Cocinero, Mozo...). They describe the job; IAM roles grant access. */
 @ApiTags('organizations/job-positions')
@@ -38,13 +42,23 @@ import {
 export class JobPositionsController {
   constructor(private readonly jobPositionsService: JobPositionsService) {}
 
+  @Authorize('staff.manage', Scope.resource('work-area', 'workAreaId', 'body'))
   @Post()
   @ApiOperation({ summary: 'Crear un puesto dentro de un área' })
   @ApiCreatedResponse({ type: JobPositionResponseDto })
-  async create(@Body() dto: CreateJobPositionDto): Promise<JobPositionResponseDto> {
-    return JobPositionResponseDto.fromDomain(await this.jobPositionsService.create(dto));
+  async create(
+    @Body() dto: CreateJobPositionDto,
+  ): Promise<JobPositionResponseDto> {
+    return JobPositionResponseDto.fromDomain(
+      await this.jobPositionsService.create(dto),
+    );
   }
 
+  @Authorize(
+    null,
+    Scope.organization('query'),
+    Scope.resource('work-area', 'workAreaId', 'query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar puestos' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -55,26 +69,38 @@ export class JobPositionsController {
     @Pagination() page: PageRequest,
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
-    @Query('workAreaId', new ParseUUIDPipe({ optional: true })) workAreaId?: string,
-    @Query('isActive', new ParseBoolPipe({ optional: true })) isActive?: boolean,
+    @Query('workAreaId', new ParseUUIDPipe({ optional: true }))
+    workAreaId?: string,
+    @Query('isActive', new ParseBoolPipe({ optional: true }))
+    isActive?: boolean,
   ): Promise<PageResponse<JobPositionResponseDto>> {
     const positions = await this.jobPositionsService.findPage(
       { organizationId, workAreaId, isActive },
       page,
     );
-    return toPageResponse(positions, (position) => JobPositionResponseDto.fromDomain(position));
+    return toPageResponse(positions, (position) =>
+      JobPositionResponseDto.fromDomain(position),
+    );
   }
 
+  @Authorize(null, Scope.resource('job-position'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un puesto' })
   @ApiOkResponse({ type: JobPositionResponseDto })
   @ApiNotFoundResponse({ description: 'Puesto no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<JobPositionResponseDto> {
-    return JobPositionResponseDto.fromDomain(await this.jobPositionsService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<JobPositionResponseDto> {
+    return JobPositionResponseDto.fromDomain(
+      await this.jobPositionsService.findOne(id),
+    );
   }
 
+  @Authorize('staff.manage', Scope.resource('job-position'))
   @Patch(':id')
-  @ApiOperation({ summary: 'Editar, mover de área, activar o desactivar un puesto' })
+  @ApiOperation({
+    summary: 'Editar, mover de área, activar o desactivar un puesto',
+  })
   @ApiOkResponse({ type: JobPositionResponseDto })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -85,6 +111,7 @@ export class JobPositionsController {
     );
   }
 
+  @Authorize('staff.manage', Scope.resource('job-position'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un puesto (baja lógica)',
@@ -92,7 +119,9 @@ export class JobPositionsController {
       'No se borra ni afecta a los empleados que ya lo tienen; solo deja de poder asignarse',
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.jobPositionsService.deactivate(id);
     return { id };
   }

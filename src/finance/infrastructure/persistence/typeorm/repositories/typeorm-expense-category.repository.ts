@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { ExpenseCategory } from '../../../../domain/entities/expense-category.entity.js';
 import { ExpenseCategoryRepository } from '../../../../domain/repositories/expense-category.repository.js';
 import { ExpenseCategoryOrmEntity } from '../entities/expense-category.orm-entity.js';

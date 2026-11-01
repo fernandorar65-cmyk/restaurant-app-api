@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Employee } from '../../../../domain/entities/employee.entity.js';
 import { EmployeeRepository } from '../../../../domain/repositories/employee.repository.js';
 import { EmployeeOrmEntity } from '../entities/employee.orm-entity.js';
 import { EmployeeMapper } from '../mappers/employee.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmEmployeeRepository

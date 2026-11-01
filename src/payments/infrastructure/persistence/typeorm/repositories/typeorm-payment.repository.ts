@@ -4,14 +4,14 @@ import { QueryFailedError, Repository } from 'typeorm';
 import type {
   Page,
   PageRequest,
-} from '../../../../../common/application/pagination.js';
+} from '../../../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { roundMoney } from '../../../../../common/domain/value-objects/money.js';
+import { Money } from '../../../../../common/domain/value-objects/money.js';
 import {
   transactionalRepository,
   withoutUndefined,
-} from '../../../../../common/persistence/typeorm-base.repository.js';
-import { TypeOrmTransactionContext } from '../../../../../common/persistence/typeorm-transaction-runner.js';
+} from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
+import { TypeOrmTransactionContext } from '../../../../../common/infrastructure/persistence/typeorm-transaction-runner.js';
 import { Payment } from '../../../../domain/entities/payment.entity.js';
 import { AllocationConcept } from '../../../../domain/enums/allocation-concept.enum.js';
 import type { PaymentStatusCode } from '../../../../domain/enums/payment-status-code.enum.js';
@@ -180,8 +180,8 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return rows.map((row) => ({
       concept: row.concept,
       orderItemId: row.orderItemId,
-      counted: roundMoney(Number(row.counted)),
-      reserved: roundMoney(Number(row.reserved)),
+      counted: Money.parse(row.counted).amount,
+      reserved: Money.parse(row.reserved).amount,
     }));
   }
 

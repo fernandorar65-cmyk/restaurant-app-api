@@ -1,3 +1,4 @@
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { AttentionStatus } from '../enums/attention-status.enum.js';
 import type { FulfillmentMode } from '../enums/fulfillment-mode.enum.js';
 import type { StatusRef } from '../workflows.js';
@@ -118,7 +119,8 @@ export class Attention {
   /** Only possible once everything billable has been paid. */
   close(outstandingBalance: number, closed: StatusRef<AttentionStatus>): void {
     this.assertActive();
-    if (outstandingBalance !== 0) {
+    // Compared in cents: a float with leftover error is not a debt.
+    if (!Money.of(outstandingBalance).isZero()) {
       throw new OutstandingBalanceError(outstandingBalance);
     }
     assertCanonical(closed, AttentionStatus.CLOSED);

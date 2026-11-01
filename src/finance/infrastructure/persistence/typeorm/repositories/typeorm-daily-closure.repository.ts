@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
-import { withoutUndefined } from '../../../../../common/persistence/typeorm-base.repository.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
+import { withoutUndefined } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { DailyClosure } from '../../../../domain/entities/daily-closure.entity.js';
 import { DailyClosureRepository } from '../../../../domain/repositories/daily-closure.repository.js';
 import { DailyClosurePaymentTotalOrmEntity } from '../entities/daily-closure-payment-total.orm-entity.js';

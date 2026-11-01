@@ -19,11 +19,11 @@ import { MENU_SECTION_REPOSITORY } from '../../domain/repositories/menu-section.
 import type { MenuSectionRepository } from '../../domain/repositories/menu-section.repository.js';
 import { MENU_REPOSITORY } from '../../domain/repositories/menu.repository.js';
 import type { MenuRepository } from '../../domain/repositories/menu.repository.js';
-import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
-import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { ProductsService } from '../products/products.service.js';
 import { requireRestaurant } from '../restaurant-guard.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateMenuInput extends MenuDetails {
   restaurantId: string;
@@ -50,8 +50,8 @@ export class MenusService {
     private readonly menuProductRepository: MenuProductRepository,
     @Inject(MENU_SECTION_REPOSITORY)
     private readonly sectionRepository: MenuSectionRepository,
-    @Inject(RESTAURANT_LOOKUP)
-    private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly restaurantLookup: TenantLookup,
     private readonly productsService: ProductsService,
   ) {}
 

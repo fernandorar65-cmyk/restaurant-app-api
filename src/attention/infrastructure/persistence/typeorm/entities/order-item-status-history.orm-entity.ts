@@ -2,12 +2,12 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { OrderItemOrmEntity } from './order-item.orm-entity.js';
 import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
 
@@ -44,12 +44,9 @@ export class OrderItemStatusHistoryOrmEntity {
   @JoinColumn({ name: 'new_status_id' })
   newStatus?: OrderStatusOrmEntity;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'changed_by_user_id', type: 'uuid', nullable: true })
   changedByUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'changed_by_user_id' })
-  changedByUser?: UserOrmEntity;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   reason: string | null;

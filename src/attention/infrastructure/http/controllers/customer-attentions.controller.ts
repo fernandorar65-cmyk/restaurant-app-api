@@ -19,8 +19,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { AttentionsService } from '../../../application/attentions/attentions.service.js';
+import { AttentionQueriesService } from '../../../application/attentions/attention-queries.service.js';
 import { CustomerAttentionsService } from '../../../application/customer-attentions/customer-attentions.service.js';
+import { DinerAttentionStartService } from '../../../application/customer-attentions/diner-attention-start.service.js';
 import { DinerIdentityResolver } from '../auth/diner-identity.resolver.js';
 import {
   SubmitOrderDto,
@@ -48,7 +49,8 @@ const GUEST_TOKEN_HEADER = 'x-guest-token';
 export class CustomerAttentionsController {
   constructor(
     private readonly customerAttentionsService: CustomerAttentionsService,
-    private readonly attentionsService: AttentionsService,
+    private readonly dinerStart: DinerAttentionStartService,
+    private readonly attentions: AttentionQueriesService,
     private readonly identityResolver: DinerIdentityResolver,
   ) {}
 
@@ -65,12 +67,12 @@ export class CustomerAttentionsController {
     @Headers(GUEST_TOKEN_HEADER) guestToken: string | undefined,
   ): Promise<AttentionDetailResponseDto> {
     const identity = await this.identityResolver.resolve(request, guestToken);
-    const { attention, participant } = await this.customerAttentionsService.start(
+    const { attention, participant } = await this.dinerStart.start(
       dto,
       identity,
     );
     const response = AttentionDetailResponseDto.fromDetail(
-      await this.attentionsService.getDetail(attention.id),
+      await this.attentions.getDetail(attention.id),
     );
     if (participant.guestToken && participant.guestToken !== identity.guestToken) {
       response.guestToken = participant.guestToken;

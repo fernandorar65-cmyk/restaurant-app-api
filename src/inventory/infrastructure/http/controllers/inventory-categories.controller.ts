@@ -23,19 +23,24 @@ import {
   InventoryCategoryResponseDto,
   UpdateInventoryCategoryDto,
 } from '../dto/inventory-category.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('inventory/categories')
 @Controller('inventory-categories')
 export class InventoryCategoriesController {
   constructor(private readonly categoriesService: InventoryCategoriesService) {}
 
+  @Authorize('inventory.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear una categoría de inventario' })
   @ApiCreatedResponse({ type: InventoryCategoryResponseDto })
@@ -46,6 +51,7 @@ export class InventoryCategoriesController {
     return InventoryCategoryResponseDto.fromDomain(category);
   }
 
+  @Authorize(null, Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar categorías de inventario' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -55,12 +61,16 @@ export class InventoryCategoriesController {
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
   ): Promise<PageResponse<InventoryCategoryResponseDto>> {
-    const categories = await this.categoriesService.findPage({ organizationId }, page);
+    const categories = await this.categoriesService.findPage(
+      { organizationId },
+      page,
+    );
     return toPageResponse(categories, (category) =>
       InventoryCategoryResponseDto.fromDomain(category),
     );
   }
 
+  @Authorize(null, Scope.resource('inventory-category'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una categoría de inventario' })
   @ApiOkResponse({ type: InventoryCategoryResponseDto })
@@ -72,6 +82,7 @@ export class InventoryCategoriesController {
     return InventoryCategoryResponseDto.fromDomain(category);
   }
 
+  @Authorize('inventory.manage', Scope.resource('inventory-category'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una categoría de inventario' })
   @ApiOkResponse({ type: InventoryCategoryResponseDto })
@@ -84,6 +95,7 @@ export class InventoryCategoriesController {
     return InventoryCategoryResponseDto.fromDomain(category);
   }
 
+  @Authorize('inventory.manage', Scope.resource('inventory-category'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una categoría de inventario (baja lógica)',
@@ -91,7 +103,9 @@ export class InventoryCategoriesController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.categoriesService.deactivate(id);
     return { id };
   }

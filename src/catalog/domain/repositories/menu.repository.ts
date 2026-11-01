@@ -1,5 +1,5 @@
 import { Menu } from '../entities/menu.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const MENU_REPOSITORY = Symbol('MENU_REPOSITORY');
 

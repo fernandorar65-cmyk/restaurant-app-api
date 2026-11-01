@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { ExpenseCategory } from '../entities/expense-category.entity.js';
 
 export const EXPENSE_CATEGORY_REPOSITORY = Symbol('EXPENSE_CATEGORY_REPOSITORY');

@@ -1,3 +1,4 @@
+import { BusinessDate } from '../../../../../common/domain/value-objects/business-date.js';
 import { DailyClosure } from '../../../../domain/entities/daily-closure.entity.js';
 import { ExpenseCategory } from '../../../../domain/entities/expense-category.entity.js';
 import { Expense } from '../../../../domain/entities/expense.entity.js';
@@ -42,7 +43,7 @@ export class ExpenseMapper {
       inventoryMovementId: orm.inventoryMovementId,
       description: orm.description,
       amount: orm.amount,
-      expenseDate: orm.expenseDate,
+      expenseDate: BusinessDate.rehydrate(orm.expenseDate),
       paymentMethod: orm.paymentMethod,
       registeredByUserId: orm.registeredByUserId,
       status: orm.status,
@@ -51,7 +52,10 @@ export class ExpenseMapper {
     });
   }
 
-  static toPersistence(domain: Expense, existing?: ExpenseOrmEntity): ExpenseOrmEntity {
+  static toPersistence(
+    domain: Expense,
+    existing?: ExpenseOrmEntity,
+  ): ExpenseOrmEntity {
     const orm = existing ?? new ExpenseOrmEntity();
     orm.id = domain.id;
     orm.restaurantId = domain.restaurantId;

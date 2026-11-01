@@ -1,6 +1,12 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from '../../../application/auth/auth.service.js';
+import { PasswordsService } from '../../../application/auth/passwords.service.js';
 import { OwnerRegistrationService } from '../../../application/owner-registration/owner-registration.service.js';
 import {
   OwnerRegistrationResponseDto,
@@ -15,23 +21,29 @@ import { LoginDto } from '../dto/auth/login.dto.js';
 import { RefreshDto } from '../dto/auth/refresh.dto.js';
 import { ResetPasswordDto } from '../dto/auth/reset-password.dto.js';
 import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('owner/auth')
 @Controller('api/v1/owner/auth')
 export class StaffAuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly passwords: PasswordsService,
     private readonly ownerRegistration: OwnerRegistrationService,
   ) {}
 
   @Public()
   @Post('register')
   @ApiOperation({
-    summary: 'Alta del dueño: usuario + organización + rol OWNER + membresía (+ primera sede)',
-    description: 'Todo en una sola transacción; si algo falla no queda nada creado',
+    summary:
+      'Alta del dueño: usuario + organización + rol OWNER + membresía (+ primera sede)',
+    description:
+      'Todo en una sola transacción; si algo falla no queda nada creado',
   })
   @ApiCreatedResponse({ type: OwnerRegistrationResponseDto })
-  async register(@Body() dto: RegisterOwnerDto): Promise<OwnerRegistrationResponseDto> {
+  async register(
+    @Body() dto: RegisterOwnerDto,
+  ): Promise<OwnerRegistrationResponseDto> {
     const registration = await this.ownerRegistration.register(dto);
     return OwnerRegistrationResponseDto.fromRegistration(registration);
   }
@@ -55,6 +67,7 @@ export class StaffAuthController {
     return this.authService.refresh(dto.refreshToken);
   }
 
+  @Authenticated()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Invalida el refresh token' })
@@ -67,7 +80,7 @@ export class StaffAuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Envía un token para restablecer la contraseña' })
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
-    await this.authService.forgotPassword(dto.email);
+    await this.passwords.forgotPassword(dto.email);
   }
 
   @Public()
@@ -75,6 +88,6 @@ export class StaffAuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Restablece la contraseña con el token recibido' })
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
-    await this.authService.resetPassword(dto.token, dto.newPassword);
+    await this.passwords.resetPassword(dto.token, dto.newPassword);
   }
 }

@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type {
   AttentionBill,
   AttentionDetail,
-} from '../../../application/attentions/attentions.service.js';
+} from '../../../application/attentions/attention-queries.service.js';
 import { AttentionParticipant } from '../../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../../domain/entities/attention.entity.js';
 import { Fulfillment } from '../../../domain/entities/fulfillment.entity.js';

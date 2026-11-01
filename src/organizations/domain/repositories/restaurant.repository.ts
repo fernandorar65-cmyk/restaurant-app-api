@@ -1,6 +1,6 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Restaurant } from '../entities/restaurant.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const RESTAURANT_REPOSITORY = Symbol('RESTAURANT_REPOSITORY');
 

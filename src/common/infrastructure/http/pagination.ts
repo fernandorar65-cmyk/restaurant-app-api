@@ -13,7 +13,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { Page, PageRequest } from '../../application/pagination.js';
+import type { Page, PageRequest } from '../../domain/pagination.js';
 
 export const DEFAULT_PAGE_LIMIT = 20;
 export const MAX_PAGE_LIMIT = 100;

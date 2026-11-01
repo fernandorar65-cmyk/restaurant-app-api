@@ -1,5 +1,5 @@
 import { DiningTable } from '../entities/dining-table.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const DINING_TABLE_REPOSITORY = Symbol('DINING_TABLE_REPOSITORY');
 

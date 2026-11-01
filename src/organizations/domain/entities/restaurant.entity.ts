@@ -20,11 +20,10 @@ export interface RestaurantProps {
   description: string | null;
   address: string | null;
   phone: string | null;
-  email: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  currencyCode: string;
-  timezone: string;
+  email: Email | null;
+  location: GeoCoordinates | null;
+  currencyCode: CurrencyCode;
+  timezone: TimeZone;
   status: RestaurantStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -66,10 +65,9 @@ export class Restaurant {
       address: null,
       phone: null,
       email: null,
-      latitude: null,
-      longitude: null,
-      currencyCode: DEFAULT_CURRENCY_CODE,
-      timezone: DEFAULT_TIME_ZONE,
+      location: null,
+      currencyCode: CurrencyCode.create(DEFAULT_CURRENCY_CODE),
+      timezone: TimeZone.create(DEFAULT_TIME_ZONE),
       status: RestaurantStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
@@ -106,21 +104,19 @@ export class Restaurant {
       this.props.phone = params.phone;
     }
     if (params.email !== undefined) {
-      this.props.email = params.email ? Email.create(params.email).value : null;
+      this.props.email = params.email ? Email.create(params.email) : null;
     }
     if (params.latitude !== undefined || params.longitude !== undefined) {
-      const coordinates = GeoCoordinates.createOptional(
-        params.latitude === undefined ? this.props.latitude : params.latitude,
-        params.longitude === undefined ? this.props.longitude : params.longitude,
+      this.props.location = GeoCoordinates.createOptional(
+        params.latitude === undefined ? this.latitude : params.latitude,
+        params.longitude === undefined ? this.longitude : params.longitude,
       );
-      this.props.latitude = coordinates?.latitude ?? null;
-      this.props.longitude = coordinates?.longitude ?? null;
     }
     if (params.currencyCode !== undefined) {
-      this.props.currencyCode = CurrencyCode.create(params.currencyCode).value;
+      this.props.currencyCode = CurrencyCode.create(params.currencyCode);
     }
     if (params.timezone !== undefined) {
-      this.props.timezone = TimeZone.create(params.timezone).value;
+      this.props.timezone = TimeZone.create(params.timezone);
     }
   }
 
@@ -153,19 +149,19 @@ export class Restaurant {
     return this.props.phone;
   }
   get email(): string | null {
-    return this.props.email;
+    return this.props.email?.value ?? null;
   }
   get latitude(): number | null {
-    return this.props.latitude;
+    return this.props.location?.latitude ?? null;
   }
   get longitude(): number | null {
-    return this.props.longitude;
+    return this.props.location?.longitude ?? null;
   }
   get currencyCode(): string {
-    return this.props.currencyCode;
+    return this.props.currencyCode.value;
   }
   get timezone(): string {
-    return this.props.timezone;
+    return this.props.timezone.value;
   }
   get status(): RestaurantStatus {
     return this.props.status;

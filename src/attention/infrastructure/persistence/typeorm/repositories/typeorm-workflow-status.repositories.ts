@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { QueryFailedError, Repository } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { WorkflowStatus } from '../../../../domain/entities/workflow-status.entity.js';
 import { AttentionStatus } from '../../../../domain/enums/attention-status.enum.js';
 import { OrderStatus } from '../../../../domain/enums/order-status.enum.js';

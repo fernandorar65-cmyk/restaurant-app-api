@@ -4,7 +4,7 @@ import { UserStatus } from '../enums/user-status.enum.js';
 
 export interface UserProps {
   id: string;
-  email: string;
+  email: Email;
   passwordHash: string;
   firstName: string;
   lastName: string | null;
@@ -47,7 +47,7 @@ export class User {
     const now = new Date();
     const user = new User({
       id: params.id,
-      email: Email.create(params.email).value,
+      email: Email.create(params.email),
       passwordHash: params.passwordHash,
       firstName: '',
       lastName: null,
@@ -73,7 +73,7 @@ export class User {
   }
 
   changeEmail(email: string): void {
-    this.props.email = Email.create(email).value;
+    this.props.email = Email.create(email);
     this.touch();
   }
 
@@ -98,7 +98,9 @@ export class User {
   }
 
   get fullName(): string {
-    return [this.props.firstName, this.props.lastName].filter(Boolean).join(' ');
+    return [this.props.firstName, this.props.lastName]
+      .filter(Boolean)
+      .join(' ');
   }
 
   private applyProfile(params: UserProfileDetails): void {
@@ -123,7 +125,7 @@ export class User {
     return this.props.id;
   }
   get email(): string {
-    return this.props.email;
+    return this.props.email.value;
   }
   get passwordHash(): string {
     return this.props.passwordHash;

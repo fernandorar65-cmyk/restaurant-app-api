@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentLedgerService } from '../../../payments/application/payment-ledger/payment-ledger.service.js';
+import { PaymentLedgerService } from '../../../payments/public-api.js';
 import { PaymentLedgerPort } from '../../application/ports/payment-ledger.port.js';
 
 /** In-process adapter over the payments context's public ledger service. */

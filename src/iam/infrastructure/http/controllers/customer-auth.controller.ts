@@ -1,6 +1,13 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from '../../../application/auth/auth.service.js';
+import { CustomerRegistrationService } from '../../../application/auth/customer-registration.service.js';
+import { PasswordsService } from '../../../application/auth/passwords.service.js';
 import {
   AuthResponseDto,
   AuthTokensResponseDto,
@@ -11,6 +18,7 @@ import { RefreshDto } from '../dto/auth/refresh.dto.js';
 import { RegisterCustomerDto } from '../dto/auth/register-customer.dto.js';
 import { ResetPasswordDto } from '../dto/auth/reset-password.dto.js';
 import { Public } from '../../../../common/infrastructure/http/public.decorator.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /**
  * Same identity and tokens as /api/v1/owner/auth: a diner account is a
@@ -19,14 +27,18 @@ import { Public } from '../../../../common/infrastructure/http/public.decorator.
 @ApiTags('customer/auth')
 @Controller('api/v1/customer/auth')
 export class CustomerAuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly registration: CustomerRegistrationService,
+    private readonly passwords: PasswordsService,
+  ) {}
 
   @Public()
   @Post('register')
   @ApiOperation({ summary: 'Crea la cuenta del comensal y devuelve la sesión' })
   @ApiCreatedResponse({ type: AuthResponseDto })
   async register(@Body() dto: RegisterCustomerDto): Promise<AuthResponseDto> {
-    const { user, tokens } = await this.authService.registerCustomer(dto);
+    const { user, tokens } = await this.registration.registerCustomer(dto);
     return AuthResponseDto.fromDomain(user, tokens);
   }
 
@@ -49,6 +61,7 @@ export class CustomerAuthController {
     return this.authService.refresh(dto.refreshToken);
   }
 
+  @Authenticated()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Invalida el refresh token' })
@@ -61,7 +74,7 @@ export class CustomerAuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Envía un token para restablecer la contraseña' })
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
-    await this.authService.forgotPassword(dto.email);
+    await this.passwords.forgotPassword(dto.email);
   }
 
   @Public()
@@ -69,6 +82,6 @@ export class CustomerAuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Restablece la contraseña con el token recibido' })
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
-    await this.authService.resetPassword(dto.token, dto.newPassword);
+    await this.passwords.resetPassword(dto.token, dto.newPassword);
   }
 }

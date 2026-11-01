@@ -6,5 +6,1252 @@
   },
   "env": {
     "node": true
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/attention/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/catalog/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/finance/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/iam/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/inventory/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/observability/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/organizations/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/payments/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/common/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": [
+        "src/common/infrastructure/persistence/database/**"
+      ]
+    },
+    {
+      "files": [
+        "src/attention/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/attention/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/catalog/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/catalog/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/finance/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/finance/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/iam/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/iam/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/inventory/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/inventory/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/observability/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/observability/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/organizations/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/organizations/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/payments/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/payments/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/common/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/common/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

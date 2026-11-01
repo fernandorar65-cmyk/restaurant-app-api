@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { withoutUndefined } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { withoutUndefined } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import type {
   InventoryCatalogRepository,
   MovementType,

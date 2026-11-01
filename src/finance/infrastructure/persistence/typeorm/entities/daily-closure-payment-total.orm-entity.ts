@@ -11,7 +11,7 @@ import { PaymentMethod } from '../../../../../common/domain/payment-method.enum.
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { DailyClosureOrmEntity } from './daily-closure.orm-entity.js';
 
 @Entity('daily_closure_payment_totals')

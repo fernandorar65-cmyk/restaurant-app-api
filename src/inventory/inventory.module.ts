@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
-import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
 import { CatalogModule } from '../catalog/catalog.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { InventoryCatalogService } from './application/inventory-catalog/inventory-catalog.service.js';
+import { INVENTORY_SETTINGS } from './application/inventory-settings.js';
+import type { InventorySettings } from './application/inventory-settings.js';
 import { InventoryCategoriesService } from './application/inventory-categories/inventory-categories.service.js';
-import { ORGANIZATION_LOOKUP } from './application/ports/organization-lookup.port.js';
 import { PRODUCT_LOOKUP } from './application/ports/product-lookup.port.js';
 import { ProductRecipesService } from './application/product-recipes/product-recipes.service.js';
 import { RestaurantSuppliesService } from './application/restaurant-supplies/restaurant-supplies.service.js';
@@ -18,6 +20,8 @@ import { INVENTORY_MOVEMENT_REPOSITORY } from './domain/repositories/inventory-m
 import { PRODUCT_RECIPE_REPOSITORY } from './domain/repositories/product-recipe.repository.js';
 import { RESTAURANT_SUPPLY_REPOSITORY } from './domain/repositories/restaurant-supply.repository.js';
 import { SUPPLY_REPOSITORY } from './domain/repositories/supply.repository.js';
+import { OrderItemPreparationStartedListener } from './infrastructure/events/order-item-preparation-started.listener.js';
+import { InventoryScopeResolvers } from './infrastructure/http/inventory-scope-resolvers.js';
 import {
   InventoryCatalogController,
   PlatformInventoryController,
@@ -27,7 +31,6 @@ import { InventoryMovementsController } from './infrastructure/http/controllers/
 import { ProductRecipesController } from './infrastructure/http/controllers/product-recipes.controller.js';
 import { RestaurantSuppliesController } from './infrastructure/http/controllers/restaurant-supplies.controller.js';
 import { SuppliesController } from './infrastructure/http/controllers/supplies.controller.js';
-import { InternalOrganizationLookupAdapter } from './infrastructure/lookups/internal-organization-lookup.adapter.js';
 import { InternalProductLookupAdapter } from './infrastructure/lookups/internal-product-lookup.adapter.js';
 import { InventoryCategoryOrmEntity } from './infrastructure/persistence/typeorm/entities/inventory-category.orm-entity.js';
 import { InventoryMovementTypeOrmEntity } from './infrastructure/persistence/typeorm/entities/inventory-movement-type.orm-entity.js';
@@ -71,12 +74,14 @@ import { TypeOrmSupplyRepository } from './infrastructure/persistence/typeorm/re
     ProductRecipesController,
   ],
   providers: [
+    InventoryScopeResolvers,
     InventoryCatalogService,
     InventoryCategoriesService,
     SuppliesService,
     RestaurantSuppliesService,
     ProductRecipesService,
     StockConsumptionService,
+    OrderItemPreparationStartedListener,
     { provide: INVENTORY_CATALOG_REPOSITORY, useClass: TypeOrmInventoryCatalogRepository },
     { provide: INVENTORY_CATEGORY_REPOSITORY, useClass: TypeOrmInventoryCategoryRepository },
     { provide: SUPPLY_REPOSITORY, useClass: TypeOrmSupplyRepository },
@@ -84,9 +89,14 @@ import { TypeOrmSupplyRepository } from './infrastructure/persistence/typeorm/re
     { provide: INVENTORY_MOVEMENT_REPOSITORY, useClass: TypeOrmInventoryMovementRepository },
     { provide: PRODUCT_RECIPE_REPOSITORY, useClass: TypeOrmProductRecipeRepository },
     { provide: PRODUCT_LOOKUP, useClass: InternalProductLookupAdapter },
-    { provide: ORGANIZATION_LOOKUP, useClass: InternalOrganizationLookupAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
+    {
+      provide: INVENTORY_SETTINGS,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): InventorySettings => ({
+        autoConsumption: config.get<string>('INVENTORY_AUTO_CONSUMPTION') === 'true',
+      }),
+    },
   ],
-  exports: [StockConsumptionService],
 })
 export class InventoryModule {}

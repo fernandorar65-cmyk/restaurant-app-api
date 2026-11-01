@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DiningTablesService } from '../../../organizations/application/dining-tables/dining-tables.service.js';
+import { DiningTablesService } from '../../../organizations/public-api.js';
 import {
   TableQrLookupPort,
   TableQrResolution,

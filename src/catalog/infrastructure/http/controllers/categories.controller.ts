@@ -24,13 +24,17 @@ import {
   CreateCategoryDto,
   UpdateCategoryDto,
 } from '../dto/categories/category.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Product categories of an organization, as a tree (Comidas > Carnes > Parrillas). */
 @ApiTags('catalog/categories')
@@ -38,18 +42,35 @@ import {
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  @Authorize('catalog.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear una categoría de productos' })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   async create(@Body() dto: CreateCategoryDto): Promise<CategoryResponseDto> {
-    return CategoryResponseDto.fromDomain(await this.categoriesService.create(dto));
+    return CategoryResponseDto.fromDomain(
+      await this.categoriesService.create(dto),
+    );
   }
 
+  @Authorize(
+    null,
+    Scope.organization('query'),
+    Scope.resource('category', 'parentCategoryId', 'query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar categorías' })
   @ApiQuery({ name: 'organizationId', required: false })
-  @ApiQuery({ name: 'parentCategoryId', required: false, description: 'Solo las hijas directas' })
-  @ApiQuery({ name: 'rootOnly', required: false, type: Boolean, description: 'Solo las categorías raíz' })
+  @ApiQuery({
+    name: 'parentCategoryId',
+    required: false,
+    description: 'Solo las hijas directas',
+  })
+  @ApiQuery({
+    name: 'rootOnly',
+    required: false,
+    type: Boolean,
+    description: 'Solo las categorías raíz',
+  })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiPaginatedResponse(CategoryResponseDto)
   async findAll(
@@ -58,8 +79,10 @@ export class CategoriesController {
     organizationId?: string,
     @Query('parentCategoryId', new ParseUUIDPipe({ optional: true }))
     parentCategoryId?: string,
-    @Query('rootOnly', new ParseBoolPipe({ optional: true })) rootOnly?: boolean,
-    @Query('isActive', new ParseBoolPipe({ optional: true })) isActive?: boolean,
+    @Query('rootOnly', new ParseBoolPipe({ optional: true }))
+    rootOnly?: boolean,
+    @Query('isActive', new ParseBoolPipe({ optional: true }))
+    isActive?: boolean,
   ): Promise<PageResponse<CategoryResponseDto>> {
     const categories = await this.categoriesService.findPage(
       {
@@ -69,17 +92,25 @@ export class CategoriesController {
       },
       page,
     );
-    return toPageResponse(categories, (category) => CategoryResponseDto.fromDomain(category));
+    return toPageResponse(categories, (category) =>
+      CategoryResponseDto.fromDomain(category),
+    );
   }
 
+  @Authorize(null, Scope.resource('category'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una categoría por id' })
   @ApiOkResponse({ type: CategoryResponseDto })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<CategoryResponseDto> {
-    return CategoryResponseDto.fromDomain(await this.categoriesService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CategoryResponseDto> {
+    return CategoryResponseDto.fromDomain(
+      await this.categoriesService.findOne(id),
+    );
   }
 
+  @Authorize('catalog.manage', Scope.resource('category'))
   @Patch(':id')
   @ApiOperation({
     summary: 'Actualizar una categoría (nombre, padre, activar/desactivar)',
@@ -91,17 +122,23 @@ export class CategoriesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCategoryDto,
   ): Promise<CategoryResponseDto> {
-    return CategoryResponseDto.fromDomain(await this.categoriesService.update(id, dto));
+    return CategoryResponseDto.fromDomain(
+      await this.categoriesService.update(id, dto),
+    );
   }
 
+  @Authorize('catalog.manage', Scope.resource('category'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una categoría (baja lógica)',
-    description: 'No se borra: los productos y secciones que la usan la conservan',
+    description:
+      'No se borra: los productos y secciones que la usan la conservan',
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.categoriesService.deactivate(id);
     return { id };
   }

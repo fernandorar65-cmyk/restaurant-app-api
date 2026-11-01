@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { AttentionsService } from '../../../attention/application/attentions/attentions.service.js';
-import { AttentionNotFoundError } from '../../../attention/domain/exceptions/attention.errors.js';
-import { RestaurantsService } from '../../../organizations/application/restaurants/restaurants.service.js';
+import {
+  AttentionNotFoundError,
+  AttentionQueriesService,
+} from '../../../attention/public-api.js';
+import { RestaurantsService } from '../../../organizations/public-api.js';
 import {
   AttentionBillingPort,
   AttentionBillingSnapshot,
@@ -11,13 +13,13 @@ import {
 @Injectable()
 export class InternalAttentionBillingAdapter implements AttentionBillingPort {
   constructor(
-    private readonly attentionsService: AttentionsService,
+    private readonly attentions: AttentionQueriesService,
     private readonly restaurantsService: RestaurantsService,
   ) {}
 
   async find(attentionId: string): Promise<AttentionBillingSnapshot | null> {
     try {
-      const bill = await this.attentionsService.getBill(attentionId);
+      const bill = await this.attentions.getBill(attentionId);
       const restaurant = await this.restaurantsService.findOne(
         bill.attention.restaurantId,
       );

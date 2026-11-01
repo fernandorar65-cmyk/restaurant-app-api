@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { ProductIngredient } from '../../../../domain/entities/product-ingredient.entity.js';
 import { ProductIngredientRepository } from '../../../../domain/repositories/product-ingredient.repository.js';
 import { ProductIngredientOrmEntity } from '../entities/product-ingredient.orm-entity.js';

@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { PaymentStatus } from '../entities/payment-status.entity.js';
 import { ProviderEvent } from '../entities/provider-event.entity.js';
 import { ProviderStatusMapping } from '../entities/provider-status-mapping.entity.js';

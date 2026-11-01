@@ -1,5 +1,5 @@
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { OrderStatus } from '../enums/order-status.enum.js';
 import type { StatusRef } from '../workflows.js';
 import {
@@ -71,6 +71,11 @@ export class OrderItem {
         'La cantidad debe ser un entero mayor a 0',
       );
     }
+    if (!Number.isFinite(params.unitPrice) || params.unitPrice < 0) {
+      throw new ValidationDomainError(
+        'El precio unitario debe ser un monto mayor o igual a 0',
+      );
+    }
     const now = new Date();
     const item = new OrderItem({
       id: params.id,
@@ -80,7 +85,7 @@ export class OrderItem {
       productNameSnapshot: params.productName,
       unitPrice: params.unitPrice,
       quantity: params.quantity,
-      subtotal: roundMoney(params.unitPrice * params.quantity),
+      subtotal: Money.of(params.unitPrice).times(params.quantity).amount,
       customerNote: params.customerNote ?? null,
       status: params.status,
       rejectionReason: null,

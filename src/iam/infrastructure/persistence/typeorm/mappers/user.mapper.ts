@@ -1,3 +1,4 @@
+import { Email } from '../../../../../common/domain/value-objects/email.js';
 import { User } from '../../../../domain/entities/user.entity.js';
 import { UserOrmEntity } from '../entities/user.orm-entity.js';
 
@@ -5,7 +6,7 @@ export class UserMapper {
   static toDomain(orm: UserOrmEntity): User {
     return User.fromPersistence({
       id: orm.id,
-      email: orm.email,
+      email: Email.rehydrate(orm.email),
       passwordHash: orm.passwordHash,
       firstName: orm.firstName,
       lastName: orm.lastName,

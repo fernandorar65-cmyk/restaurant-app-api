@@ -2,15 +2,15 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { OrderSource } from '../../../../domain/enums/order-source.enum.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { AttentionParticipantOrmEntity } from './attention-participant.orm-entity.js';
 import type { AttentionOrmEntity } from './attention.orm-entity.js';
 import type { OrderStatusOrmEntity } from './workflow-status.orm-entity.js';
@@ -40,12 +40,9 @@ export class OrderOrmEntity extends BaseOrmEntity {
   @Column({ type: 'varchar', length: 20 })
   source: OrderSource;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'submitted_by_user_id', type: 'uuid', nullable: true })
   submittedByUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'submitted_by_user_id' })
-  submittedByUser?: UserOrmEntity;
 
   @Column({ name: 'submitted_by_participant_id', type: 'uuid', nullable: true })
   submittedByParticipantId: string | null;

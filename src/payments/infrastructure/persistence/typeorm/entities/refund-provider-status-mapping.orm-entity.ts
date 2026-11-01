@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { RefundStatusOrmEntity } from './refund-status.orm-entity.js';
 
 // Modeled for when refunds are enabled; not used by any flow yet.

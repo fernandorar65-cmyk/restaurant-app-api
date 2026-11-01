@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ServiceTypesService } from '../../../attention/application/attention-settings/service-types.service.js';
+import { ServiceTypesService } from '../../../attention/public-api.js';
 import type {
   ServiceTypeLookupPort,
   ServiceTypeSnapshot,

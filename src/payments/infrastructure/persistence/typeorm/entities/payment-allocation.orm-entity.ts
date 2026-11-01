@@ -7,11 +7,11 @@ import {
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { CreatedOnlyOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { CreatedOnlyOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { AllocationConcept } from '../../../../domain/enums/allocation-concept.enum.js';
 import type { PaymentOrmEntity } from './payment.orm-entity.js';
 

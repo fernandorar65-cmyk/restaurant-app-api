@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
@@ -25,8 +25,8 @@ import type {
   RestaurantSupplyFilter,
   RestaurantSupplyRepository,
 } from '../../domain/repositories/restaurant-supply.repository.js';
-import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
-import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { SuppliesService } from '../supplies/supplies.service.js';
 
 /** A restaurant supply together with its master definition (code, name, unit). */
@@ -61,7 +61,7 @@ export class RestaurantSuppliesService {
     private readonly restaurantSupplyRepository: RestaurantSupplyRepository,
     @Inject(INVENTORY_MOVEMENT_REPOSITORY)
     private readonly movementRepository: InventoryMovementRepository,
-    @Inject(ORGANIZATION_LOOKUP) private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP) private readonly organizationLookup: TenantLookup,
     @Inject(TRANSACTION_RUNNER) private readonly transactionRunner: TransactionRunner,
     private readonly suppliesService: SuppliesService,
   ) {}
@@ -76,9 +76,7 @@ export class RestaurantSuppliesService {
     if (!supply.isActive) {
       throw new InactiveSupplyError(supply.id);
     }
-    const organizationId = await this.organizationLookup.findRestaurantOrganizationId(
-      input.restaurantId,
-    );
+    const organizationId = (await this.organizationLookup.findRestaurant(input.restaurantId))?.organizationId ?? null;
     if (!organizationId) {
       throw new RestaurantReferenceNotFoundError(input.restaurantId);
     }

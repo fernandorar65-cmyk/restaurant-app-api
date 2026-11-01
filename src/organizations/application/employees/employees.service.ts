@@ -19,7 +19,7 @@ import { JobPositionsService } from '../job-positions/job-positions.service.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
 import { USER_LOOKUP } from '../ports/user-lookup.port.js';
 import type { UserLookupPort } from '../ports/user-lookup.port.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateEmployeeInput extends EmployeeDetails {
   organizationId: string;

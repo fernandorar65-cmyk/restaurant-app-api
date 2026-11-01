@@ -7,11 +7,11 @@ import {
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { TableOperationalStatus } from '../../../../domain/enums/table-operational-status.enum.js';
 import { TableServiceStatus } from '../../../../domain/enums/table-service-status.enum.js';
 import type { RestaurantFloorOrmEntity } from './restaurant-floor.orm-entity.js';

@@ -1,12 +1,25 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuthService } from '../../../application/auth/auth.service.js';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { PasswordsService } from '../../../application/auth/passwords.service.js';
 import { UsersService } from '../../../application/users/users.service.js';
 import { ChangeOwnPasswordDto } from '../dto/auth/change-own-password.dto.js';
 import { UpdateMeDto } from '../dto/auth/update-me.dto.js';
 import { UserResponseDto } from '../dto/users/user-response.dto.js';
 import { CurrentUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
 import type { RequestUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('owner/me')
 @ApiBearerAuth()
@@ -14,9 +27,10 @@ import type { RequestUser } from '../../../../common/infrastructure/http/current
 export class StaffMeController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly authService: AuthService,
+    private readonly passwords: PasswordsService,
   ) {}
 
+  @Authenticated()
   @Get()
   @ApiOperation({ summary: 'Usuario autenticado' })
   @ApiOkResponse({ type: UserResponseDto })
@@ -25,6 +39,7 @@ export class StaffMeController {
     return UserResponseDto.fromDomain(user);
   }
 
+  @Authenticated()
   @Patch()
   @ApiOperation({ summary: 'Actualiza nombre, apellido y teléfono' })
   @ApiOkResponse({ type: UserResponseDto })
@@ -36,6 +51,7 @@ export class StaffMeController {
     return UserResponseDto.fromDomain(user);
   }
 
+  @Authenticated()
   @Patch('password')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cambia la contraseña (pide la actual)' })
@@ -43,7 +59,7 @@ export class StaffMeController {
     @CurrentUser() current: RequestUser,
     @Body() dto: ChangeOwnPasswordDto,
   ): Promise<void> {
-    await this.authService.changeOwnPassword(
+    await this.passwords.changeOwnPassword(
       current.id,
       dto.currentPassword,
       dto.newPassword,

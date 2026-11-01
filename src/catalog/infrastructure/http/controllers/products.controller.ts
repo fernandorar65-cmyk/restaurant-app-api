@@ -25,19 +25,24 @@ import {
 import { CreateProductDto } from '../dto/products/create-product.dto.js';
 import { ProductResponseDto } from '../dto/products/product-response.dto.js';
 import { UpdateProductDto } from '../dto/products/update-product.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('catalog/products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @Authorize('catalog.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un producto' })
   @ApiCreatedResponse({ type: ProductResponseDto })
@@ -46,10 +51,19 @@ export class ProductsController {
     return ProductResponseDto.fromDomain(product);
   }
 
+  @Authorize(
+    null,
+    Scope.restaurant('query'),
+    Scope.resource('category', 'categoryId', 'query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar productos' })
   @ApiQuery({ name: 'restaurantId', required: false })
-  @ApiQuery({ name: 'categoryId', required: false, description: 'Productos de esa categoría' })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    description: 'Productos de esa categoría',
+  })
   @ApiPaginatedResponse(ProductResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
@@ -58,26 +72,35 @@ export class ProductsController {
     @Query('categoryId', new ParseUUIDPipe({ optional: true }))
     categoryId?: string,
   ): Promise<PageResponse<ProductResponseDto>> {
-    const products = await this.productsService.findPage({
-      restaurantId,
-      categoryId,
-    }, page);
+    const products = await this.productsService.findPage(
+      {
+        restaurantId,
+        categoryId,
+      },
+      page,
+    );
     return toPageResponse(products, (product) =>
       ProductResponseDto.fromDomain(product),
     );
   }
 
+  @Authorize(null, Scope.resource('product'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un producto por id' })
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiNotFoundResponse({ description: 'Producto no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<ProductResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ProductResponseDto> {
     const product = await this.productsService.findOne(id);
     return ProductResponseDto.fromDomain(product);
   }
 
+  @Authorize('catalog.manage', Scope.resource('product'))
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un producto (precio, disponibilidad, estado...)' })
+  @ApiOperation({
+    summary: 'Actualizar un producto (precio, disponibilidad, estado...)',
+  })
   @ApiOkResponse({ type: ProductResponseDto })
   @ApiNotFoundResponse({ description: 'Producto no encontrado' })
   async update(
@@ -88,6 +111,7 @@ export class ProductsController {
     return ProductResponseDto.fromDomain(product);
   }
 
+  @Authorize('catalog.manage', Scope.resource('product'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un producto (baja lógica)',
@@ -95,11 +119,14 @@ export class ProductsController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Producto no encontrado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.productsService.deactivate(id);
     return { id };
   }
 
+  @Authorize(null, Scope.resource('product'))
   @Get(':id/categories')
   @ApiOperation({ summary: 'Categorías del producto' })
   @ApiOkResponse({ type: [CategoryResponseDto] })
@@ -107,11 +134,16 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CategoryResponseDto[]> {
     const categories = await this.productsService.listCategories(id);
-    return categories.map((category) => CategoryResponseDto.fromDomain(category));
+    return categories.map((category) =>
+      CategoryResponseDto.fromDomain(category),
+    );
   }
 
+  @Authorize('catalog.manage', Scope.resource('product'))
   @Post(':id/categories')
-  @ApiOperation({ summary: 'Agregar el producto a una categoría de su organización' })
+  @ApiOperation({
+    summary: 'Agregar el producto a una categoría de su organización',
+  })
   @ApiCreatedResponse({ type: CategoryResponseDto })
   async addCategory(
     @Param('id', ParseUUIDPipe) id: string,
@@ -122,6 +154,7 @@ export class ProductsController {
     );
   }
 
+  @Authorize('catalog.manage', Scope.resource('product'))
   @Delete(':id/categories/:categoryId')
   @ApiOperation({ summary: 'Quitar el producto de una categoría' })
   @ApiOkResponse({ description: 'Producto quitado de la categoría' })

@@ -19,7 +19,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   CurrentUser,
   type RequestUser,
@@ -38,6 +38,10 @@ import {
   RegisterExpenseDto,
   UpdateExpenseDto,
 } from '../dto/finance.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Expenses are never deleted: a mistaken one is voided. */
 @ApiTags('finance/expenses')
@@ -45,8 +49,11 @@ import {
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
+  @Authorize('finance.manage', Scope.restaurant('body'))
   @Post()
-  @ApiOperation({ summary: 'Registrar un gasto (queda a nombre del usuario de la sesión)' })
+  @ApiOperation({
+    summary: 'Registrar un gasto (queda a nombre del usuario de la sesión)',
+  })
   @ApiCreatedResponse({ type: ExpenseResponseDto })
   async register(
     @Body() dto: RegisterExpenseDto,
@@ -57,6 +64,11 @@ export class ExpensesController {
     );
   }
 
+  @Authorize(
+    'finance.read',
+    Scope.restaurant('query'),
+    Scope.resource('expense-category', 'categoryId', 'query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar gastos' })
   @ApiQuery({ name: 'restaurantId', required: false })
@@ -67,8 +79,10 @@ export class ExpensesController {
   @ApiPaginatedResponse(ExpenseResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
-    @Query('restaurantId', new ParseUUIDPipe({ optional: true })) restaurantId?: string,
-    @Query('categoryId', new ParseUUIDPipe({ optional: true })) categoryId?: string,
+    @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
+    restaurantId?: string,
+    @Query('categoryId', new ParseUUIDPipe({ optional: true }))
+    categoryId?: string,
     @Query('status', new ParseEnumPipe(ExpenseStatus, { optional: true }))
     status?: ExpenseStatus,
     @Query('from', new ParseBusinessDatePipe({ optional: true })) from?: string,
@@ -78,17 +92,25 @@ export class ExpensesController {
       { restaurantId, categoryId, status, from, to },
       page,
     );
-    return toPageResponse(expenses, (expense) => ExpenseResponseDto.fromDomain(expense));
+    return toPageResponse(expenses, (expense) =>
+      ExpenseResponseDto.fromDomain(expense),
+    );
   }
 
+  @Authorize('finance.read', Scope.resource('expense'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un gasto' })
   @ApiOkResponse({ type: ExpenseResponseDto })
   @ApiNotFoundResponse({ description: 'Gasto no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<ExpenseResponseDto> {
-    return ExpenseResponseDto.fromDomain(await this.expensesService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ExpenseResponseDto> {
+    return ExpenseResponseDto.fromDomain(
+      await this.expensesService.findOne(id),
+    );
   }
 
+  @Authorize('finance.manage', Scope.resource('expense'))
   @Patch(':id')
   @ApiOperation({ summary: 'Corregir un gasto (solo si no está anulado)' })
   @ApiOkResponse({ type: ExpenseResponseDto })
@@ -96,14 +118,19 @@ export class ExpensesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateExpenseDto,
   ): Promise<ExpenseResponseDto> {
-    return ExpenseResponseDto.fromDomain(await this.expensesService.update(id, dto));
+    return ExpenseResponseDto.fromDomain(
+      await this.expensesService.update(id, dto),
+    );
   }
 
+  @Authorize('finance.manage', Scope.resource('expense'))
   @Post(':id/void')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Anular un gasto (queda registrado pero no suma)' })
   @ApiOkResponse({ type: ExpenseResponseDto })
-  async void(@Param('id', ParseUUIDPipe) id: string): Promise<ExpenseResponseDto> {
+  async void(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ExpenseResponseDto> {
     return ExpenseResponseDto.fromDomain(await this.expensesService.void(id));
   }
 }

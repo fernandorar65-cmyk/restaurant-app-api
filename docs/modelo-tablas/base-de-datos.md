@@ -26,7 +26,7 @@ Cómo está organizada la base de datos, qué guarda cada tabla y por qué exist
 
 ### Cómo se crea la base
 
-El esquema lo crean las **migraciones versionadas** (`src/common/persistence/database/migrations/`, en orden en `migrations.ts`), con `npm run migration:run`. Las entidades TypeORM (`*.orm-entity.ts`) describen el mismo esquema y un test e2e comprueba que coinciden. `synchronize` está **apagado** en todos los entornos; solo se puede encender con `DB_SYNCHRONIZE=true` para una base local desechable, y nunca en producción.
+El esquema lo crean las **migraciones versionadas** (`src/common/infrastructure/persistence/database/migrations/`, en orden en `migrations.ts`), con `npm run migration:run`. Las entidades TypeORM (`*.orm-entity.ts`) describen el mismo esquema y un test e2e comprueba que coinciden. `synchronize` está **apagado** en todos los entornos; solo se puede encender con `DB_SYNCHRONIZE=true` para una base local desechable, y nunca en producción.
 
 | Migración | Qué hace |
 |---|---|

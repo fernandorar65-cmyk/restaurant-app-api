@@ -19,27 +19,33 @@ import { PermissionsService } from '../../../application/permissions/permissions
 import { CreatePermissionDto } from '../dto/permissions/create-permission.dto.js';
 import { PermissionResponseDto } from '../dto/permissions/permission-response.dto.js';
 import { UpdatePermissionDto } from '../dto/permissions/update-permission.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
 
 @ApiTags('iam/permissions')
 @Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
+  @PlatformAdmin()
   @Post()
   @ApiOperation({ summary: 'Crear un permiso' })
   @ApiCreatedResponse({ type: PermissionResponseDto })
-  async create(@Body() dto: CreatePermissionDto): Promise<PermissionResponseDto> {
+  async create(
+    @Body() dto: CreatePermissionDto,
+  ): Promise<PermissionResponseDto> {
     const permission = await this.permissionsService.create(dto);
     return PermissionResponseDto.fromDomain(permission);
   }
 
+  @Authenticated()
   @Get()
   @ApiOperation({ summary: 'Listar permisos' })
   @ApiPaginatedResponse(PermissionResponseDto)
@@ -52,6 +58,7 @@ export class PermissionsController {
     );
   }
 
+  @Authenticated()
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un permiso por id' })
   @ApiOkResponse({ type: PermissionResponseDto })
@@ -63,6 +70,7 @@ export class PermissionsController {
     return PermissionResponseDto.fromDomain(permission);
   }
 
+  @PlatformAdmin()
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un permiso' })
   @ApiOkResponse({ type: PermissionResponseDto })
@@ -75,6 +83,7 @@ export class PermissionsController {
     return PermissionResponseDto.fromDomain(permission);
   }
 
+  @PlatformAdmin()
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un permiso (baja lógica)',
@@ -82,7 +91,9 @@ export class PermissionsController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.permissionsService.deactivate(id);
     return { id };
   }

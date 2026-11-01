@@ -8,17 +8,17 @@ import {
 } from '../../domain/exceptions/inventory.errors.js';
 import { INVENTORY_CATEGORY_REPOSITORY } from '../../domain/repositories/inventory-category.repository.js';
 import type { InventoryCategoryRepository } from '../../domain/repositories/inventory-category.repository.js';
-import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
-import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 @Injectable()
 export class InventoryCategoriesService {
   constructor(
     @Inject(INVENTORY_CATEGORY_REPOSITORY)
     private readonly categoryRepository: InventoryCategoryRepository,
-    @Inject(ORGANIZATION_LOOKUP)
-    private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly organizationLookup: TenantLookup,
   ) {}
 
   async create(input: {

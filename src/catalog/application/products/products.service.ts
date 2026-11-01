@@ -15,10 +15,10 @@ import type { ProductCategoryRepository } from '../../domain/repositories/produc
 import { PRODUCT_REPOSITORY } from '../../domain/repositories/product.repository.js';
 import type { ProductRepository } from '../../domain/repositories/product.repository.js';
 import { CategoriesService } from '../categories/categories.service.js';
-import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
-import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { requireRestaurant } from '../restaurant-guard.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateProductInput extends ProductDetails {
   restaurantId: string;
@@ -40,8 +40,8 @@ export class ProductsService {
     private readonly productRepository: ProductRepository,
     @Inject(PRODUCT_CATEGORY_REPOSITORY)
     private readonly productCategoryRepository: ProductCategoryRepository,
-    @Inject(RESTAURANT_LOOKUP)
-    private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly restaurantLookup: TenantLookup,
     private readonly categoriesService: CategoriesService,
   ) {}
 

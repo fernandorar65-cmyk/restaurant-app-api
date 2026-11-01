@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TENANT_LOOKUP } from '../common/application/ports/tenant-lookup.port.js';
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
-import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
-import { AttentionSettingsModule } from '../attention/attention-settings.module.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
 import { IdentityModule } from '../iam/identity.module.js';
 import { JobPositionsService } from './application/job-positions/job-positions.service.js';
 import { WorkAreasService } from './application/work-areas/work-areas.service.js';
 import { DiningTablesService } from './application/dining-tables/dining-tables.service.js';
 import { EmployeesService } from './application/employees/employees.service.js';
 import { OrganizationsService } from './application/organizations/organizations.service.js';
-import { RESTAURANT_SETUP } from './application/ports/restaurant-setup.port.js';
 import { USER_LOOKUP } from './application/ports/user-lookup.port.js';
 import { RestaurantFloorsService } from './application/restaurant-floors/restaurant-floors.service.js';
 import { RestaurantsService } from './application/restaurants/restaurants.service.js';
@@ -21,14 +20,15 @@ import { ORGANIZATION_REPOSITORY } from './domain/repositories/organization.repo
 import { RESTAURANT_FLOOR_REPOSITORY } from './domain/repositories/restaurant-floor.repository.js';
 import { RESTAURANT_REPOSITORY } from './domain/repositories/restaurant.repository.js';
 import { JobPositionsController } from './infrastructure/http/controllers/job-positions.controller.js';
+import { OrganizationsScopeResolvers } from './infrastructure/http/organizations-scope-resolvers.js';
 import { WorkAreasController } from './infrastructure/http/controllers/work-areas.controller.js';
 import { DiningTablesController } from './infrastructure/http/controllers/dining-tables.controller.js';
 import { EmployeesController } from './infrastructure/http/controllers/employees.controller.js';
 import { OrganizationsController } from './infrastructure/http/controllers/organizations.controller.js';
 import { RestaurantFloorsController } from './infrastructure/http/controllers/restaurant-floors.controller.js';
 import { RestaurantsController } from './infrastructure/http/controllers/restaurants.controller.js';
-import { InternalRestaurantSetupAdapter } from './infrastructure/lookups/internal-restaurant-setup.adapter.js';
 import { InternalUserLookupAdapter } from './infrastructure/lookups/internal-user-lookup.adapter.js';
+import { TenantLookupAdapter } from './infrastructure/lookups/tenant-lookup.adapter.js';
 import { JobPositionOrmEntity } from './infrastructure/persistence/typeorm/entities/job-position.orm-entity.js';
 import { WorkAreaOrmEntity } from './infrastructure/persistence/typeorm/entities/work-area.orm-entity.js';
 import { DiningTableOrmEntity } from './infrastructure/persistence/typeorm/entities/dining-table.orm-entity.js';
@@ -56,8 +56,6 @@ import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeor
       DiningTableOrmEntity,
     ]),
     IdentityModule,
-    // Seeds each new restaurant's statuses and service types.
-    AttentionSettingsModule,
   ],
   controllers: [
     OrganizationsController,
@@ -69,6 +67,7 @@ import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeor
     JobPositionsController,
   ],
   providers: [
+    OrganizationsScopeResolvers,
     OrganizationsService,
     RestaurantsService,
     RestaurantFloorsService,
@@ -96,9 +95,14 @@ import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeor
       useClass: TypeOrmJobPositionRepository,
     },
     { provide: USER_LOOKUP, useClass: InternalUserLookupAdapter },
-    { provide: RESTAURANT_SETUP, useClass: InternalRestaurantSetupAdapter },
+    { provide: TENANT_LOOKUP, useClass: TenantLookupAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
   ],
-  exports: [OrganizationsService, RestaurantsService, DiningTablesService],
+  exports: [
+    OrganizationsService,
+    RestaurantsService,
+    DiningTablesService,
+    TENANT_LOOKUP,
+  ],
 })
 export class OrganizationsModule {}

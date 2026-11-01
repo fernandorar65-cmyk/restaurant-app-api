@@ -8,13 +8,22 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ProductCompositionService } from '../../../application/product-composition/product-composition.service.js';
 import {
   CreateIngredientDto,
   IngredientResponseDto,
   UpdateIngredientDto,
 } from '../dto/composition/composition.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Visible ingredients of a product (optional). */
 @ApiTags('catalog/products')
@@ -22,16 +31,21 @@ import {
 export class ProductCompositionController {
   constructor(private readonly compositionService: ProductCompositionService) {}
 
+  @Authorize(null, Scope.resource('product', 'productId'))
   @Get('ingredients')
   @ApiOperation({ summary: 'Ingredientes del producto' })
   @ApiOkResponse({ type: [IngredientResponseDto] })
   async listIngredients(
     @Param('productId', ParseUUIDPipe) productId: string,
   ): Promise<IngredientResponseDto[]> {
-    const ingredients = await this.compositionService.listIngredients(productId);
-    return ingredients.map((ingredient) => IngredientResponseDto.fromDomain(ingredient));
+    const ingredients =
+      await this.compositionService.listIngredients(productId);
+    return ingredients.map((ingredient) =>
+      IngredientResponseDto.fromDomain(ingredient),
+    );
   }
 
+  @Authorize('catalog.manage', Scope.resource('product', 'productId'))
   @Post('ingredients')
   @ApiOperation({ summary: 'Agregar un ingrediente' })
   @ApiCreatedResponse({ type: IngredientResponseDto })
@@ -44,6 +58,7 @@ export class ProductCompositionController {
     );
   }
 
+  @Authorize('catalog.manage', Scope.resource('product', 'productId'))
   @Patch('ingredients/:ingredientId')
   @ApiOperation({ summary: 'Editar un ingrediente' })
   @ApiOkResponse({ type: IngredientResponseDto })
@@ -53,10 +68,15 @@ export class ProductCompositionController {
     @Body() dto: UpdateIngredientDto,
   ): Promise<IngredientResponseDto> {
     return IngredientResponseDto.fromDomain(
-      await this.compositionService.updateIngredient(productId, ingredientId, dto),
+      await this.compositionService.updateIngredient(
+        productId,
+        ingredientId,
+        dto,
+      ),
     );
   }
 
+  @Authorize('catalog.manage', Scope.resource('product', 'productId'))
   @Delete('ingredients/:ingredientId')
   @ApiOperation({ summary: 'Eliminar un ingrediente' })
   @ApiOkResponse({ description: 'Ingrediente eliminado' })

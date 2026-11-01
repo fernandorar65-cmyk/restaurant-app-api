@@ -26,19 +26,24 @@ import {
 } from '../dto/menus/menu-product.dto.js';
 import { MenuResponseDto } from '../dto/menus/menu-response.dto.js';
 import { UpdateMenuDto } from '../dto/menus/update-menu.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('catalog/menus')
 @Controller('menus')
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 
+  @Authorize('catalog.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un menú' })
   @ApiCreatedResponse({ type: MenuResponseDto })
@@ -47,6 +52,7 @@ export class MenusController {
     return MenuResponseDto.fromDomain(menu);
   }
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({ summary: 'Listar menús' })
   @ApiQuery({ name: 'restaurantId', required: false })
@@ -57,20 +63,22 @@ export class MenusController {
     restaurantId?: string,
   ): Promise<PageResponse<MenuResponseDto>> {
     const menus = await this.menusService.findPage({ restaurantId }, page);
-    return toPageResponse(menus, (menu) =>
-      MenuResponseDto.fromDomain(menu),
-    );
+    return toPageResponse(menus, (menu) => MenuResponseDto.fromDomain(menu));
   }
 
+  @Authorize(null, Scope.resource('menu'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un menú por id' })
   @ApiOkResponse({ type: MenuResponseDto })
   @ApiNotFoundResponse({ description: 'Menú no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<MenuResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<MenuResponseDto> {
     const menu = await this.menusService.findOne(id);
     return MenuResponseDto.fromDomain(menu);
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un menú (incluye estado y vigencia)' })
   @ApiOkResponse({ type: MenuResponseDto })
@@ -83,6 +91,7 @@ export class MenusController {
     return MenuResponseDto.fromDomain(menu);
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un menú (baja lógica)',
@@ -90,11 +99,14 @@ export class MenusController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Menú no encontrado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.menusService.deactivate(id);
     return { id };
   }
 
+  @Authorize(null, Scope.resource('menu'))
   @Get(':id/products')
   @ApiOperation({ summary: 'Productos del menú' })
   @ApiOkResponse({ type: [MenuProductResponseDto] })
@@ -107,30 +119,45 @@ export class MenusController {
     );
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Post(':id/products')
-  @ApiOperation({ summary: 'Agregar un producto del mismo restaurante al menú' })
+  @ApiOperation({
+    summary: 'Agregar un producto del mismo restaurante al menú',
+  })
   @ApiCreatedResponse({ type: MenuProductResponseDto })
   async addProduct(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddMenuProductDto,
   ): Promise<MenuProductResponseDto> {
     const { productId, ...options } = dto;
-    const menuProduct = await this.menusService.addProduct(id, productId, options);
+    const menuProduct = await this.menusService.addProduct(
+      id,
+      productId,
+      options,
+    );
     return MenuProductResponseDto.fromDomain(menuProduct);
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Patch(':id/products/:productId')
-  @ApiOperation({ summary: 'Cambiar sección, precio mostrado, orden o visibilidad' })
+  @ApiOperation({
+    summary: 'Cambiar sección, precio mostrado, orden o visibilidad',
+  })
   @ApiOkResponse({ type: MenuProductResponseDto })
   async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('productId', ParseUUIDPipe) productId: string,
     @Body() dto: UpdateMenuProductDto,
   ): Promise<MenuProductResponseDto> {
-    const menuProduct = await this.menusService.updateProduct(id, productId, dto);
+    const menuProduct = await this.menusService.updateProduct(
+      id,
+      productId,
+      dto,
+    );
     return MenuProductResponseDto.fromDomain(menuProduct);
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Delete(':id/products/:productId')
   @ApiOperation({ summary: 'Quitar un producto del menú' })
   @ApiOkResponse({ description: 'Producto quitado del menú' })

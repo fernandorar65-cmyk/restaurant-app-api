@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { Expense } from '../../domain/entities/expense.entity.js';
 import type { ExpenseDetails } from '../../domain/entities/expense.entity.js';
 import {
@@ -15,8 +15,8 @@ import type {
   ExpenseRepository,
 } from '../../domain/repositories/expense.repository.js';
 import { ExpenseCategoriesService } from '../expense-categories/expense-categories.service.js';
-import { ORGANIZATION_LOOKUP } from '../ports/finance-lookups.port.js';
-import type { OrganizationLookupPort } from '../ports/finance-lookups.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 
 export interface RegisterExpenseInput extends ExpenseDetails {
   restaurantId: string;
@@ -30,8 +30,8 @@ export interface RegisterExpenseInput extends ExpenseDetails {
 export class ExpensesService {
   constructor(
     @Inject(EXPENSE_REPOSITORY) private readonly expenseRepository: ExpenseRepository,
-    @Inject(ORGANIZATION_LOOKUP)
-    private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly organizationLookup: TenantLookup,
     private readonly categoriesService: ExpenseCategoriesService,
   ) {}
 

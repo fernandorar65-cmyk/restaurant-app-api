@@ -3,16 +3,22 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { ServiceTypesService } from '../../src/attention/application/attention-settings/service-types.service.js';
 import { WorkflowStatusesService } from '../../src/attention/application/attention-settings/workflow-statuses.service.js';
-import { AttentionsService } from '../../src/attention/application/attentions/attentions.service.js';
+import { AttentionLifecycleService } from '../../src/attention/application/attentions/attention-lifecycle.service.js';
+import { AttentionOpeningService } from '../../src/attention/application/attentions/attention-opening.service.js';
+import { AttentionQueriesService } from '../../src/attention/application/attentions/attention-queries.service.js';
 import { OrderItemsService } from '../../src/attention/application/order-items/order-items.service.js';
+import { OrderSubmissionService } from '../../src/attention/application/orders/order-submission.service.js';
 import { OrdersService } from '../../src/attention/application/orders/orders.service.js';
 import { AttentionStatus } from '../../src/attention/domain/enums/attention-status.enum.js';
 import { FulfillmentMode } from '../../src/attention/domain/enums/fulfillment-mode.enum.js';
+import { FulfillmentStatus } from '../../src/attention/domain/enums/fulfillment-status.enum.js';
 import { OrderSource } from '../../src/attention/domain/enums/order-source.enum.js';
 import { OrderStatus } from '../../src/attention/domain/enums/order-status.enum.js';
 import {
   InvalidServiceSetupError,
+  OrderAlreadyFinishedError,
   RequiredWorkflowStatusError,
+  StaleOrderItemVersionError,
   WorkflowStatusNotFoundError,
 } from '../../src/attention/domain/exceptions/attention.errors.js';
 import { WorkflowKind } from '../../src/attention/domain/workflows.js';
@@ -22,6 +28,7 @@ import { DiningTablesService } from '../../src/organizations/application/dining-
 import { OrganizationsService } from '../../src/organizations/application/organizations/organizations.service.js';
 import { RestaurantFloorsService } from '../../src/organizations/application/restaurant-floors/restaurant-floors.service.js';
 import { RestaurantsService } from '../../src/organizations/application/restaurants/restaurants.service.js';
+import { PaymentRegistrationService } from '../../src/payments/application/payments/payment-registration.service.js';
 import { PaymentsService } from '../../src/payments/application/payments/payments.service.js';
 import { AllocationConcept } from '../../src/payments/domain/enums/allocation-concept.enum.js';
 import { AllocationMode } from '../../src/payments/domain/enums/allocation-mode.enum.js';
@@ -90,7 +97,7 @@ describe('Configurable statuses and service types', () => {
   }
 
   async function orderOneDish(attentionId: string, productId: string) {
-    const { order, items } = await get(OrdersService).submitOrder({
+    const { order, items } = await get(OrderSubmissionService).submitOrder({
       attentionId,
       requestId: randomUUID(),
       source: OrderSource.WAITER,
@@ -145,7 +152,7 @@ describe('Configurable statuses and service types', () => {
   it('2. rejects a status that belongs to another restaurant', async () => {
     const mine = await createRestaurant('Mía');
     const other = await createRestaurant('Otra');
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       fulfillmentMode: FulfillmentMode.DINE_IN,
       diningTableId: mine.table.id,
     });
@@ -199,7 +206,7 @@ describe('Configurable statuses and service types', () => {
       canonicalState: OrderStatus.IN_PREPARATION,
       sortOrder: 35,
     });
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       fulfillmentMode: FulfillmentMode.DINE_IN,
       diningTableId: table.id,
     });
@@ -231,7 +238,7 @@ describe('Configurable statuses and service types', () => {
   it('5. requires a table for a service type that requires one', async () => {
     const { restaurant } = await createRestaurant('Mesa');
     await expect(
-      get(AttentionsService).open({
+      get(AttentionOpeningService).open({
         fulfillmentMode: FulfillmentMode.DINE_IN,
         restaurantId: restaurant.id,
       }),
@@ -248,18 +255,18 @@ describe('Configurable statuses and service types', () => {
     const contact = { customerName: 'Ana', customerPhone: '999' };
 
     await expect(
-      get(AttentionsService).open({
+      get(AttentionOpeningService).open({
         serviceTypeId: delivery.id,
         fulfillment: contact,
       }),
     ).rejects.toThrow(InvalidServiceSetupError);
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       serviceTypeId: delivery.id,
       fulfillment: { ...contact, deliveryAddress: 'Av. Larco 123' },
     });
     expect(attention.fulfillmentMode).toBe(FulfillmentMode.DELIVERY);
     expect(
-      (await get(AttentionsService).getBill(attention.id)).deliveryFee,
+      (await get(AttentionQueriesService).getBill(attention.id)).deliveryFee,
     ).toBe(5);
   });
 
@@ -268,7 +275,7 @@ describe('Configurable statuses and service types', () => {
     const pickup = await serviceType(restaurant.id, FulfillmentMode.PICKUP);
     await get(ServiceTypesService).update(pickup.id, { isActive: true });
 
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       serviceTypeId: pickup.id,
       fulfillment: { customerName: 'Luis', customerPhone: '988' },
     });
@@ -278,7 +285,7 @@ describe('Configurable statuses and service types', () => {
 
   it('8. never closes the attention when an order is finished', async () => {
     const { table, product } = await createRestaurant('Servido');
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       fulfillmentMode: FulfillmentMode.DINE_IN,
       diningTableId: table.id,
     });
@@ -294,20 +301,20 @@ describe('Configurable statuses and service types', () => {
     expect((await get(OrdersService).findOrder(order.id)).status).toBe(
       OrderStatus.SERVED,
     );
-    const reloaded = await get(AttentionsService).findOne(attention.id);
+    const reloaded = await get(AttentionQueriesService).findOne(attention.id);
     expect(reloaded.status).toBe(AttentionStatus.OPEN);
     expect(reloaded.isActive).toBe(true);
   });
 
   it('9. never collects more than the balance with concurrent payments', async () => {
     const { table, product } = await createRestaurant('Carrera');
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       fulfillmentMode: FulfillmentMode.DINE_IN,
       diningTableId: table.id,
     });
     await orderOneDish(attention.id, product.id);
     const pay = () =>
-      get(PaymentsService).register({
+      get(PaymentRegistrationService).register({
         attentionId: attention.id,
         requestId: randomUUID(),
         method: PaymentMethod.CASH,
@@ -324,12 +331,12 @@ describe('Configurable statuses and service types', () => {
 
   it('10. lets a pending payment reserve the balance only when its status says so', async () => {
     const { table, product } = await createRestaurant('Reserva');
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       fulfillmentMode: FulfillmentMode.DINE_IN,
       diningTableId: table.id,
     });
     await orderOneDish(attention.id, product.id);
-    const pending = await get(PaymentsService).register({
+    const pending = await get(PaymentRegistrationService).register({
       attentionId: attention.id,
       requestId: randomUUID(),
       method: PaymentMethod.CARD,
@@ -340,7 +347,7 @@ describe('Configurable statuses and service types', () => {
     let balance = await get(PaymentsService).balance(attention.id);
     expect([balance.reserved, balance.outstanding]).toEqual([40, 0]);
     await expect(
-      get(PaymentsService).register({
+      get(PaymentRegistrationService).register({
         attentionId: attention.id,
         requestId: randomUUID(),
         method: PaymentMethod.CASH,
@@ -368,7 +375,7 @@ describe('Configurable statuses and service types', () => {
       isActive: true,
       deliveryFee: 7.5,
     });
-    const attention = await get(AttentionsService).open({
+    const attention = await get(AttentionOpeningService).open({
       serviceTypeId: delivery.id,
       fulfillment: {
         customerName: 'Ana',
@@ -377,14 +384,14 @@ describe('Configurable statuses and service types', () => {
       },
     });
     await orderOneDish(attention.id, product.id);
-    const { payment } = await get(PaymentsService).register({
+    const { payment } = await get(PaymentRegistrationService).register({
       attentionId: attention.id,
       requestId: randomUUID(),
       method: PaymentMethod.CASH,
       mode: AllocationMode.FULL,
     });
 
-    const detail = await get(AttentionsService).getDetail(attention.id);
+    const detail = await get(AttentionQueriesService).getDetail(attention.id);
     const fee = payment.allocations.find(
       (allocation) => allocation.concept === AllocationConcept.DELIVERY_FEE,
     );
@@ -402,5 +409,126 @@ describe('Configurable statuses and service types', () => {
       insert(detail.items[0].id, detail.fulfillment!.id),
     ).rejects.toThrow(/chk_allocations_target/);
     await expect(insert(null, null)).rejects.toThrow(/chk_allocations_target/);
+  });
+
+  it('12. never leaves a cancelled attention with an active delivery', async () => {
+    const { restaurant } = await createRestaurant('Carrera');
+    const delivery = await serviceType(restaurant.id, FulfillmentMode.DELIVERY);
+    await get(ServiceTypesService).update(delivery.id, { isActive: true });
+    const lifecycle = get(AttentionLifecycleService);
+
+    for (let round = 0; round < 5; round++) {
+      const attention = await get(AttentionOpeningService).open({
+        serviceTypeId: delivery.id,
+        fulfillment: {
+          customerName: 'Ana',
+          customerPhone: '999',
+          deliveryAddress: 'Av. Larco 123',
+        },
+      });
+      // Staff confirm the delivery while someone cancels the attention.
+      await Promise.allSettled([
+        lifecycle.changeFulfillmentStatus(attention.id, {
+          status: FulfillmentStatus.CONFIRMED,
+        }),
+        lifecycle.cancel(attention.id, 'El cliente ya no lo quiere'),
+      ]);
+
+      const detail = await get(AttentionQueriesService).getDetail(attention.id);
+      expect(detail.attention.status).toBe(AttentionStatus.CANCELLED);
+      expect(detail.fulfillment?.status).toBe(FulfillmentStatus.CANCELLED);
+    }
+  });
+
+  it('13. keeps an order consistent with its items under concurrent changes', async () => {
+    const { table, product } = await createRestaurant('Agregado');
+    const attention = await get(AttentionOpeningService).open({
+      fulfillmentMode: FulfillmentMode.DINE_IN,
+      diningTableId: table.id,
+    });
+    const items = get(OrderItemsService);
+    const { order, items: dishes } = await get(
+      OrderSubmissionService,
+    ).submitOrder({
+      attentionId: attention.id,
+      requestId: randomUUID(),
+      source: OrderSource.WAITER,
+      items: [
+        { productId: product.id, quantity: 1 },
+        { productId: product.id, quantity: 2 },
+      ],
+    });
+    expect(dishes).toHaveLength(2);
+
+    // Both dishes start at once: the order lock serializes them and the order
+    // ends up derived from both, never from a stale read of its sibling.
+    await Promise.all(
+      dishes.map((dish) =>
+        items.changeStatus(dish.id, { status: OrderStatus.IN_PREPARATION }),
+      ),
+    );
+    await Promise.all(
+      dishes.map((dish) =>
+        items.changeStatus(dish.id, { status: OrderStatus.READY }),
+      ),
+    );
+    expect((await get(OrdersService).findOrder(order.id)).status).toBe(
+      OrderStatus.READY,
+    );
+
+    // A change based on the version read before is rejected.
+    await expect(
+      items.changeStatus(dishes[0].id, {
+        status: OrderStatus.SERVED,
+        expectedVersion: dishes[0].version,
+      }),
+    ).rejects.toThrow(StaleOrderItemVersionError);
+
+    const served = await items.changeStatus(dishes[0].id, {
+      status: OrderStatus.SERVED,
+    });
+    expect(served.version).toBeGreaterThan(dishes[0].version);
+    expect(
+      (await items.history(dishes[0].id)).map(
+        (entry) => entry.newStatus.canonicalState,
+      ),
+    ).toEqual([
+      OrderStatus.SUBMITTED,
+      OrderStatus.IN_PREPARATION,
+      OrderStatus.READY,
+      OrderStatus.SERVED,
+    ]);
+    await expect(
+      get(OrdersService).cancelOrder(order.id, { reason: 'Ya no' }),
+    ).rejects.toThrow(OrderAlreadyFinishedError);
+  });
+
+  it('14. cancels a whole order with history, leaving the attention open', async () => {
+    const { table, product } = await createRestaurant('Cancelada');
+    const attention = await get(AttentionOpeningService).open({
+      fulfillmentMode: FulfillmentMode.DINE_IN,
+      diningTableId: table.id,
+    });
+    const { order, item } = await orderOneDish(attention.id, product.id);
+
+    const result = await get(OrdersService).cancelOrder(order.id, {
+      reason: 'La mesa cambió de opinión',
+    });
+
+    expect(result.order.status).toBe(OrderStatus.CANCELLED);
+    expect(result.items.map((dish) => dish.currentStatus)).toEqual([
+      OrderStatus.CANCELLED,
+    ]);
+    const history = await get(OrderItemsService).history(item.id);
+    expect(history.at(-1)?.newStatus.canonicalState).toBe(
+      OrderStatus.CANCELLED,
+    );
+    expect(history.at(-1)?.reason).toBe('La mesa cambió de opinión');
+    expect(
+      (await get(AttentionQueriesService).getBill(attention.id)).total,
+    ).toBe(0);
+    expect(
+      (await get(AttentionQueriesService).findOne(attention.id)).isActive,
+    ).toBe(true);
   });
 });

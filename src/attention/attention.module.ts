@@ -1,23 +1,24 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogModule } from '../catalog/catalog.module.js';
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
-import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
 import { IamModule } from '../iam/iam.module.js';
-import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
-import { PaymentsModule } from '../payments/payments.module.js';
+import { PaymentsLedgerModule } from '../payments/payments-ledger.module.js';
 import { AttentionSettingsModule } from './attention-settings.module.js';
 import { AttentionReportsService } from './application/attention-reports/attention-reports.service.js';
-import { AttentionsService } from './application/attentions/attentions.service.js';
+import { AttentionLifecycleService } from './application/attentions/attention-lifecycle.service.js';
+import { AttentionOpeningService } from './application/attentions/attention-opening.service.js';
+import { AttentionQueriesService } from './application/attentions/attention-queries.service.js';
 import { CustomerAttentionsService } from './application/customer-attentions/customer-attentions.service.js';
+import { DinerAttentionStartService } from './application/customer-attentions/diner-attention-start.service.js';
 import { OrderItemsService } from './application/order-items/order-items.service.js';
+import { OrderSubmissionService } from './application/orders/order-submission.service.js';
 import { OrdersService } from './application/orders/orders.service.js';
 import { DINING_TABLE_LOOKUP } from './application/ports/dining-table-lookup.port.js';
 import { PAYMENT_LEDGER } from './application/ports/payment-ledger.port.js';
 import { PRODUCT_LOOKUP } from './application/ports/product-lookup.port.js';
-import { STOCK_CONSUMPTION } from './application/ports/stock-consumption.port.js';
-import { RESTAURANT_LOOKUP } from './application/ports/restaurant-lookup.port.js';
 import { TABLE_QR_LOOKUP } from './application/ports/table-qr-lookup.port.js';
 import { ATTENTION_PARTICIPANT_REPOSITORY } from './domain/repositories/attention-participant.repository.js';
 import { ATTENTION_REPOSITORY } from './domain/repositories/attention.repository.js';
@@ -26,14 +27,13 @@ import { ORDER_REPOSITORY } from './domain/repositories/order.repository.js';
 import { ORDER_ITEM_STATUS_HISTORY_REPOSITORY } from './domain/repositories/order-item-status-history.repository.js';
 import { ORDER_ITEM_REPOSITORY } from './domain/repositories/order-item.repository.js';
 import { DinerIdentityResolver } from './infrastructure/http/auth/diner-identity.resolver.js';
+import { AttentionScopeResolvers } from './infrastructure/http/attention-scope-resolvers.js';
 import { AttentionsController } from './infrastructure/http/controllers/attentions.controller.js';
 import { CustomerAttentionsController } from './infrastructure/http/controllers/customer-attentions.controller.js';
 import { OrderItemsController } from './infrastructure/http/controllers/order-items.controller.js';
 import { TableQrController } from './infrastructure/http/controllers/table-qr.controller.js';
 import { InternalDiningTableLookupAdapter } from './infrastructure/lookups/internal-dining-table-lookup.adapter.js';
 import { InternalProductLookupAdapter } from './infrastructure/lookups/internal-product-lookup.adapter.js';
-import { InternalRestaurantLookupAdapter } from './infrastructure/lookups/internal-restaurant-lookup.adapter.js';
-import { InternalStockConsumptionAdapter } from './infrastructure/lookups/internal-stock-consumption.adapter.js';
 import { InternalTableQrLookupAdapter } from './infrastructure/lookups/internal-table-qr-lookup.adapter.js';
 import { InternalPaymentLedgerAdapter } from './infrastructure/lookups/internal-payment-ledger.adapter.js';
 import { AttentionParticipantOrmEntity } from './infrastructure/persistence/typeorm/entities/attention-participant.orm-entity.js';
@@ -63,9 +63,7 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     OrganizationsModule,
     CatalogModule,
     IamModule,
-    InventoryModule,
-    // Payments also needs attention (what is owed): mutual dependency.
-    forwardRef(() => PaymentsModule),
+    PaymentsLedgerModule,
   ],
   controllers: [
     AttentionsController,
@@ -74,11 +72,16 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     TableQrController,
   ],
   providers: [
-    AttentionsService,
+    AttentionScopeResolvers,
+    AttentionOpeningService,
+    AttentionLifecycleService,
+    AttentionQueriesService,
     AttentionReportsService,
+    OrderSubmissionService,
     OrdersService,
     OrderItemsService,
     CustomerAttentionsService,
+    DinerAttentionStartService,
     DinerIdentityResolver,
     { provide: ATTENTION_REPOSITORY, useClass: TypeOrmAttentionRepository },
     {
@@ -97,12 +100,10 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
       provide: DINING_TABLE_LOOKUP,
       useClass: InternalDiningTableLookupAdapter,
     },
-    { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
     { provide: PRODUCT_LOOKUP, useClass: InternalProductLookupAdapter },
-    { provide: STOCK_CONSUMPTION, useClass: InternalStockConsumptionAdapter },
     { provide: PAYMENT_LEDGER, useClass: InternalPaymentLedgerAdapter },
     { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
   ],
-  exports: [AttentionReportsService, AttentionsService],
+  exports: [AttentionReportsService, AttentionQueriesService],
 })
 export class AttentionModule {}

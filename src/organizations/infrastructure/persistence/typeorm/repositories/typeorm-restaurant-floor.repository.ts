@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { RestaurantFloor } from '../../../../domain/entities/restaurant-floor.entity.js';
 import { RestaurantFloorRepository } from '../../../../domain/repositories/restaurant-floor.repository.js';
 import { RestaurantFloorOrmEntity } from '../entities/restaurant-floor.orm-entity.js';
 import { RestaurantFloorMapper } from '../mappers/restaurant-floor.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmRestaurantFloorRepository

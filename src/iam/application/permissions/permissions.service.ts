@@ -7,7 +7,7 @@ import {
 } from '../../domain/exceptions/permission.errors.js';
 import { PERMISSION_REPOSITORY } from '../../domain/repositories/permission.repository.js';
 import type { PermissionRepository } from '../../domain/repositories/permission.repository.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreatePermissionInput {
   code: string;

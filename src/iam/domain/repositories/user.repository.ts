@@ -1,6 +1,6 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { User } from '../entities/user.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 

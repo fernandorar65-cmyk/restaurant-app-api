@@ -1,32 +1,20 @@
-import {
-  Check,
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  Unique,
-} from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { Check, Column, Entity, ForeignKey, Index, Unique } from 'typeorm';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { AttentionStatus } from '../../../../domain/enums/attention-status.enum.js';
 import { OrderStatus } from '../../../../domain/enums/order-status.enum.js';
 import {
   ATTENTION_WORKFLOW,
   ORDER_WORKFLOW,
 } from '../../../../domain/workflows.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 
 // Shared columns of the two configurable status catalogs. code, name, color
 // and sort_order belong to the restaurant; canonical_state is what the
 // backend acts on, and is_final follows from it.
 abstract class WorkflowStatusOrmEntity<C extends string> extends BaseOrmEntity {
+  @ForeignKey('RestaurantOrmEntity')
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
-
-  @ManyToOne('RestaurantOrmEntity')
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
 
   @Column({ type: 'varchar', length: 30 })
   code: string;

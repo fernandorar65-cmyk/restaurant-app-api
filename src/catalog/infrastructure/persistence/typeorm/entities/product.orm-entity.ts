@@ -1,19 +1,10 @@
-import {
-  Check,
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  Unique,
-} from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { Check, Column, Entity, ForeignKey, Index, Unique } from 'typeorm';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { ProductStatus } from '../../../../domain/enums/product-status.enum.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 
 @Entity('products')
 @Unique('uq_products_restaurant_code', ['restaurantId', 'code'])
@@ -25,12 +16,9 @@ import type { RestaurantOrmEntity } from '../../../../../organizations/infrastru
 )
 @Check('chk_products_status', inValues('status', Object.values(ProductStatus)))
 export class ProductOrmEntity extends BaseOrmEntity {
+  @ForeignKey('RestaurantOrmEntity', { onDelete: 'CASCADE' })
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
-
-  @ManyToOne('RestaurantOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
 
   @Column({ type: 'varchar', length: 50 })
   code: string;

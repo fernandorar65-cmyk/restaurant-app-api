@@ -1,13 +1,11 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
-import { validationExceptionFactory } from './common/infrastructure/http/validation-exception.factory.js';
+import { configureHttpApp } from './common/infrastructure/http/configure-http-app.js';
 import { AppLogger, logLevelsFrom } from './common/infrastructure/logging/app-logger.js';
 import { requestLoggingMiddleware } from './common/infrastructure/logging/request-logging.middleware.js';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
 import { ErrorLogsService } from './observability/application/error-logs/error-logs.service.js';
 
 async function bootstrap() {
@@ -28,16 +26,7 @@ async function bootstrap() {
     origin: true,
   });
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      exceptionFactory: validationExceptionFactory,
-    }),
-  );
-  app.useGlobalInterceptors(new TransformInterceptor());
-  app.useGlobalFilters(new HttpExceptionFilter());
+  configureHttpApp(app);
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Restaurant API')

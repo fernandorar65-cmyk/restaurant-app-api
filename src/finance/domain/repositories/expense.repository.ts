@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { Expense } from '../entities/expense.entity.js';
 import { ExpenseStatus } from '../enums/expense-status.enum.js';
 

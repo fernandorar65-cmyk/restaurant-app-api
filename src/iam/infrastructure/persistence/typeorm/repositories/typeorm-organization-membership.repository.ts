@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import type { EntityManager } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { TypeOrmTransactionContext } from '../../../../../common/persistence/typeorm-transaction-runner.js';
-import { withoutUndefined } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmTransactionContext } from '../../../../../common/infrastructure/persistence/typeorm-transaction-runner.js';
+import { withoutUndefined } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { OrganizationMembership } from '../../../../domain/entities/organization-membership.entity.js';
 import { OrganizationMembershipRepository } from '../../../../domain/repositories/organization-membership.repository.js';
 import { MembershipRestaurantOrmEntity } from '../entities/membership-restaurant.orm-entity.js';

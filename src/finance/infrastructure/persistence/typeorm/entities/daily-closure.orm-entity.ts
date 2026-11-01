@@ -1,16 +1,6 @@
-import {
-  Check,
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  Unique,
-} from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
+import { Check, Column, Entity, ForeignKey, Index, Unique } from 'typeorm';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 
 const money = {
   type: 'numeric' as const,
@@ -32,12 +22,9 @@ const money = {
   'gross_sales >= 0 AND refunded_amount >= 0 AND expense_amount >= 0 AND expected_cash >= 0',
 )
 export class DailyClosureOrmEntity extends BaseOrmEntity {
+  @ForeignKey('RestaurantOrmEntity')
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
-
-  @ManyToOne('RestaurantOrmEntity')
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
 
   // DATE columns come back from pg as 'YYYY-MM-DD' strings.
   @Column({ name: 'business_date', type: 'date' })
@@ -76,12 +63,9 @@ export class DailyClosureOrmEntity extends BaseOrmEntity {
   @Column({ type: 'varchar', length: 1000, nullable: true })
   notes: string | null;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'closed_by_user_id', type: 'uuid' })
   closedByUserId: string;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'closed_by_user_id' })
-  closedByUser?: UserOrmEntity;
 
   @Column({
     name: 'closed_at',

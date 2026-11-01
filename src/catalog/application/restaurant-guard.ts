@@ -1,14 +1,14 @@
 import { RestaurantReferenceNotFoundError } from '../domain/exceptions/catalog.errors.js';
 import type {
-  RestaurantLookupPort,
-  RestaurantSnapshot,
-} from './ports/restaurant-lookup.port.js';
+  TenantLookup,
+  TenantRestaurant,
+} from '../../common/application/ports/tenant-lookup.port.js';
 
 export async function requireRestaurant(
-  lookup: RestaurantLookupPort,
+  lookup: TenantLookup,
   restaurantId: string,
-): Promise<RestaurantSnapshot> {
-  const restaurant = await lookup.findById(restaurantId);
+): Promise<TenantRestaurant> {
+  const restaurant = await lookup.findRestaurant(restaurantId);
   if (!restaurant) {
     throw new RestaurantReferenceNotFoundError(restaurantId);
   }

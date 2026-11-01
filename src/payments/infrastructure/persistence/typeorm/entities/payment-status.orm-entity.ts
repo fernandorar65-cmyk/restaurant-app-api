@@ -1,5 +1,5 @@
 import { Check, Column, Entity, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 
 /** Platform-wide catalog maintained by ACMR (not per restaurant). */
 @Entity('payment_statuses')

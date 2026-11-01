@@ -1,5 +1,5 @@
 import { Permission } from '../entities/permission.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const PERMISSION_REPOSITORY = Symbol('PERMISSION_REPOSITORY');
 

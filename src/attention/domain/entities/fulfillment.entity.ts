@@ -14,7 +14,10 @@ const S = FulfillmentStatus;
  * (READY -> OUT_FOR_DELIVERY -> COMPLETED). Any non-final state can be
  * cancelled; COMPLETED and CANCELLED are final.
  */
-const TRANSITIONS: Record<FulfillmentType, Record<FulfillmentStatus, FulfillmentStatus[]>> = {
+const TRANSITIONS: Record<
+  FulfillmentType,
+  Record<FulfillmentStatus, FulfillmentStatus[]>
+> = {
   [FulfillmentType.PICKUP]: {
     [S.PENDING]: [S.CONFIRMED, S.CANCELLED],
     [S.CONFIRMED]: [S.PREPARING, S.CANCELLED],
@@ -46,8 +49,7 @@ export interface FulfillmentProps {
   estimatedReadyAt: Date | null;
   deliveryAddress: string | null;
   deliveryReference: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  location: GeoCoordinates | null;
   deliveryFee: number;
   eatAtRestaurant: boolean | null;
   deliveredAt: Date | null;
@@ -78,13 +80,14 @@ export class Fulfillment {
       deliveryFee?: number;
     },
   ): Fulfillment {
-    if (params.type === FulfillmentType.DELIVERY && !params.deliveryAddress?.trim()) {
-      throw new InvalidServiceSetupError('DELIVERY requiere una dirección de entrega');
+    if (
+      params.type === FulfillmentType.DELIVERY &&
+      !params.deliveryAddress?.trim()
+    ) {
+      throw new InvalidServiceSetupError(
+        'DELIVERY requiere una dirección de entrega',
+      );
     }
-    const coordinates = GeoCoordinates.createOptional(
-      params.latitude,
-      params.longitude,
-    );
     const now = new Date();
     return new Fulfillment({
       id: params.id,
@@ -94,15 +97,21 @@ export class Fulfillment {
       customerName: requireText(params.customerName, 'El nombre de contacto', {
         max: 150,
       }),
-      customerPhone: requireText(params.customerPhone, 'El teléfono de contacto', {
-        max: 30,
-      }),
+      customerPhone: requireText(
+        params.customerPhone,
+        'El teléfono de contacto',
+        {
+          max: 30,
+        },
+      ),
       scheduledAt: params.scheduledAt ?? null,
       estimatedReadyAt: null,
       deliveryAddress: params.deliveryAddress ?? null,
       deliveryReference: params.deliveryReference ?? null,
-      latitude: coordinates?.latitude ?? null,
-      longitude: coordinates?.longitude ?? null,
+      location: GeoCoordinates.createOptional(
+        params.latitude,
+        params.longitude,
+      ),
       deliveryFee: params.deliveryFee ?? 0,
       eatAtRestaurant: params.eatAtRestaurant ?? null,
       deliveredAt: null,
@@ -134,7 +143,9 @@ export class Fulfillment {
   }
 
   get isFinal(): boolean {
-    return this.props.status === S.COMPLETED || this.props.status === S.CANCELLED;
+    return (
+      this.props.status === S.COMPLETED || this.props.status === S.CANCELLED
+    );
   }
 
   get id(): string {
@@ -168,10 +179,10 @@ export class Fulfillment {
     return this.props.deliveryReference;
   }
   get latitude(): number | null {
-    return this.props.latitude;
+    return this.props.location?.latitude ?? null;
   }
   get longitude(): number | null {
-    return this.props.longitude;
+    return this.props.location?.longitude ?? null;
   }
   get deliveryFee(): number {
     return this.props.deliveryFee;

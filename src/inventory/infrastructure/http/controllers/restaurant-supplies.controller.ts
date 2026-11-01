@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   CurrentUser,
   type RequestUser,
@@ -42,51 +42,84 @@ import {
   RegisterMovementDto,
   RestaurantSupplyResponseDto,
 } from '../dto/restaurant-supply.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Stock of each restaurant: balance, minimum, average cost and its movements. */
 @ApiTags('inventory/restaurant-supplies')
 @Controller('restaurant-supplies')
 export class RestaurantSuppliesController {
-  constructor(private readonly restaurantSuppliesService: RestaurantSuppliesService) {}
+  constructor(
+    private readonly restaurantSuppliesService: RestaurantSuppliesService,
+  ) {}
 
+  @Authorize('inventory.manage', Scope.restaurant('body'))
   @Post()
-  @ApiOperation({ summary: 'Habilitar un insumo maestro en una sede (stock 0)' })
+  @ApiOperation({
+    summary: 'Habilitar un insumo maestro en una sede (stock 0)',
+  })
   @ApiCreatedResponse({ type: RestaurantSupplyResponseDto })
-  async enable(@Body() dto: EnableRestaurantSupplyDto): Promise<RestaurantSupplyResponseDto> {
-    return RestaurantSupplyResponseDto.fromView(await this.restaurantSuppliesService.enable(dto));
+  async enable(
+    @Body() dto: EnableRestaurantSupplyDto,
+  ): Promise<RestaurantSupplyResponseDto> {
+    return RestaurantSupplyResponseDto.fromView(
+      await this.restaurantSuppliesService.enable(dto),
+    );
   }
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({ summary: 'Stock de las sedes' })
   @ApiQuery({ name: 'restaurantId', required: false })
   @ApiQuery({ name: 'supplyId', required: false })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
-  @ApiQuery({ name: 'lowStock', required: false, type: Boolean, description: 'Solo los que llegaron o bajaron del mínimo' })
+  @ApiQuery({
+    name: 'lowStock',
+    required: false,
+    type: Boolean,
+    description: 'Solo los que llegaron o bajaron del mínimo',
+  })
   @ApiPaginatedResponse(RestaurantSupplyResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
-    @Query('restaurantId', new ParseUUIDPipe({ optional: true })) restaurantId?: string,
+    @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
+    restaurantId?: string,
     @Query('supplyId', new ParseUUIDPipe({ optional: true })) supplyId?: string,
-    @Query('isActive', new ParseBoolPipe({ optional: true })) isActive?: boolean,
-    @Query('lowStock', new ParseBoolPipe({ optional: true })) lowStock?: boolean,
+    @Query('isActive', new ParseBoolPipe({ optional: true }))
+    isActive?: boolean,
+    @Query('lowStock', new ParseBoolPipe({ optional: true }))
+    lowStock?: boolean,
   ): Promise<PageResponse<RestaurantSupplyResponseDto>> {
     const result = await this.restaurantSuppliesService.findPage(
       { restaurantId, supplyId, isActive, lowStock },
       page,
     );
-    return toPageResponse(result, (view) => RestaurantSupplyResponseDto.fromView(view));
+    return toPageResponse(result, (view) =>
+      RestaurantSupplyResponseDto.fromView(view),
+    );
   }
 
+  @Authorize(null, Scope.resource('restaurant-supply'))
   @Get(':id')
   @ApiOperation({ summary: 'Stock de un insumo en una sede' })
   @ApiOkResponse({ type: RestaurantSupplyResponseDto })
   @ApiNotFoundResponse({ description: 'No existe' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RestaurantSupplyResponseDto> {
-    return RestaurantSupplyResponseDto.fromView(await this.restaurantSuppliesService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<RestaurantSupplyResponseDto> {
+    return RestaurantSupplyResponseDto.fromView(
+      await this.restaurantSuppliesService.findOne(id),
+    );
   }
 
+  @Authorize('inventory.manage', Scope.resource('restaurant-supply'))
   @Patch(':id')
-  @ApiOperation({ summary: 'Cambiar el mínimo o activar/desactivar en la sede (el stock no se edita)' })
+  @ApiOperation({
+    summary:
+      'Cambiar el mínimo o activar/desactivar en la sede (el stock no se edita)',
+  })
   @ApiOkResponse({ type: RestaurantSupplyResponseDto })
   async configure(
     @Param('id', ParseUUIDPipe) id: string,
@@ -97,14 +130,21 @@ export class RestaurantSuppliesController {
     );
   }
 
+  @Authorize('inventory.manage', Scope.resource('restaurant-supply'))
   @Delete(':id')
-  @ApiOperation({ summary: 'Desactivar el insumo en la sede (baja lógica; conserva el historial)' })
+  @ApiOperation({
+    summary:
+      'Desactivar el insumo en la sede (baja lógica; conserva el historial)',
+  })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.restaurantSuppliesService.deactivate(id);
     return { id };
   }
 
+  @Authorize('inventory.manage', Scope.resource('restaurant-supply'))
   @Post(':id/movements')
   @ApiOperation({
     summary: 'Registrar una compra, consumo, merma o ajuste manual',
@@ -130,6 +170,7 @@ export class RestaurantSuppliesController {
     return MovementResultResponseDto.from(result);
   }
 
+  @Authorize('inventory.manage', Scope.resource('restaurant-supply'))
   @Post(':id/counts')
   @ApiOperation({
     summary: 'Registrar un conteo físico',
@@ -153,6 +194,7 @@ export class RestaurantSuppliesController {
     return MovementResultResponseDto.from(result);
   }
 
+  @Authorize(null, Scope.resource('restaurant-supply'))
   @Get(':id/movements')
   @ApiOperation({ summary: 'Historial de movimientos (más reciente primero)' })
   @ApiPaginatedResponse(InventoryMovementResponseDto)
@@ -160,7 +202,10 @@ export class RestaurantSuppliesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Pagination() page: PageRequest,
   ): Promise<PageResponse<InventoryMovementResponseDto>> {
-    const movements = await this.restaurantSuppliesService.listMovements(id, page);
+    const movements = await this.restaurantSuppliesService.listMovements(
+      id,
+      page,
+    );
     return toPageResponse(movements, (movement) =>
       InventoryMovementResponseDto.fromDomain(movement),
     );

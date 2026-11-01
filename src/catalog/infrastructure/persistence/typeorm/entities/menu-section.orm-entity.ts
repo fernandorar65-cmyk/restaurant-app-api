@@ -1,5 +1,5 @@
 import { Check, Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { CategoryOrmEntity } from './category.orm-entity.js';
 import type { MenuOrmEntity } from './menu.orm-entity.js';
 

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Attention } from '../../../../domain/entities/attention.entity.js';
 import { AttentionStatus } from '../../../../domain/enums/attention-status.enum.js';
 import { ActiveAttentionAlreadyExistsError } from '../../../../domain/exceptions/attention.errors.js';
@@ -16,7 +16,7 @@ import { AttentionMapper } from '../mappers/attention.mappers.js';
 import type {
   Page,
   PageRequest,
-} from '../../../../../common/application/pagination.js';
+} from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmAttentionRepository

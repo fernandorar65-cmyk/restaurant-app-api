@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { Supply } from '../entities/supply.entity.js';
 
 export const SUPPLY_REPOSITORY = Symbol('SUPPLY_REPOSITORY');

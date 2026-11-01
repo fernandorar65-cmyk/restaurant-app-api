@@ -1,6 +1,13 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import type { OrganizationOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
+import {
+  Column,
+  Entity,
+  ForeignKey,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  Unique,
+} from 'typeorm';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { InventoryCategoryOrmEntity } from './inventory-category.orm-entity.js';
 import type { UnitOfMeasureOrmEntity } from './unit-of-measure.orm-entity.js';
 
@@ -11,12 +18,9 @@ import type { UnitOfMeasureOrmEntity } from './unit-of-measure.orm-entity.js';
 @Index('idx_supplies_category', ['categoryId'])
 @Index('idx_supplies_base_unit', ['baseUnitId'])
 export class SupplyOrmEntity extends BaseOrmEntity {
+  @ForeignKey('OrganizationOrmEntity', { onDelete: 'CASCADE' })
   @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
-
-  @ManyToOne('OrganizationOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'organization_id' })
-  organization?: OrganizationOrmEntity;
 
   @Column({ name: 'category_id', type: 'uuid' })
   categoryId: string;

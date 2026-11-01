@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
-import { AuthService } from '../../../../iam/application/auth/auth.service.js';
+import { AuthService } from '../../../../iam/public-api.js';
 import type { DinerIdentity } from '../../../application/customer-attentions/customer-attentions.service.js';
 
 const UUID_REGEX =

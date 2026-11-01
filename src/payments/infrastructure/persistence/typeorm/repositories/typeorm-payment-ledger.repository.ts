@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PaymentMethod } from '../../../../../common/domain/payment-method.enum.js';
-import { roundMoney } from '../../../../../common/domain/value-objects/money.js';
+import { Money } from '../../../../../common/domain/value-objects/money.js';
 import {
   MethodTotals,
   PaymentLedgerRepository,
@@ -43,7 +43,7 @@ export class TypeOrmPaymentLedgerRepository implements PaymentLedgerRepository {
       .where('payment.attention_id = :attentionId', { attentionId })
       .andWhere('status.counts_as_refunded')
       .getRawOne<{ total: string }>();
-    return roundMoney(Number(paid?.total ?? 0) - Number(refunded?.total ?? 0));
+    return Money.parse(paid?.total).minus(Money.parse(refunded?.total)).amount;
   }
 
   async itemsWithPayments(orderItemIds: string[]): Promise<string[]> {
@@ -97,10 +97,11 @@ export class TypeOrmPaymentLedgerRepository implements PaymentLedgerRepository {
     return Object.values(PaymentMethod)
       .map((method) => ({
         method,
-        gross: roundMoney(Number(gross.find((row) => row.method === method)?.total ?? 0)),
-        refunded: roundMoney(
-          Number(refunded.find((row) => row.method === method)?.total ?? 0),
-        ),
+        gross: Money.parse(gross.find((row) => row.method === method)?.total)
+          .amount,
+        refunded: Money.parse(
+          refunded.find((row) => row.method === method)?.total,
+        ).amount,
       }))
       .filter((totals) => totals.gross > 0 || totals.refunded > 0);
   }

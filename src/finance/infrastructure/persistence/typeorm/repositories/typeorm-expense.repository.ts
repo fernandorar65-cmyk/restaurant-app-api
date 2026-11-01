@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import type { FindOperator } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 import { PaymentMethod } from '../../../../../common/domain/payment-method.enum.js';
-import { roundMoney } from '../../../../../common/domain/value-objects/money.js';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { Money } from '../../../../../common/domain/value-objects/money.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Expense } from '../../../../domain/entities/expense.entity.js';
 import { ExpenseStatus } from '../../../../domain/enums/expense-status.enum.js';
 import {
@@ -80,8 +80,8 @@ export class TypeOrmExpenseRepository
       .setParameter('cash', PaymentMethod.CASH)
       .getRawOne<{ total: string; cash: string }>();
     return {
-      total: roundMoney(Number(row?.total ?? 0)),
-      cash: roundMoney(Number(row?.cash ?? 0)),
+      total: Money.parse(row?.total).amount,
+      cash: Money.parse(row?.cash).amount,
     };
   }
 }

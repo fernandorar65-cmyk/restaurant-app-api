@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Fulfillment } from '../../../../domain/entities/fulfillment.entity.js';
 import { FulfillmentRepository } from '../../../../domain/repositories/fulfillment.repository.js';
 import { FulfillmentOrmEntity } from '../entities/fulfillment.orm-entity.js';
@@ -15,8 +15,13 @@ export class TypeOrmFulfillmentRepository implements FulfillmentRepository {
     private readonly repository: Repository<FulfillmentOrmEntity>,
   ) {}
 
-  async findByAttention(attentionId: string): Promise<Fulfillment | null> {
-    const found = await this.repository.findOne({ where: { attentionId } });
+  async findByAttention(
+    attentionId: string,
+    tx?: TransactionContext,
+  ): Promise<Fulfillment | null> {
+    const found = await transactionalRepository(this.repository, tx).findOne({
+      where: { attentionId },
+    });
     return found ? FulfillmentMapper.toDomain(found) : null;
   }
 

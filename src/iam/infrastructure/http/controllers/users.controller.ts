@@ -19,19 +19,22 @@ import { UsersService } from '../../../application/users/users.service.js';
 import { CreateUserDto } from '../dto/users/create-user.dto.js';
 import { UpdateUserDto } from '../dto/users/update-user.dto.js';
 import { UserResponseDto } from '../dto/users/user-response.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
 
 @ApiTags('iam/users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Authenticated()
   @Post()
   @ApiOperation({ summary: 'Crear un usuario' })
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -40,6 +43,7 @@ export class UsersController {
     return UserResponseDto.fromDomain(user);
   }
 
+  @PlatformAdmin()
   @Get()
   @ApiOperation({ summary: 'Listar usuarios' })
   @ApiPaginatedResponse(UserResponseDto)
@@ -47,22 +51,26 @@ export class UsersController {
     @Pagination() page: PageRequest,
   ): Promise<PageResponse<UserResponseDto>> {
     const users = await this.usersService.findPage(page);
-    return toPageResponse(users, (user) =>
-      UserResponseDto.fromDomain(user),
-    );
+    return toPageResponse(users, (user) => UserResponseDto.fromDomain(user));
   }
 
+  @PlatformAdmin()
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por id' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<UserResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<UserResponseDto> {
     const user = await this.usersService.findOne(id);
     return UserResponseDto.fromDomain(user);
   }
 
+  @PlatformAdmin()
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un usuario (datos, email, contraseña, estado)' })
+  @ApiOperation({
+    summary: 'Actualizar un usuario (datos, email, contraseña, estado)',
+  })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   async update(
@@ -73,6 +81,7 @@ export class UsersController {
     return UserResponseDto.fromDomain(user);
   }
 
+  @PlatformAdmin()
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un usuario (baja lógica)',
@@ -80,7 +89,9 @@ export class UsersController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.usersService.deactivate(id);
     return { id };
   }

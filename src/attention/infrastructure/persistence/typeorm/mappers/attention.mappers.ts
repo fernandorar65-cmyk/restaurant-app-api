@@ -1,3 +1,4 @@
+import { GeoCoordinates } from '../../../../../common/domain/value-objects/geo-coordinates.js';
 import { AttentionParticipant } from '../../../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../../../domain/entities/attention.entity.js';
 import { Fulfillment } from '../../../../domain/entities/fulfillment.entity.js';
@@ -124,8 +125,9 @@ export class AttentionParticipantMapper {
 }
 
 export class OrderMapper {
-  static toDomain(orm: OrderOrmEntity): Order {
-    return Order.fromPersistence({
+  static toDomain(orm: OrderOrmEntity, items: OrderItem[]): Order {
+    return Order.fromPersistence(
+      {
       id: orm.id,
       attentionId: orm.attentionId,
       requestId: orm.requestId,
@@ -137,7 +139,9 @@ export class OrderMapper {
       confirmedAt: orm.confirmedAt,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
-    });
+      },
+      items,
+    );
   }
 
   static toPersistence(
@@ -254,8 +258,7 @@ export class FulfillmentMapper {
       estimatedReadyAt: orm.estimatedReadyAt,
       deliveryAddress: orm.deliveryAddress,
       deliveryReference: orm.deliveryReference,
-      latitude: orm.latitude,
-      longitude: orm.longitude,
+      location: GeoCoordinates.rehydrate(orm.latitude, orm.longitude),
       deliveryFee: orm.deliveryFee,
       eatAtRestaurant: orm.eatAtRestaurant,
       deliveredAt: orm.deliveredAt,

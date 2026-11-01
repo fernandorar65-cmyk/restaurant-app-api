@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { DailyClosure } from '../entities/daily-closure.entity.js';
 
 export const DAILY_CLOSURE_REPOSITORY = Symbol('DAILY_CLOSURE_REPOSITORY');

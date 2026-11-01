@@ -17,7 +17,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
@@ -30,12 +30,17 @@ import {
   ExpenseCategoryResponseDto,
   UpdateExpenseCategoryDto,
 } from '../dto/finance.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('finance/expense-categories')
 @Controller('expense-categories')
 export class ExpenseCategoriesController {
   constructor(private readonly categoriesService: ExpenseCategoriesService) {}
 
+  @Authorize('finance.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear una categoría de gasto' })
   @ApiCreatedResponse({ type: ExpenseCategoryResponseDto })
@@ -47,6 +52,7 @@ export class ExpenseCategoriesController {
     );
   }
 
+  @Authorize('finance.read', Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar categorías de gasto' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -56,12 +62,16 @@ export class ExpenseCategoriesController {
     @Query('organizationId', new ParseUUIDPipe({ optional: true }))
     organizationId?: string,
   ): Promise<PageResponse<ExpenseCategoryResponseDto>> {
-    const categories = await this.categoriesService.findPage({ organizationId }, page);
+    const categories = await this.categoriesService.findPage(
+      { organizationId },
+      page,
+    );
     return toPageResponse(categories, (category) =>
       ExpenseCategoryResponseDto.fromDomain(category),
     );
   }
 
+  @Authorize('finance.read', Scope.resource('expense-category'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una categoría de gasto' })
   @ApiOkResponse({ type: ExpenseCategoryResponseDto })
@@ -74,6 +84,7 @@ export class ExpenseCategoriesController {
     );
   }
 
+  @Authorize('finance.manage', Scope.resource('expense-category'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una categoría de gasto' })
   @ApiOkResponse({ type: ExpenseCategoryResponseDto })
@@ -86,13 +97,16 @@ export class ExpenseCategoriesController {
     );
   }
 
+  @Authorize('finance.manage', Scope.resource('expense-category'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una categoría de gasto (baja lógica)',
     description: 'No se borra: los gastos pasados siguen apuntando a ella',
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.categoriesService.deactivate(id);
     return { id };
   }

@@ -11,7 +11,7 @@ import {
 } from '../../domain/exceptions/user.errors.js';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.js';
 import type { UserRepository } from '../../domain/repositories/user.repository.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateUserInput extends UserProfileDetails {
   email: string;

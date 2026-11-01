@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { InventoryMovement } from '../../../../domain/entities/inventory-movement.entity.js';
 import { InventoryMovementRepository } from '../../../../domain/repositories/inventory-movement.repository.js';
 import { InventoryMovementTypeOrmEntity } from '../entities/inventory-movement-type.orm-entity.js';

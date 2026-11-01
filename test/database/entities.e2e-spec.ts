@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { randomBytes } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import type { DataSourceOptions } from 'typeorm';
-import { entities } from '../../src/common/persistence/database/entities.js';
+import { entities } from '../../src/common/infrastructure/persistence/database/entities.js';
 
 // Builds the whole model on a throwaway database (requires the docker-compose
 // Postgres to be running) and checks the expected tables plus the

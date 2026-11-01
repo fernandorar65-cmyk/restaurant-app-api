@@ -2,18 +2,16 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
   VersionColumn,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { ServiceTypeOrmEntity } from './service-type.orm-entity.js';
 import type { AttentionStatusOrmEntity } from './workflow-status.orm-entity.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
-import type { DiningTableOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/dining-table.orm-entity.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 
 // A whole visit/bill. Its status comes from the restaurant's catalog
 // (attention_statuses). An attention is active until it is closed or
@@ -41,26 +39,17 @@ import type { RestaurantOrmEntity } from '../../../../../organizations/infrastru
 @Check('chk_attentions_single_end', 'closed_at IS NULL OR cancelled_at IS NULL')
 @Check('chk_attentions_version', 'version >= 0')
 export class AttentionOrmEntity extends BaseOrmEntity {
+  @ForeignKey('RestaurantOrmEntity')
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
 
-  @ManyToOne('RestaurantOrmEntity')
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
-
+  @ForeignKey('DiningTableOrmEntity')
   @Column({ name: 'dining_table_id', type: 'uuid', nullable: true })
   diningTableId: string | null;
 
-  @ManyToOne('DiningTableOrmEntity')
-  @JoinColumn({ name: 'dining_table_id' })
-  diningTable?: DiningTableOrmEntity;
-
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'customer_user_id', type: 'uuid', nullable: true })
   customerUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'customer_user_id' })
-  customerUser?: UserOrmEntity;
 
   @Column({ name: 'attention_number', type: 'varchar', length: 50 })
   attentionNumber: string;

@@ -1,24 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { EVENT_BUS } from '../../../common/application/ports/event-bus.port.js';
+import type { EventBus } from '../../../common/application/ports/event-bus.port.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Restaurant } from '../../domain/entities/restaurant.entity.js';
 import type { RestaurantDetails } from '../../domain/entities/restaurant.entity.js';
 import { RestaurantStatus } from '../../domain/enums/restaurant-status.enum.js';
+import { RestaurantCreated } from '../../domain/events/restaurant-created.event.js';
 import {
   DuplicateRestaurantCodeError,
   RestaurantNotFoundError,
 } from '../../domain/exceptions/restaurant.errors.js';
 import { RESTAURANT_REPOSITORY } from '../../domain/repositories/restaurant.repository.js';
 import type { RestaurantRepository } from '../../domain/repositories/restaurant.repository.js';
-import { RESTAURANT_SETUP } from '../ports/restaurant-setup.port.js';
-import type { RestaurantSetupPort } from '../ports/restaurant-setup.port.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
 import type {
   Page,
   PageRequest,
-} from '../../../common/application/pagination.js';
+} from '../../../common/domain/pagination.js';
 
 export interface CreateRestaurantInput extends RestaurantDetails {
   organizationId: string;
@@ -37,16 +38,16 @@ export class RestaurantsService {
     @Inject(RESTAURANT_REPOSITORY)
     private readonly restaurantRepository: RestaurantRepository,
     private readonly organizationsService: OrganizationsService,
-    @Inject(RESTAURANT_SETUP)
-    private readonly restaurantSetup: RestaurantSetupPort,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     @Inject(TRANSACTION_RUNNER)
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
   /**
-   * Creates the restaurant together with its default statuses and service
-   * types. `tx` lets other use cases (e.g. owner registration) include it in
-   * theirs.
+   * Creates the restaurant and announces it within the same transaction, so
+   * what other contexts set up for it (default statuses and service types)
+   * is saved together. `tx` lets other use cases (e.g. owner registration)
+   * include it in theirs.
    */
   async create(
     input: CreateRestaurantInput,
@@ -78,7 +79,10 @@ export class RestaurantsService {
       timezone: input.timezone ?? organization.timezone,
     });
     const saved = await this.restaurantRepository.save(restaurant, tx);
-    await this.restaurantSetup.provisionDefaults(saved.id, tx);
+    await this.eventBus.publish(
+      new RestaurantCreated(saved.id, saved.organizationId),
+      tx,
+    );
     return saved;
   }
 

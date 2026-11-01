@@ -1,11 +1,29 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { MenuSectionsService } from '../../../application/menu-sections/menu-sections.service.js';
 import {
   CreateMenuSectionDto,
   MenuSectionResponseDto,
   UpdateMenuSectionDto,
 } from '../dto/categories/category.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Visible sections of a menu; its products are placed in them via menuSectionId. */
 @ApiTags('catalog/menus')
@@ -13,6 +31,7 @@ import {
 export class MenuSectionsController {
   constructor(private readonly sectionsService: MenuSectionsService) {}
 
+  @Authorize('catalog.manage', Scope.resource('menu', 'menuId'))
   @Post()
   @ApiOperation({ summary: 'Crear una sección del menú' })
   @ApiCreatedResponse({ type: MenuSectionResponseDto })
@@ -20,9 +39,12 @@ export class MenuSectionsController {
     @Param('menuId', ParseUUIDPipe) menuId: string,
     @Body() dto: CreateMenuSectionDto,
   ): Promise<MenuSectionResponseDto> {
-    return MenuSectionResponseDto.fromDomain(await this.sectionsService.create(menuId, dto));
+    return MenuSectionResponseDto.fromDomain(
+      await this.sectionsService.create(menuId, dto),
+    );
   }
 
+  @Authorize(null, Scope.resource('menu', 'menuId'))
   @Get()
   @ApiOperation({ summary: 'Secciones del menú, en orden' })
   @ApiOkResponse({ type: [MenuSectionResponseDto] })
@@ -30,9 +52,12 @@ export class MenuSectionsController {
     @Param('menuId', ParseUUIDPipe) menuId: string,
   ): Promise<MenuSectionResponseDto[]> {
     const sections = await this.sectionsService.list(menuId);
-    return sections.map((section) => MenuSectionResponseDto.fromDomain(section));
+    return sections.map((section) =>
+      MenuSectionResponseDto.fromDomain(section),
+    );
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu', 'menuId'))
   @Patch(':sectionId')
   @ApiOperation({ summary: 'Editar, ordenar u ocultar una sección' })
   @ApiOkResponse({ type: MenuSectionResponseDto })
@@ -46,6 +71,7 @@ export class MenuSectionsController {
     );
   }
 
+  @Authorize('catalog.manage', Scope.resource('menu', 'menuId'))
   @Delete(':sectionId')
   @ApiOperation({
     summary: 'Desactivar una sección (baja lógica)',

@@ -2,13 +2,13 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { CreatedOnlyOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
+import { CreatedOnlyOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { AttentionOrmEntity } from './attention.orm-entity.js';
 
 // A diner at the table: either a registered user or a guest identified by
@@ -30,12 +30,9 @@ export class AttentionParticipantOrmEntity extends CreatedOnlyOrmEntity {
   @JoinColumn({ name: 'attention_id' })
   attention?: AttentionOrmEntity;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'user_id' })
-  user?: UserOrmEntity;
 
   @Column({ name: 'guest_token', type: 'uuid', nullable: true })
   guestToken: string | null;

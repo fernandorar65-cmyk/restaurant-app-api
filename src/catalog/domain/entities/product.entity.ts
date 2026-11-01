@@ -1,3 +1,4 @@
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
 import { ProductStatus } from '../enums/product-status.enum.js';
@@ -33,9 +34,7 @@ export interface ProductDetails {
 }
 
 export type ProductOrderIssue =
-  | 'PRODUCT_INACTIVE'
-  | 'PRODUCT_UNAVAILABLE'
-  | 'MODE_NOT_ALLOWED';
+  'PRODUCT_INACTIVE' | 'PRODUCT_UNAVAILABLE' | 'MODE_NOT_ALLOWED';
 
 /**
  * A dish or drink offered by a restaurant. Its categories live in the
@@ -79,9 +78,7 @@ export class Product {
     return new Product(props);
   }
 
-  update(
-    params: ProductDetails & { status?: ProductStatus },
-  ): void {
+  update(params: ProductDetails & { status?: ProductStatus }): void {
     this.applyDetails(params);
     if (params.status !== undefined) {
       this.props.status = params.status;
@@ -125,10 +122,17 @@ export class Product {
       this.props.imageUrl = params.imageUrl;
     }
     if (params.price !== undefined) {
-      if (params.price < 0) {
-        throw new ValidationDomainError('El precio del producto no puede ser negativo');
+      if (!Number.isFinite(params.price)) {
+        throw new ValidationDomainError(
+          'El precio del producto no es un monto válido',
+        );
       }
-      this.props.price = params.price;
+      if (params.price < 0) {
+        throw new ValidationDomainError(
+          'El precio del producto no puede ser negativo',
+        );
+      }
+      this.props.price = Money.of(params.price).amount;
     }
     if (params.preparationMinutes !== undefined) {
       if (params.preparationMinutes !== null && params.preparationMinutes < 0) {

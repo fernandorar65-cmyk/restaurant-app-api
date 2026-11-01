@@ -1,11 +1,17 @@
 import { Body, Controller, Get, Patch } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CustomerProfilesService } from '../../../application/customer-profiles/customer-profiles.service.js';
 import { UsersService } from '../../../application/users/users.service.js';
 import { CustomerMeResponseDto } from '../dto/customers/customer-me-response.dto.js';
 import { UpdateCustomerMeDto } from '../dto/customers/update-customer-me.dto.js';
 import { CurrentUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
 import type { RequestUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
+import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('customer/me')
 @ApiBearerAuth()
@@ -16,6 +22,7 @@ export class CustomerMeController {
     private readonly profilesService: CustomerProfilesService,
   ) {}
 
+  @Authenticated()
   @Get()
   @ApiOperation({ summary: 'Perfil del comensal' })
   @ApiOkResponse({ type: CustomerMeResponseDto })
@@ -27,8 +34,11 @@ export class CustomerMeController {
     return CustomerMeResponseDto.fromProfile(user, profile);
   }
 
+  @Authenticated()
   @Patch()
-  @ApiOperation({ summary: 'Actualiza datos personales y preferencias alimentarias' })
+  @ApiOperation({
+    summary: 'Actualiza datos personales y preferencias alimentarias',
+  })
   @ApiOkResponse({ type: CustomerMeResponseDto })
   async update(
     @CurrentUser() current: RequestUser,

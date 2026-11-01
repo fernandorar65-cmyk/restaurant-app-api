@@ -21,19 +21,24 @@ import { RestaurantsService } from '../../../application/restaurants/restaurants
 import { CreateRestaurantDto } from '../dto/restaurants/create-restaurant.dto.js';
 import { RestaurantResponseDto } from '../dto/restaurants/restaurant-response.dto.js';
 import { UpdateRestaurantDto } from '../dto/restaurants/update-restaurant.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('organizations/restaurants')
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
 
+  @Authorize('restaurants.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un restaurante (sede)' })
   @ApiCreatedResponse({ type: RestaurantResponseDto })
@@ -44,6 +49,7 @@ export class RestaurantsController {
     return RestaurantResponseDto.fromDomain(restaurant);
   }
 
+  @Authorize(null, Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar restaurantes' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -62,6 +68,7 @@ export class RestaurantsController {
     );
   }
 
+  @Authorize(null, Scope.resource('restaurant'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un restaurante por id' })
   @ApiOkResponse({ type: RestaurantResponseDto })
@@ -73,6 +80,7 @@ export class RestaurantsController {
     return RestaurantResponseDto.fromDomain(restaurant);
   }
 
+  @Authorize('restaurants.manage', Scope.resource('restaurant'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un restaurante' })
   @ApiOkResponse({ type: RestaurantResponseDto })
@@ -85,6 +93,7 @@ export class RestaurantsController {
     return RestaurantResponseDto.fromDomain(restaurant);
   }
 
+  @Authorize('restaurants.manage', Scope.resource('restaurant'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un restaurante (baja lógica)',

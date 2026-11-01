@@ -2,14 +2,14 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { decimalTransformer } from '../../../../../common/persistence/column-options.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { decimalTransformer } from '../../../../../common/infrastructure/persistence/column-options.js';
 import type { PaymentOrmEntity } from './payment.orm-entity.js';
 import type { RefundStatusOrmEntity } from './refund-status.orm-entity.js';
 
@@ -81,12 +81,9 @@ export class RefundOrmEntity extends BaseOrmEntity {
   @Column({ name: 'request_id', type: 'uuid' })
   requestId: string;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'processed_by_user_id', type: 'uuid', nullable: true })
   processedByUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'processed_by_user_id' })
-  processedByUser?: UserOrmEntity;
 
   @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt: Date | null;

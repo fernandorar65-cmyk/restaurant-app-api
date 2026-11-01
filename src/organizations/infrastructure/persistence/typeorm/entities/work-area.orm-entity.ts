@@ -1,5 +1,5 @@
 import { Check, Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { OrganizationOrmEntity } from './organization.orm-entity.js';
 
 // name is citext so the unique constraint ignores case ("Cocina" = "cocina").

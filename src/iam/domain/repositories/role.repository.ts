@@ -1,12 +1,16 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Role } from '../entities/role.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
 
 export interface RoleRepository {
   findById(id: string): Promise<Role | null>;
-  findByCode(organizationId: string, code: string): Promise<Role | null>;
+  findByCode(
+    organizationId: string,
+    code: string,
+    tx?: TransactionContext,
+  ): Promise<Role | null>;
   findPage(
     filter: { organizationId?: string },
     page: PageRequest,

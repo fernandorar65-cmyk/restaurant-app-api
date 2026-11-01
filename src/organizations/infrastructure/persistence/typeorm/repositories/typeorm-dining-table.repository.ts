@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { DiningTable } from '../../../../domain/entities/dining-table.entity.js';
 import { DiningTableRepository } from '../../../../domain/repositories/dining-table.repository.js';
 import { DiningTableOrmEntity } from '../entities/dining-table.orm-entity.js';
 import { DiningTableMapper } from '../mappers/dining-table.mapper.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmDiningTableRepository

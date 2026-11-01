@@ -6,6 +6,20 @@ export class GeoCoordinates {
     readonly longitude: number,
   ) {}
 
+  /**
+   * Rebuilds coordinates read from the database without validating them again.
+   * A row with only one of the two values is treated as having no location.
+   */
+  static rehydrate(
+    latitude: number | null,
+    longitude: number | null,
+  ): GeoCoordinates | null {
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+    return new GeoCoordinates(latitude, longitude);
+  }
+
   /** Both values must be given together, or neither. */
   static createOptional(
     latitude: number | null | undefined,

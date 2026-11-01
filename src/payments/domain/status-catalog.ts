@@ -143,3 +143,9 @@ export function paymentStatusDefinition(
 ): PaymentStatusDefinition {
   return BY_CODE.get(code) as PaymentStatusDefinition;
 }
+
+/** Refunds are not enabled yet, so no flow may move a payment into them. */
+export const REFUND_STATUSES_DISABLED = [
+  PaymentStatusCode.PARTIALLY_REFUNDED,
+  PaymentStatusCode.REFUNDED,
+];

@@ -1,5 +1,5 @@
 import { PaymentMethod } from '../../../common/domain/payment-method.enum.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 
 export interface PaymentMethodTotal {
   method: PaymentMethod;
@@ -61,8 +61,12 @@ export class DailyClosure {
       figures.paymentTotals.find((total) => total.method === PaymentMethod.CASH)
         ?.amount ?? 0;
     return {
-      netSales: roundMoney(figures.grossSales - figures.refundedAmount),
-      expectedCash: Math.max(0, roundMoney(cashCollected - figures.cashExpenseAmount)),
+      netSales: Money.of(figures.grossSales).minus(
+        Money.of(figures.refundedAmount),
+      ).amount,
+      expectedCash: Money.of(cashCollected)
+        .minus(Money.of(figures.cashExpenseAmount))
+        .atLeastZero().amount,
     };
   }
 
@@ -91,7 +95,10 @@ export class DailyClosure {
       expenseAmount: params.figures.expenseAmount,
       expectedCash,
       actualCash,
-      differenceAmount: actualCash === null ? null : roundMoney(actualCash - expectedCash),
+      differenceAmount:
+        actualCash === null
+          ? null
+          : Money.of(actualCash).minus(Money.of(expectedCash)).amount,
       notes: params.notes ?? null,
       closedByUserId: params.closedByUserId,
       closedAt: now,

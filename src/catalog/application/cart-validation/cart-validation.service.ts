@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessRuleDomainError } from '../../../common/domain/domain-error.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { RestaurantReferenceNotFoundError } from '../../domain/exceptions/catalog.errors.js';
 import type { ProductOrderIssue } from '../../domain/entities/product.entity.js';
 import type { ServiceMode } from '../../domain/service-mode.js';
-import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
-import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { SERVICE_TYPE_LOOKUP } from '../ports/service-type-lookup.port.js';
 import type { ServiceTypeLookupPort } from '../ports/service-type-lookup.port.js';
 import { ProductsService } from '../products/products.service.js';
@@ -71,8 +71,8 @@ export class RestaurantNotAcceptingOrdersError extends BusinessRuleDomainError {
 @Injectable()
 export class CartValidationService {
   constructor(
-    @Inject(RESTAURANT_LOOKUP)
-    private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly restaurantLookup: TenantLookup,
     @Inject(SERVICE_TYPE_LOOKUP)
     private readonly serviceTypeLookup: ServiceTypeLookupPort,
     private readonly productsService: ProductsService,
@@ -82,7 +82,7 @@ export class CartValidationService {
     slug: string,
     input: CartValidationInput,
   ): Promise<CartValidationResult> {
-    const restaurant = await this.restaurantLookup.findBySlug(slug);
+    const restaurant = await this.restaurantLookup.findRestaurantBySlug(slug);
     if (!restaurant) {
       throw new RestaurantReferenceNotFoundError(slug);
     }
@@ -128,13 +128,13 @@ export class CartValidationService {
         name: product.name,
         quantity: item.quantity,
         unitPrice: product.price,
-        subtotal: roundMoney(product.price * item.quantity),
+        subtotal: Money.of(product.price).times(item.quantity).amount,
       });
     }
 
-    const subtotal = roundMoney(
-      lines.reduce((sum, line) => sum + line.subtotal, 0),
-    );
+    const subtotal = Money.sum(
+      lines.map((line) => Money.of(line.subtotal)),
+    ).amount;
     const serviceType = await this.serviceTypeLookup.findActive(
       restaurant.id,
       input.serviceType,
@@ -158,7 +158,7 @@ export class CartValidationService {
       subtotal,
       minimumAmount,
       deliveryFee,
-      total: roundMoney(subtotal + deliveryFee),
+      total: Money.of(subtotal).plus(Money.of(deliveryFee)).amount,
     };
   }
 }

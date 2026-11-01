@@ -24,13 +24,17 @@ import { AssignPermissionDto } from '../dto/roles/assign-permission.dto.js';
 import { CreateRoleDto } from '../dto/roles/create-role.dto.js';
 import { RoleResponseDto } from '../dto/roles/role-response.dto.js';
 import { UpdateRoleDto } from '../dto/roles/update-role.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('iam/roles')
 @Controller('roles')
@@ -40,6 +44,7 @@ export class RolesController {
     private readonly rolePermissionsService: RolePermissionsService,
   ) {}
 
+  @Authorize('staff.manage', Scope.organization('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un rol de una organización' })
   @ApiCreatedResponse({ type: RoleResponseDto })
@@ -48,6 +53,7 @@ export class RolesController {
     return RoleResponseDto.fromDomain(role);
   }
 
+  @Authorize('staff.read', Scope.organization('query'))
   @Get()
   @ApiOperation({ summary: 'Listar roles' })
   @ApiQuery({ name: 'organizationId', required: false })
@@ -58,20 +64,22 @@ export class RolesController {
     organizationId?: string,
   ): Promise<PageResponse<RoleResponseDto>> {
     const roles = await this.rolesService.findPage({ organizationId }, page);
-    return toPageResponse(roles, (role) =>
-      RoleResponseDto.fromDomain(role),
-    );
+    return toPageResponse(roles, (role) => RoleResponseDto.fromDomain(role));
   }
 
+  @Authorize('staff.read', Scope.resource('role'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un rol por id' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<RoleResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<RoleResponseDto> {
     const role = await this.rolesService.findOne(id);
     return RoleResponseDto.fromDomain(role);
   }
 
+  @Authorize('staff.manage', Scope.resource('role'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un rol' })
   @ApiOkResponse({ type: RoleResponseDto })
@@ -84,6 +92,7 @@ export class RolesController {
     return RoleResponseDto.fromDomain(role);
   }
 
+  @Authorize('staff.manage', Scope.resource('role'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar un rol (baja lógica)',
@@ -91,11 +100,14 @@ export class RolesController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.rolesService.deactivate(id);
     return { id };
   }
 
+  @Authorize('staff.read', Scope.resource('role'))
   @Get(':id/permissions')
   @ApiOperation({ summary: 'Permisos asignados al rol' })
   @ApiOkResponse({ type: [PermissionResponseDto] })
@@ -108,6 +120,7 @@ export class RolesController {
     );
   }
 
+  @Authorize('staff.manage', Scope.resource('role'))
   @Post(':id/permissions')
   @ApiOperation({ summary: 'Asignar un permiso al rol' })
   @ApiCreatedResponse({ description: 'Permiso asignado' })
@@ -115,10 +128,14 @@ export class RolesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignPermissionDto,
   ): Promise<{ roleId: string; permissionId: string }> {
-    const grant = await this.rolePermissionsService.assign(id, dto.permissionId);
+    const grant = await this.rolePermissionsService.assign(
+      id,
+      dto.permissionId,
+    );
     return { roleId: grant.roleId, permissionId: grant.permissionId };
   }
 
+  @Authorize('staff.manage', Scope.resource('role'))
   @Delete(':id/permissions/:permissionId')
   @ApiOperation({ summary: 'Revocar un permiso del rol' })
   @ApiOkResponse({ description: 'Asignación eliminada' })

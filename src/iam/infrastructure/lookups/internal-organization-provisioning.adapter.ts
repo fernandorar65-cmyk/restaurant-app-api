@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
-import { OrganizationsService } from '../../../organizations/application/organizations/organizations.service.js';
-import { RestaurantsService } from '../../../organizations/application/restaurants/restaurants.service.js';
+import {
+  OrganizationsService,
+  RestaurantsService,
+} from '../../../organizations/public-api.js';
 import {
   NewOrganization,
   NewRestaurant,
@@ -10,9 +12,7 @@ import {
 
 /** In-process adapter: both contexts share the database, so they share the transaction. */
 @Injectable()
-export class InternalOrganizationProvisioningAdapter
-  implements OrganizationProvisioningPort
-{
+export class InternalOrganizationProvisioningAdapter implements OrganizationProvisioningPort {
   constructor(
     private readonly organizationsService: OrganizationsService,
     private readonly restaurantsService: RestaurantsService,

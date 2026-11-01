@@ -1,21 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { PERMISSION_CODES } from '../../../common/domain/access.js';
 import { PASSWORD_HASHER } from '../../../common/application/ports/password-hasher.port.js';
 import type { PasswordHasher } from '../../../common/application/ports/password-hasher.port.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import { OrganizationMembership } from '../../domain/entities/organization-membership.entity.js';
-import { RolePermission } from '../../domain/entities/role-permission.entity.js';
-import { Role } from '../../domain/entities/role.entity.js';
 import { User } from '../../domain/entities/user.entity.js';
 import { DuplicateEmailError } from '../../domain/exceptions/user.errors.js';
 import { OWNER_ROLE_CODE } from '../../domain/owner-role.js';
 import { ORGANIZATION_MEMBERSHIP_REPOSITORY } from '../../domain/repositories/organization-membership.repository.js';
 import type { OrganizationMembershipRepository } from '../../domain/repositories/organization-membership.repository.js';
-import { PERMISSION_REPOSITORY } from '../../domain/repositories/permission.repository.js';
-import type { PermissionRepository } from '../../domain/repositories/permission.repository.js';
-import { ROLE_PERMISSION_REPOSITORY } from '../../domain/repositories/role-permission.repository.js';
-import type { RolePermissionRepository } from '../../domain/repositories/role-permission.repository.js';
 import { ROLE_REPOSITORY } from '../../domain/repositories/role.repository.js';
 import type { RoleRepository } from '../../domain/repositories/role.repository.js';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.js';
@@ -61,10 +56,6 @@ export class OwnerRegistrationService {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(ROLE_REPOSITORY) private readonly roleRepository: RoleRepository,
-    @Inject(PERMISSION_REPOSITORY)
-    private readonly permissionRepository: PermissionRepository,
-    @Inject(ROLE_PERMISSION_REPOSITORY)
-    private readonly rolePermissionRepository: RolePermissionRepository,
     @Inject(ORGANIZATION_MEMBERSHIP_REPOSITORY)
     private readonly membershipRepository: OrganizationMembershipRepository,
     @Inject(ORGANIZATION_PROVISIONING)
@@ -88,30 +79,20 @@ export class OwnerRegistrationService {
       lastName: input.lastName,
       phone: input.phone,
     });
-    const permissions = await this.permissionRepository.findActive();
-
     const result = await this.transactionRunner.run(async (tx) => {
       const user = await this.userRepository.save(draftUser, tx);
       const organization = await this.provisioning.createOrganization(
         input.organization,
         tx,
       );
-      const role = await this.roleRepository.save(
-        Role.create({
-          id: randomUUID(),
-          organizationId: organization.id,
-          code: OWNER_ROLE_CODE,
-          name: 'Propietario',
-          description: 'Acceso total a la organización',
-          isSystem: true,
-        }),
+      // The base roles were created with the organization (OrganizationCreated).
+      const role = await this.roleRepository.findByCode(
+        organization.id,
+        OWNER_ROLE_CODE,
         tx,
       );
-      for (const permission of permissions) {
-        await this.rolePermissionRepository.save(
-          RolePermission.create({ roleId: role.id, permissionId: permission.id }),
-          tx,
-        );
+      if (!role) {
+        throw new Error('The OWNER role was not provisioned with the organization');
       }
       const membership = await this.membershipRepository.save(
         OrganizationMembership.create({
@@ -136,7 +117,7 @@ export class OwnerRegistrationService {
       restaurant: result.restaurant,
       roleId: result.role.id,
       membershipId: result.membership.id,
-      permissionCount: permissions.length,
+      permissionCount: PERMISSION_CODES.length,
     };
   }
 }

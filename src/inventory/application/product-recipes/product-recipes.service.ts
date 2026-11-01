@@ -8,8 +8,8 @@ import {
 } from '../../domain/exceptions/inventory.errors.js';
 import { PRODUCT_RECIPE_REPOSITORY } from '../../domain/repositories/product-recipe.repository.js';
 import type { ProductRecipeRepository } from '../../domain/repositories/product-recipe.repository.js';
-import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
-import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { PRODUCT_LOOKUP } from '../ports/product-lookup.port.js';
 import type { ProductLookupPort } from '../ports/product-lookup.port.js';
 import { SuppliesService } from '../supplies/supplies.service.js';
@@ -25,7 +25,7 @@ export class ProductRecipesService {
     @Inject(PRODUCT_RECIPE_REPOSITORY)
     private readonly recipeRepository: ProductRecipeRepository,
     @Inject(PRODUCT_LOOKUP) private readonly productLookup: ProductLookupPort,
-    @Inject(ORGANIZATION_LOOKUP) private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP) private readonly organizationLookup: TenantLookup,
     private readonly suppliesService: SuppliesService,
   ) {}
 
@@ -42,7 +42,7 @@ export class ProductRecipesService {
   ): Promise<ProductRecipe> {
     const restaurantId = await this.requireProductRestaurant(productId);
     const supply = await this.suppliesService.findOne(supplyId);
-    const organizationId = await this.organizationLookup.findRestaurantOrganizationId(restaurantId);
+    const organizationId = (await this.organizationLookup.findRestaurant(restaurantId))?.organizationId ?? null;
     if (supply.organizationId !== organizationId) {
       throw new RecipeSupplyFromAnotherOrganizationError();
     }

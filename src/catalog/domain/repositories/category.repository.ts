@@ -1,5 +1,5 @@
 import { Category } from '../entities/category.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const CATEGORY_REPOSITORY = Symbol('CATEGORY_REPOSITORY');
 

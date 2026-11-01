@@ -28,13 +28,17 @@ import {
 } from '../dto/dining-tables/dining-table-qr.dto.js';
 import { DiningTableResponseDto } from '../dto/dining-tables/dining-table-response.dto.js';
 import { UpdateDiningTableDto } from '../dto/dining-tables/update-dining-table.dto.js';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   ApiPaginatedResponse,
   Pagination,
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('organizations/dining-tables')
 @Controller('dining-tables')
@@ -44,6 +48,7 @@ export class DiningTablesController {
     private readonly configService: ConfigService,
   ) {}
 
+  @Authorize('restaurants.manage', Scope.resource('dining-table'))
   @Post(':id/qr-code')
   @ApiOperation({
     summary: 'Generar o regenerar el QR de la mesa',
@@ -66,6 +71,7 @@ export class DiningTablesController {
     };
   }
 
+  @Authorize('restaurants.manage', Scope.resource('dining-table'))
   @Delete(':id/qr-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revocar el QR de la mesa (queda sin QR válido)' })
@@ -73,9 +79,15 @@ export class DiningTablesController {
   async revokeQr(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<DiningTableResponseDto> {
-    return DiningTableResponseDto.fromDomain(await this.diningTablesService.revokeQr(id));
+    return DiningTableResponseDto.fromDomain(
+      await this.diningTablesService.revokeQr(id),
+    );
   }
 
+  @Authorize(
+    'restaurants.manage',
+    Scope.resource('restaurant-floor', 'floorId', 'body'),
+  )
   @Post()
   @ApiOperation({ summary: 'Crear una mesa en un piso' })
   @ApiCreatedResponse({ type: DiningTableResponseDto })
@@ -86,6 +98,11 @@ export class DiningTablesController {
     return DiningTableResponseDto.fromDomain(table);
   }
 
+  @Authorize(
+    null,
+    Scope.restaurant('query'),
+    Scope.resource('restaurant-floor', 'floorId', 'query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar mesas' })
   @ApiQuery({ name: 'restaurantId', required: false })
@@ -98,15 +115,19 @@ export class DiningTablesController {
     @Query('floorId', new ParseUUIDPipe({ optional: true }))
     floorId?: string,
   ): Promise<PageResponse<DiningTableResponseDto>> {
-    const tables = await this.diningTablesService.findPage({
-      restaurantId,
-      floorId,
-    }, page);
+    const tables = await this.diningTablesService.findPage(
+      {
+        restaurantId,
+        floorId,
+      },
+      page,
+    );
     return toPageResponse(tables, (table) =>
       DiningTableResponseDto.fromDomain(table),
     );
   }
 
+  @Authorize(null, Scope.resource('dining-table'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una mesa por id' })
   @ApiOkResponse({ type: DiningTableResponseDto })
@@ -118,6 +139,7 @@ export class DiningTablesController {
     return DiningTableResponseDto.fromDomain(table);
   }
 
+  @Authorize('restaurants.manage', Scope.resource('dining-table'))
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una mesa (incluye estados)' })
   @ApiOkResponse({ type: DiningTableResponseDto })
@@ -130,6 +152,7 @@ export class DiningTablesController {
     return DiningTableResponseDto.fromDomain(table);
   }
 
+  @Authorize('restaurants.manage', Scope.resource('dining-table'))
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una mesa (baja lógica)',
@@ -137,7 +160,9 @@ export class DiningTablesController {
   })
   @ApiOkResponse({ description: 'Id del registro desactivado' })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
-  async deactivate(@Param('id', ParseUUIDPipe) id: string): Promise<{ id: string }> {
+  async deactivate(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ id: string }> {
     await this.diningTablesService.deactivate(id);
     return { id };
   }

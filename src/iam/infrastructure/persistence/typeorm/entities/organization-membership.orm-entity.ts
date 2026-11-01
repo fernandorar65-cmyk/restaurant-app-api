@@ -2,15 +2,15 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { MembershipStatus } from '../../../../domain/enums/membership-status.enum.js';
-import type { OrganizationOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
 import type { RoleOrmEntity } from './role.orm-entity.js';
 import type { UserOrmEntity } from './user.orm-entity.js';
 
@@ -23,12 +23,9 @@ import type { UserOrmEntity } from './user.orm-entity.js';
   inValues('status', Object.values(MembershipStatus)),
 )
 export class OrganizationMembershipOrmEntity extends BaseOrmEntity {
+  @ForeignKey('OrganizationOrmEntity', { onDelete: 'CASCADE' })
   @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
-
-  @ManyToOne('OrganizationOrmEntity', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'organization_id' })
-  organization?: OrganizationOrmEntity;
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;

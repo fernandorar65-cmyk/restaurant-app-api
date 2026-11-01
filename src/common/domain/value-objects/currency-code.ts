@@ -6,6 +6,14 @@ export const DEFAULT_CURRENCY_CODE = 'PEN';
 export class CurrencyCode {
   private constructor(readonly value: string) {}
 
+  /**
+   * Rebuilds a value read from the database without validating it again, so a
+   * legacy row that predates the current rules never breaks a read.
+   */
+  static rehydrate(value: string): CurrencyCode {
+    return new CurrencyCode(value);
+  }
+
   static create(raw: string): CurrencyCode {
     const normalized = raw.trim().toUpperCase();
     if (!/^[A-Z]{3}$/.test(normalized)) {

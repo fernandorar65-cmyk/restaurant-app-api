@@ -2,15 +2,15 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { EmployeeStatus } from '../../../../domain/enums/employee-status.enum.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
 import type { JobPositionOrmEntity } from './job-position.orm-entity.js';
 import type { OrganizationOrmEntity } from './organization.orm-entity.js';
 
@@ -36,12 +36,9 @@ export class EmployeeOrmEntity extends BaseOrmEntity {
   organization?: OrganizationOrmEntity;
 
   // Null while the employee has no access to the system.
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'user_id' })
-  user?: UserOrmEntity;
 
   @Column({ name: 'employee_code', type: 'varchar', length: 50 })
   employeeCode: string;

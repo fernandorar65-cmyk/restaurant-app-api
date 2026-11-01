@@ -1,11 +1,10 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { Check, Column, Entity, ForeignKey, Unique } from 'typeorm';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { FulfillmentMode } from '../../../../domain/enums/fulfillment-mode.enum.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 
 // Service types a restaurant offers, named and ordered by it. The backend
 // rules (table, delivery data, fee) follow fulfillment_mode.
@@ -24,12 +23,9 @@ import type { RestaurantOrmEntity } from '../../../../../organizations/infrastru
   `(NOT requires_table OR fulfillment_mode = '${FulfillmentMode.DINE_IN}') AND (NOT requires_customer_address OR fulfillment_mode = '${FulfillmentMode.DELIVERY}')`,
 )
 export class ServiceTypeOrmEntity extends BaseOrmEntity {
+  @ForeignKey('RestaurantOrmEntity')
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
-
-  @ManyToOne('RestaurantOrmEntity')
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
 
   @Column({ type: 'varchar', length: 30 })
   code: string;

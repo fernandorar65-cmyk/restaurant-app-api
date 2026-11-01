@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsersService } from '../../../iam/application/users/users.service.js';
-import { UserNotFoundError } from '../../../iam/domain/exceptions/user.errors.js';
+import { UserNotFoundError, UsersService } from '../../../iam/public-api.js';
 import { UserLookupPort } from '../../application/ports/user-lookup.port.js';
 
 /** In-process adapter over IAM's UsersService (IdentityModule). */

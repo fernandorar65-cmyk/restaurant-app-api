@@ -1,6 +1,6 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { OrganizationMembership } from '../entities/organization-membership.entity.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const ORGANIZATION_MEMBERSHIP_REPOSITORY = Symbol(
   'ORGANIZATION_MEMBERSHIP_REPOSITORY',

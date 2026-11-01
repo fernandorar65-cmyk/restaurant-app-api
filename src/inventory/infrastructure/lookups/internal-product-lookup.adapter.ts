@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ProductsService } from '../../../catalog/application/products/products.service.js';
-import { ProductNotFoundError } from '../../../catalog/domain/exceptions/catalog.errors.js';
+import {
+  ProductNotFoundError,
+  ProductsService,
+} from '../../../catalog/public-api.js';
 import { ProductLookupPort } from '../../application/ports/product-lookup.port.js';
 
 /** In-process adapter over catalog's ProductsService. */

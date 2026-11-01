@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PASSWORD_HASHER } from '../common/application/ports/password-hasher.port.js';
@@ -7,8 +6,12 @@ import { PASSWORD_RESET_NOTIFIER } from '../common/application/ports/password-re
 import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
 import { ConsolePasswordResetNotifierAdapter } from '../common/infrastructure/notifications/console-password-reset-notifier.adapter.js';
 import { ScryptPasswordHasher } from '../common/infrastructure/security/scrypt-password-hasher.js';
-import { TypeOrmTransactionRunner } from '../common/persistence/typeorm-transaction-runner.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
 import { AuthService } from './application/auth/auth.service.js';
+import { CustomerRegistrationService } from './application/auth/customer-registration.service.js';
+import { PasswordsService } from './application/auth/passwords.service.js';
+import { TOKEN_ISSUER } from './application/ports/token-issuer.port.js';
+import { ACTOR_RESOLVER } from '../common/application/ports/actor-resolver.port.js';
 import { CustomerProfilesService } from './application/customer-profiles/customer-profiles.service.js';
 import { UsersService } from './application/users/users.service.js';
 import { CUSTOMER_PROFILE_REPOSITORY } from './domain/repositories/customer-profile.repository.js';
@@ -25,6 +28,8 @@ import { TypeOrmCustomerProfileRepository } from './infrastructure/persistence/t
 import { TypeOrmPasswordResetTokenRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-password-reset-token.repository.js';
 import { TypeOrmRefreshTokenRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-refresh-token.repository.js';
 import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-user.repository.js';
+import { JwtTokenIssuer } from './infrastructure/security/jwt-token-issuer.js';
+import { MembershipActorResolver } from './infrastructure/security/membership-actor-resolver.js';
 
 /**
  * Users and authentication: the part of IAM that does not depend on
@@ -44,13 +49,12 @@ import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repo
   ],
   providers: [
     AuthService,
+    CustomerRegistrationService,
+    PasswordsService,
     UsersService,
     CustomerProfilesService,
     AuthGuard,
-    // Session required everywhere unless the route is marked @Public().
-    { provide: APP_GUARD, useExisting: AuthGuard },
-    // Then @PlatformAdmin() routes also require an ACMR administrator.
-    { provide: APP_GUARD, useClass: PlatformAdminGuard },
+    PlatformAdminGuard,
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
     {
       provide: CUSTOMER_PROFILE_REPOSITORY,
@@ -65,6 +69,8 @@ import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repo
       useClass: TypeOrmPasswordResetTokenRepository,
     },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
+    { provide: TOKEN_ISSUER, useClass: JwtTokenIssuer },
+    { provide: ACTOR_RESOLVER, useClass: MembershipActorResolver },
     {
       provide: PASSWORD_RESET_NOTIFIER,
       useClass: ConsolePasswordResetNotifierAdapter,
@@ -73,9 +79,13 @@ import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repo
   ],
   exports: [
     AuthService,
+    ACTOR_RESOLVER,
+    CustomerRegistrationService,
+    PasswordsService,
     UsersService,
     CustomerProfilesService,
     AuthGuard,
+    PlatformAdminGuard,
     USER_REPOSITORY,
     PASSWORD_HASHER,
   ],

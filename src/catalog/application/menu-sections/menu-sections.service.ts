@@ -10,8 +10,8 @@ import { MENU_SECTION_REPOSITORY } from '../../domain/repositories/menu-section.
 import type { MenuSectionRepository } from '../../domain/repositories/menu-section.repository.js';
 import { CategoriesService } from '../categories/categories.service.js';
 import { MenusService } from '../menus/menus.service.js';
-import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
-import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { requireRestaurant } from '../restaurant-guard.js';
 
 /** Visible sections of a menu (Entradas, Promociones...). */
@@ -20,8 +20,8 @@ export class MenuSectionsService {
   constructor(
     @Inject(MENU_SECTION_REPOSITORY)
     private readonly sectionRepository: MenuSectionRepository,
-    @Inject(RESTAURANT_LOOKUP)
-    private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly restaurantLookup: TenantLookup,
     private readonly menusService: MenusService,
     private readonly categoriesService: CategoriesService,
   ) {}

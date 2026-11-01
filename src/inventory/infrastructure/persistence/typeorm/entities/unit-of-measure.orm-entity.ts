@@ -1,9 +1,9 @@
 import { Check, Column, Entity, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { UnitDimension } from '../../../../domain/enums/unit-dimension.enum.js';
 
 /** Platform-wide catalog maintained by ACMR: no free-text units ("kg", "kilo"...). */

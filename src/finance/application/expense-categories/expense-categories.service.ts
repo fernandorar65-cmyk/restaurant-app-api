@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { ExpenseCategory } from '../../domain/entities/expense-category.entity.js';
 import {
   DuplicateExpenseCategoryNameError,
@@ -9,16 +9,16 @@ import {
 } from '../../domain/exceptions/finance.errors.js';
 import { EXPENSE_CATEGORY_REPOSITORY } from '../../domain/repositories/expense-category.repository.js';
 import type { ExpenseCategoryRepository } from '../../domain/repositories/expense-category.repository.js';
-import { ORGANIZATION_LOOKUP } from '../ports/finance-lookups.port.js';
-import type { OrganizationLookupPort } from '../ports/finance-lookups.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 
 @Injectable()
 export class ExpenseCategoriesService {
   constructor(
     @Inject(EXPENSE_CATEGORY_REPOSITORY)
     private readonly categoryRepository: ExpenseCategoryRepository,
-    @Inject(ORGANIZATION_LOOKUP)
-    private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly organizationLookup: TenantLookup,
   ) {}
 
   async create(input: {

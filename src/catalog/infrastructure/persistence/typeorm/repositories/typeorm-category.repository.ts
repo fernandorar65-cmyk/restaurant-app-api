@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Category } from '../../../../domain/entities/category.entity.js';
 import {
   CategoryFilter,
@@ -9,7 +9,7 @@ import {
 } from '../../../../domain/repositories/category.repository.js';
 import { CategoryOrmEntity } from '../entities/category.orm-entity.js';
 import { CategoryMapper } from '../mappers/category.mappers.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmCategoryRepository

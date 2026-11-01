@@ -1,5 +1,5 @@
 import { ValidationDomainError } from '../../../common/domain/domain-error.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
 import { FulfillmentMode } from '../enums/fulfillment-mode.enum.js';
 import { normalizeCode, requireSortOrder } from './workflow-status.entity.js';
@@ -80,7 +80,7 @@ export class ServiceType {
       createdAt: now,
       updatedAt: now,
     });
-    serviceType.assertConsistent();
+    assertConsistent(serviceType.props);
     return serviceType;
   }
 
@@ -89,62 +89,42 @@ export class ServiceType {
   }
 
   configure(settings: ServiceTypeSettings & { isActive?: boolean }): void {
+    const next = { ...this.props };
     if (settings.code !== undefined) {
-      this.props.code = normalizeCode(settings.code);
+      next.code = normalizeCode(settings.code);
     }
     if (settings.name !== undefined) {
-      this.props.name = requireText(
-        settings.name,
-        'El nombre del tipo de servicio',
-        {
-          max: 100,
-        },
-      );
+      next.name = requireText(settings.name, 'El nombre del tipo de servicio', {
+        max: 100,
+      });
     }
     if (settings.requiresTable !== undefined) {
-      this.props.requiresTable = settings.requiresTable;
+      next.requiresTable = settings.requiresTable;
     }
     if (settings.requiresCustomerAddress !== undefined) {
-      this.props.requiresCustomerAddress = settings.requiresCustomerAddress;
+      next.requiresCustomerAddress = settings.requiresCustomerAddress;
     }
     if (settings.minimumOrderAmount !== undefined) {
-      this.props.minimumOrderAmount = requireAmount(
+      next.minimumOrderAmount = requireAmount(
         settings.minimumOrderAmount,
         'El monto mínimo',
       );
     }
     if (settings.deliveryFee !== undefined) {
-      this.props.deliveryFee = requireAmount(
+      next.deliveryFee = requireAmount(
         settings.deliveryFee,
         'El costo de envío',
       );
     }
     if (settings.sortOrder !== undefined) {
-      this.props.sortOrder = requireSortOrder(settings.sortOrder);
+      next.sortOrder = requireSortOrder(settings.sortOrder);
     }
     if (settings.isActive !== undefined) {
-      this.props.isActive = settings.isActive;
+      next.isActive = settings.isActive;
     }
-    this.assertConsistent();
-    this.props.updatedAt = new Date();
-  }
-
-  /** Only dine-in can ask for a table and only delivery for an address. */
-  private assertConsistent(): void {
-    if (
-      this.props.requiresTable &&
-      this.props.fulfillmentMode !== FulfillmentMode.DINE_IN
-    ) {
-      throw new ValidationDomainError('Solo un tipo DINE_IN puede exigir mesa');
-    }
-    if (
-      this.props.requiresCustomerAddress &&
-      this.props.fulfillmentMode !== FulfillmentMode.DELIVERY
-    ) {
-      throw new ValidationDomainError(
-        'Solo un tipo DELIVERY puede exigir dirección de entrega',
-      );
-    }
+    assertConsistent(next);
+    next.updatedAt = new Date();
+    this.props = next;
   }
 
   get ref(): ServiceTypeRef {
@@ -200,5 +180,23 @@ function requireAmount(amount: number, field: string): number {
   if (!Number.isFinite(amount) || amount < 0) {
     throw new ValidationDomainError(`${field} debe ser mayor o igual a 0`);
   }
-  return roundMoney(amount);
+  return Money.of(amount).amount;
+}
+
+/** Only dine-in can ask for a table and only delivery for an address. */
+function assertConsistent(props: ServiceTypeProps): void {
+  if (
+    props.requiresTable &&
+    props.fulfillmentMode !== FulfillmentMode.DINE_IN
+  ) {
+    throw new ValidationDomainError('Solo un tipo DINE_IN puede exigir mesa');
+  }
+  if (
+    props.requiresCustomerAddress &&
+    props.fulfillmentMode !== FulfillmentMode.DELIVERY
+  ) {
+    throw new ValidationDomainError(
+      'Solo un tipo DELIVERY puede exigir dirección de entrega',
+    );
+  }
 }

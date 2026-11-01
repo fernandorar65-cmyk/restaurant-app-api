@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { MenuSection } from '../../../../domain/entities/menu-section.entity.js';
 import { MenuSectionRepository } from '../../../../domain/repositories/menu-section.repository.js';
 import { MenuSectionOrmEntity } from '../entities/menu-section.orm-entity.js';

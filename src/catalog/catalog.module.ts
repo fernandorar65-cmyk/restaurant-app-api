@@ -6,7 +6,6 @@ import { CartValidationService } from './application/cart-validation/cart-valida
 import { CategoriesService } from './application/categories/categories.service.js';
 import { MenuSectionsService } from './application/menu-sections/menu-sections.service.js';
 import { MenusService } from './application/menus/menus.service.js';
-import { RESTAURANT_LOOKUP } from './application/ports/restaurant-lookup.port.js';
 import { ProductCompositionService } from './application/product-composition/product-composition.service.js';
 import { ProductsService } from './application/products/products.service.js';
 import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository.js';
@@ -17,12 +16,12 @@ import { PRODUCT_CATEGORY_REPOSITORY } from './domain/repositories/product-categ
 import { PRODUCT_INGREDIENT_REPOSITORY } from './domain/repositories/product-ingredient.repository.js';
 import { PRODUCT_REPOSITORY } from './domain/repositories/product.repository.js';
 import { CartValidationController } from './infrastructure/http/controllers/cart-validation.controller.js';
+import { CatalogScopeResolvers } from './infrastructure/http/catalog-scope-resolvers.js';
 import { CategoriesController } from './infrastructure/http/controllers/categories.controller.js';
 import { MenuSectionsController } from './infrastructure/http/controllers/menu-sections.controller.js';
 import { MenusController } from './infrastructure/http/controllers/menus.controller.js';
 import { ProductCompositionController } from './infrastructure/http/controllers/product-composition.controller.js';
 import { ProductsController } from './infrastructure/http/controllers/products.controller.js';
-import { InternalRestaurantLookupAdapter } from './infrastructure/lookups/internal-restaurant-lookup.adapter.js';
 import { CategoryOrmEntity } from './infrastructure/persistence/typeorm/entities/category.orm-entity.js';
 import { MenuProductOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-product.orm-entity.js';
 import { MenuSectionOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-section.orm-entity.js';
@@ -63,6 +62,7 @@ import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/inter
     CartValidationController,
   ],
   providers: [
+    CatalogScopeResolvers,
     CategoriesService,
     ProductsService,
     MenusService,
@@ -88,7 +88,6 @@ import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/inter
       provide: PRODUCT_INGREDIENT_REPOSITORY,
       useClass: TypeOrmProductIngredientRepository,
     },
-    { provide: RESTAURANT_LOOKUP, useClass: InternalRestaurantLookupAdapter },
     {
       provide: SERVICE_TYPE_LOOKUP,
       useClass: InternalServiceTypeLookupAdapter,

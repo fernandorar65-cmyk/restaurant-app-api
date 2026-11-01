@@ -57,26 +57,28 @@ export class Menu {
   }
 
   private applyDetails(params: MenuDetails): void {
+    const next = { ...this.props };
     if (params.name !== undefined) {
-      this.props.name = requireText(params.name, 'El nombre del menú', {
+      next.name = requireText(params.name, 'El nombre del menú', {
         max: 150,
       });
     }
     if (params.description !== undefined) {
-      this.props.description = params.description;
+      next.description = params.description;
     }
     if (params.validFrom !== undefined) {
-      this.props.validFrom = params.validFrom;
+      next.validFrom = params.validFrom;
     }
     if (params.validUntil !== undefined) {
-      this.props.validUntil = params.validUntil;
+      next.validUntil = params.validUntil;
     }
-    const { validFrom, validUntil } = this.props;
+    const { validFrom, validUntil } = next;
     if (validFrom && validUntil && validUntil < validFrom) {
       throw new ValidationDomainError(
         'La vigencia del menú no puede terminar antes de empezar',
       );
     }
+    this.props = next;
   }
 
   get id(): string {

@@ -1,9 +1,9 @@
 import { Check, Column, Entity, JoinColumn, OneToOne, Unique } from 'typeorm';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { FulfillmentStatus } from '../../../../domain/enums/fulfillment-status.enum.js';
 import { FulfillmentType } from '../../../../domain/enums/fulfillment-type.enum.js';
 import type { AttentionOrmEntity } from './attention.orm-entity.js';

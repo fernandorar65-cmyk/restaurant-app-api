@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { PasswordResetToken } from '../../../../domain/entities/password-reset-token.entity.js';
 import { PasswordResetTokenRepository } from '../../../../domain/repositories/password-reset-token.repository.js';
 import { PasswordResetTokenOrmEntity } from '../entities/password-reset-token.orm-entity.js';

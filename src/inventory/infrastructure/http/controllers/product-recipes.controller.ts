@@ -1,18 +1,33 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Put,
+} from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProductRecipesService } from '../../../application/product-recipes/product-recipes.service.js';
 import {
   RecipeLineResponseDto,
   SetRecipeLineDto,
 } from '../dto/product-recipe.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('inventory/recipes')
 @Controller('product-recipes/:productId')
 export class ProductRecipesController {
   constructor(private readonly recipesService: ProductRecipesService) {}
 
+  @Authorize(null, Scope.resource('product', 'productId'))
   @Get()
-  @ApiOperation({ summary: 'Receta del producto: insumos que consume por unidad' })
+  @ApiOperation({
+    summary: 'Receta del producto: insumos que consume por unidad',
+  })
   @ApiOkResponse({ type: [RecipeLineResponseDto] })
   async list(
     @Param('productId', ParseUUIDPipe) productId: string,
@@ -21,10 +36,12 @@ export class ProductRecipesController {
     return lines.map((line) => RecipeLineResponseDto.fromDomain(line));
   }
 
+  @Authorize('inventory.manage', Scope.resource('product', 'productId'))
   @Put('supplies/:supplyId')
   @ApiOperation({
     summary: 'Agregar o actualizar un insumo de la receta',
-    description: 'Insumo maestro de la misma organización que el producto. El descuento automático solo corre con INVENTORY_AUTO_CONSUMPTION=true',
+    description:
+      'Insumo maestro de la misma organización que el producto. El descuento automático solo corre con INVENTORY_AUTO_CONSUMPTION=true',
   })
   @ApiOkResponse({ type: RecipeLineResponseDto })
   async setLine(
@@ -37,6 +54,7 @@ export class ProductRecipesController {
     );
   }
 
+  @Authorize('inventory.manage', Scope.resource('product', 'productId'))
   @Delete('supplies/:supplyId')
   @ApiOperation({ summary: 'Quitar un insumo de la receta' })
   @ApiOkResponse({ description: 'Insumo quitado de la receta' })

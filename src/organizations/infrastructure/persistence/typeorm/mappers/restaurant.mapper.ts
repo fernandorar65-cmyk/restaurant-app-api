@@ -1,3 +1,7 @@
+import { CurrencyCode } from '../../../../../common/domain/value-objects/currency-code.js';
+import { Email } from '../../../../../common/domain/value-objects/email.js';
+import { GeoCoordinates } from '../../../../../common/domain/value-objects/geo-coordinates.js';
+import { TimeZone } from '../../../../../common/domain/value-objects/time-zone.js';
 import { Restaurant } from '../../../../domain/entities/restaurant.entity.js';
 import { RestaurantOrmEntity } from '../entities/restaurant.orm-entity.js';
 
@@ -12,11 +16,10 @@ export class RestaurantMapper {
       description: orm.description,
       address: orm.address,
       phone: orm.phone,
-      email: orm.email,
-      latitude: orm.latitude,
-      longitude: orm.longitude,
-      currencyCode: orm.currencyCode,
-      timezone: orm.timezone,
+      email: orm.email ? Email.rehydrate(orm.email) : null,
+      location: GeoCoordinates.rehydrate(orm.latitude, orm.longitude),
+      currencyCode: CurrencyCode.rehydrate(orm.currencyCode),
+      timezone: TimeZone.rehydrate(orm.timezone),
       status: orm.status,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,

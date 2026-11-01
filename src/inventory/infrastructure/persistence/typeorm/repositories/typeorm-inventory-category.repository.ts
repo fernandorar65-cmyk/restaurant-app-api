@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { InventoryCategory } from '../../../../domain/entities/inventory-category.entity.js';
 import { InventoryCategoryRepository } from '../../../../domain/repositories/inventory-category.repository.js';
 import { InventoryCategoryOrmEntity } from '../entities/inventory-category.orm-entity.js';
 import { InventoryCategoryMapper } from '../mappers/inventory.mappers.js';
-import type { Page, PageRequest } from '../../../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../../../common/domain/pagination.js';
 
 @Injectable()
 export class TypeOrmInventoryCategoryRepository

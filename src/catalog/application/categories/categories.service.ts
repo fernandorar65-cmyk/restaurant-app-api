@@ -14,9 +14,9 @@ import type {
   CategoryFilter,
   CategoryRepository,
 } from '../../domain/repositories/category.repository.js';
-import { RESTAURANT_LOOKUP } from '../ports/restaurant-lookup.port.js';
-import type { RestaurantLookupPort } from '../ports/restaurant-lookup.port.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateCategoryInput {
   organizationId: string;
@@ -38,8 +38,8 @@ export class CategoriesService {
   constructor(
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
-    @Inject(RESTAURANT_LOOKUP)
-    private readonly restaurantLookup: RestaurantLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly restaurantLookup: TenantLookup,
   ) {}
 
   async create(input: CreateCategoryInput): Promise<Category> {

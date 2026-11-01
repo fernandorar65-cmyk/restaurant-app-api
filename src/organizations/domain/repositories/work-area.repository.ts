@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { WorkArea } from '../entities/work-area.entity.js';
 
 export const WORK_AREA_REPOSITORY = Symbol('WORK_AREA_REPOSITORY');

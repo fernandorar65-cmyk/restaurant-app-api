@@ -1,5 +1,19 @@
-import { Body, Controller, Get, HttpStatus, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Res,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   CurrentUser,
@@ -11,22 +25,32 @@ import {
   MovementResultResponseDto,
   ReverseMovementDto,
 } from '../dto/restaurant-supply.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Movements are immutable: no PATCH or DELETE, only reversal. */
 @ApiTags('inventory/movements')
 @Controller('inventory-movements')
 export class InventoryMovementsController {
-  constructor(private readonly restaurantSuppliesService: RestaurantSuppliesService) {}
+  constructor(
+    private readonly restaurantSuppliesService: RestaurantSuppliesService,
+  ) {}
 
+  @Authorize(null, Scope.resource('inventory-movement'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un movimiento' })
   @ApiOkResponse({ type: InventoryMovementResponseDto })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<InventoryMovementResponseDto> {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<InventoryMovementResponseDto> {
     return InventoryMovementResponseDto.fromDomain(
       await this.restaurantSuppliesService.findMovement(id),
     );
   }
 
+  @Authorize('inventory.manage', Scope.resource('inventory-movement'))
   @Post(':id/reverse')
   @ApiOperation({
     summary: 'Revertir un movimiento con otro de signo contrario',

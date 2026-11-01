@@ -1,6 +1,6 @@
 import { Controller, Get, Inject, Param } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AttentionsService } from '../../../application/attentions/attentions.service.js';
+import { AttentionQueriesService } from '../../../application/attentions/attention-queries.service.js';
 import { TABLE_QR_LOOKUP } from '../../../application/ports/table-qr-lookup.port.js';
 import type { TableQrLookupPort } from '../../../application/ports/table-qr-lookup.port.js';
 import { InvalidTableQrTokenError } from '../../../domain/exceptions/attention.errors.js';
@@ -16,7 +16,7 @@ import { Public } from '../../../../common/infrastructure/http/public.decorator.
 export class TableQrController {
   constructor(
     @Inject(TABLE_QR_LOOKUP) private readonly tableQrLookup: TableQrLookupPort,
-    private readonly attentionsService: AttentionsService,
+    private readonly attentions: AttentionQueriesService,
   ) {}
 
   @Get('qr/:token')
@@ -29,7 +29,7 @@ export class TableQrController {
     if (!resolved) {
       throw new InvalidTableQrTokenError();
     }
-    const active = await this.attentionsService.findActiveByTable(resolved.tableId);
+    const active = await this.attentions.findActiveByTable(resolved.tableId);
     return {
       restaurant: {
         id: resolved.restaurantId,

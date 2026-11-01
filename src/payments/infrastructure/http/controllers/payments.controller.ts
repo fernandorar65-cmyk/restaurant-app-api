@@ -20,7 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   CurrentUser,
   type RequestUser,
@@ -31,6 +31,7 @@ import {
   toPageResponse,
   type PageResponse,
 } from '../../../../common/infrastructure/http/pagination.js';
+import { PaymentRegistrationService } from '../../../application/payments/payment-registration.service.js';
 import { PaymentsService } from '../../../application/payments/payments.service.js';
 import { PaymentStatusCode } from '../../../domain/enums/payment-status-code.enum.js';
 import {
@@ -38,16 +39,28 @@ import {
   PaymentResponseDto,
   RegisterPaymentDto,
 } from '../dto/payments.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Staff side of payments: collect, split the bill, follow gateway attempts. */
 @ApiTags('payments')
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly registration: PaymentRegistrationService,
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
+  @Authorize(
+    'payments.manage',
+    Scope.resource('attention', 'attentionId', 'body'),
+  )
   @Post()
   @ApiOperation({
-    summary: 'Registrar un pago (toda la cuenta, un monto libre o productos elegidos)',
+    summary:
+      'Registrar un pago (toda la cuenta, un monto libre o productos elegidos)',
     description:
       'El servidor calcula o valida cada monto contra el saldo pendiente; nunca confía en montos del cliente. Sin `provider` el pago queda PAID. Idempotente por requestId: 201 la primera vez, 200 al repetirlo',
   })
@@ -57,7 +70,7 @@ export class PaymentsController {
     @CurrentUser() user: RequestUser,
     @Res({ passthrough: true }) response: Response,
   ): Promise<PaymentResponseDto> {
-    const { payment, created } = await this.paymentsService.register({
+    const { payment, created } = await this.registration.register({
       attentionId: dto.attentionId,
       requestId: dto.requestId,
       method: dto.method,
@@ -75,6 +88,11 @@ export class PaymentsController {
     return PaymentResponseDto.fromDomain(payment);
   }
 
+  @Authorize(
+    'payments.read',
+    Scope.resource('attention', 'attentionId', 'query'),
+    Scope.restaurant('query'),
+  )
   @Get()
   @ApiOperation({ summary: 'Listar pagos' })
   @ApiQuery({ name: 'attentionId', required: false })
@@ -83,8 +101,10 @@ export class PaymentsController {
   @ApiPaginatedResponse(PaymentResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
-    @Query('attentionId', new ParseUUIDPipe({ optional: true })) attentionId?: string,
-    @Query('restaurantId', new ParseUUIDPipe({ optional: true })) restaurantId?: string,
+    @Query('attentionId', new ParseUUIDPipe({ optional: true }))
+    attentionId?: string,
+    @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
+    restaurantId?: string,
     @Query('status', new ParseEnumPipe(PaymentStatusCode, { optional: true }))
     status?: PaymentStatusCode,
   ): Promise<PageResponse<PaymentResponseDto>> {
@@ -92,37 +112,52 @@ export class PaymentsController {
       { attentionId, restaurantId, status },
       page,
     );
-    return toPageResponse(payments, (payment) => PaymentResponseDto.fromDomain(payment));
+    return toPageResponse(payments, (payment) =>
+      PaymentResponseDto.fromDomain(payment),
+    );
   }
 
+  @Authorize('payments.read', Scope.resource('attention', 'attentionId'))
   @Get('balance/:attentionId')
   @ApiOperation({
     summary: 'Saldo de una atención por producto',
-    description: 'Total, pagado, reservado por pagos pendientes y pendiente de cada producto y del costo de envío',
+    description:
+      'Total, pagado, reservado por pagos pendientes y pendiente de cada producto y del costo de envío',
   })
   @ApiOkResponse({ type: AttentionBalanceDto })
   async balance(
     @Param('attentionId', ParseUUIDPipe) attentionId: string,
   ): Promise<AttentionBalanceDto> {
-    return AttentionBalanceDto.from(await this.paymentsService.balance(attentionId));
+    return AttentionBalanceDto.from(
+      await this.paymentsService.balance(attentionId),
+    );
   }
 
+  @Authorize('payments.read', Scope.resource('payment'))
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un pago con sus asignaciones' })
   @ApiOkResponse({ type: PaymentResponseDto })
   @ApiNotFoundResponse({ description: 'Pago no encontrado' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<PaymentResponseDto> {
-    return PaymentResponseDto.fromDomain(await this.paymentsService.findOne(id));
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PaymentResponseDto> {
+    return PaymentResponseDto.fromDomain(
+      await this.paymentsService.findOne(id),
+    );
   }
 
+  @Authorize('payments.manage', Scope.resource('payment'))
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Cancelar un intento de pago pendiente o en proceso',
-    description: 'Libera el saldo que reservaba. Un pago confirmado no se cancela',
+    description:
+      'Libera el saldo que reservaba. Un pago confirmado no se cancela',
   })
   @ApiOkResponse({ type: PaymentResponseDto })
-  async cancel(@Param('id', ParseUUIDPipe) id: string): Promise<PaymentResponseDto> {
+  async cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PaymentResponseDto> {
     return PaymentResponseDto.fromDomain(await this.paymentsService.cancel(id));
   }
 }

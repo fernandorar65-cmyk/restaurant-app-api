@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { BusinessDate } from '../../../common/domain/value-objects/business-date.js';
-import { roundMoney } from '../../../common/domain/value-objects/money.js';
+import { Money } from '../../../common/domain/value-objects/money.js';
 import { DailyClosure } from '../../domain/entities/daily-closure.entity.js';
 import type { DailyFigures } from '../../domain/entities/daily-closure.entity.js';
 import {
@@ -17,14 +17,14 @@ import { EXPENSE_REPOSITORY } from '../../domain/repositories/expense.repository
 import type { ExpenseRepository } from '../../domain/repositories/expense.repository.js';
 import {
   ATTENTION_STATS,
-  ORGANIZATION_LOOKUP,
   SALES_REPORT,
 } from '../ports/finance-lookups.port.js';
 import type {
   AttentionStatsPort,
-  OrganizationLookupPort,
   SalesReportPort,
 } from '../ports/finance-lookups.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 
 export interface ClosurePreview extends DailyFigures {
   restaurantId: string;
@@ -45,8 +45,8 @@ export class DailyClosuresService {
     @Inject(DAILY_CLOSURE_REPOSITORY)
     private readonly closureRepository: DailyClosureRepository,
     @Inject(EXPENSE_REPOSITORY) private readonly expenseRepository: ExpenseRepository,
-    @Inject(ORGANIZATION_LOOKUP)
-    private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly organizationLookup: TenantLookup,
     @Inject(SALES_REPORT) private readonly salesReport: SalesReportPort,
     @Inject(ATTENTION_STATS) private readonly attentionStats: AttentionStatsPort,
   ) {}
@@ -132,8 +132,10 @@ export class DailyClosuresService {
       this.salesReport.dailyByMethod(restaurantId, date.value, timeZone),
       this.expenseRepository.dailyTotals(restaurantId, date.value),
     ]);
-    const grossSales = roundMoney(sales.reduce((sum, row) => sum + row.gross, 0));
-    const refundedAmount = roundMoney(sales.reduce((sum, row) => sum + row.refunded, 0));
+    const grossSales = Money.sum(sales.map((row) => Money.of(row.gross))).amount;
+    const refundedAmount = Money.sum(
+      sales.map((row) => Money.of(row.refunded)),
+    ).amount;
     return {
       openedAttentions: counts.opened,
       closedAttentions: counts.closed,
@@ -145,7 +147,8 @@ export class DailyClosuresService {
       // A refund of a previous day's payment can exceed today's collection.
       paymentTotals: sales.map((row) => ({
         method: row.method,
-        amount: Math.max(0, roundMoney(row.gross - row.refunded)),
+        amount: Money.of(row.gross).minus(Money.of(row.refunded)).atLeastZero()
+          .amount,
       })),
     };
   }

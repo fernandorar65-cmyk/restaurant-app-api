@@ -8,7 +8,7 @@ import {
 import { RESTAURANT_FLOOR_REPOSITORY } from '../../domain/repositories/restaurant-floor.repository.js';
 import type { RestaurantFloorRepository } from '../../domain/repositories/restaurant-floor.repository.js';
 import { RestaurantsService } from '../restaurants/restaurants.service.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateRestaurantFloorInput {
   restaurantId: string;

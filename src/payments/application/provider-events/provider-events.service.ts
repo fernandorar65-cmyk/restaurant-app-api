@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type {
+  Page,
+  PageRequest,
+} from '../../../common/domain/pagination.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
@@ -17,7 +20,7 @@ import type {
 } from '../../domain/repositories/payment-catalog.repository.js';
 import { PAYMENT_REPOSITORY } from '../../domain/repositories/payment.repository.js';
 import type { PaymentRepository } from '../../domain/repositories/payment.repository.js';
-import { REFUND_STATUSES_DISABLED } from '../payments/payments.service.js';
+import { REFUND_STATUSES_DISABLED } from '../../domain/status-catalog.js';
 
 export interface ProviderEventInput {
   eventId: string;
@@ -42,20 +45,33 @@ export interface ProviderEventOutcome {
 @Injectable()
 export class ProviderEventsService {
   constructor(
-    @Inject(PROVIDER_EVENT_REPOSITORY) private readonly eventRepository: ProviderEventRepository,
+    @Inject(PROVIDER_EVENT_REPOSITORY)
+    private readonly eventRepository: ProviderEventRepository,
     @Inject(PROVIDER_STATUS_MAPPING_REPOSITORY)
     private readonly mappingRepository: ProviderStatusMappingRepository,
-    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository,
-    @Inject(TRANSACTION_RUNNER) private readonly transactionRunner: TransactionRunner,
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly paymentRepository: PaymentRepository,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
-  async receive(providerCode: string, input: ProviderEventInput): Promise<ProviderEventOutcome> {
+  async receive(
+    providerCode: string,
+    input: ProviderEventInput,
+  ): Promise<ProviderEventOutcome> {
     const code = normalizeProviderCode(providerCode);
-    const previous = await this.eventRepository.findByEventId(code, input.eventId);
+    const previous = await this.eventRepository.findByEventId(
+      code,
+      input.eventId,
+    );
     if (previous) {
       return { event: previous, duplicate: true };
     }
-    const event = ProviderEvent.receive({ id: randomUUID(), providerCode: code, ...input });
+    const event = ProviderEvent.receive({
+      id: randomUUID(),
+      providerCode: code,
+      ...input,
+    });
     const stored = await this.transactionRunner.run(async (tx) => {
       if (!(await this.eventRepository.insertIfNew(event, tx))) {
         return false;
@@ -65,22 +81,37 @@ export class ProviderEventsService {
       return true;
     });
     if (!stored) {
-      const winner = await this.eventRepository.findByEventId(code, input.eventId);
+      const winner = await this.eventRepository.findByEventId(
+        code,
+        input.eventId,
+      );
       return { event: winner ?? event, duplicate: true };
     }
     return { event, duplicate: false };
   }
 
-  findPage(filter: { providerCode?: string }, page: PageRequest): Promise<Page<ProviderEvent>> {
+  findPage(
+    filter: { providerCode?: string },
+    page: PageRequest,
+  ): Promise<Page<ProviderEvent>> {
     return this.eventRepository.findPage(
-      { providerCode: filter.providerCode && normalizeProviderCode(filter.providerCode) },
+      {
+        providerCode:
+          filter.providerCode && normalizeProviderCode(filter.providerCode),
+      },
       page,
     );
   }
 
-  private async apply(event: ProviderEvent, tx: TransactionContext): Promise<void> {
+  private async apply(
+    event: ProviderEvent,
+    tx: TransactionContext,
+  ): Promise<void> {
     if (!event.providerPaymentId || !event.externalStatus) {
-      event.finish(ProviderEventResult.IGNORED, 'El evento no trae el pago o su estado');
+      event.finish(
+        ProviderEventResult.IGNORED,
+        'El evento no trae el pago o su estado',
+      );
       return;
     }
     const found = await this.paymentRepository.findByProviderPaymentId(
@@ -88,13 +119,20 @@ export class ProviderEventsService {
       event.providerPaymentId,
       tx,
     );
-    const payment = found && (await this.paymentRepository.findByIdForUpdate(found.id, tx));
+    const payment =
+      found && (await this.paymentRepository.findByIdForUpdate(found.id, tx));
     if (!payment) {
-      event.finish(ProviderEventResult.IGNORED, 'No hay un pago con ese identificador del proveedor');
+      event.finish(
+        ProviderEventResult.IGNORED,
+        'No hay un pago con ese identificador del proveedor',
+      );
       return;
     }
     payment.recordProviderStatus(event.externalStatus);
-    const mapping = await this.mappingRepository.find(event.providerCode, event.externalStatus);
+    const mapping = await this.mappingRepository.find(
+      event.providerCode,
+      event.externalStatus,
+    );
     let result: ProviderEventResult;
     let message: string;
     if (!mapping?.isActive) {

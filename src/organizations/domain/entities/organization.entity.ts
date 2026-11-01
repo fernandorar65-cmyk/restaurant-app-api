@@ -14,8 +14,8 @@ export interface OrganizationProps {
   name: string;
   legalName: string | null;
   taxIdentifier: string | null;
-  currencyCode: string;
-  timezone: string;
+  currencyCode: CurrencyCode;
+  timezone: TimeZone;
   status: OrganizationStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -36,13 +36,15 @@ export class Organization {
     const now = new Date();
     return new Organization({
       id: params.id,
-      name: requireText(params.name, 'El nombre de la organización', { min: 2 }),
+      name: requireText(params.name, 'El nombre de la organización', {
+        min: 2,
+      }),
       legalName: params.legalName ?? null,
       taxIdentifier: params.taxIdentifier?.trim() || null,
       currencyCode: CurrencyCode.create(
         params.currencyCode ?? DEFAULT_CURRENCY_CODE,
-      ).value,
-      timezone: TimeZone.create(params.timezone ?? DEFAULT_TIME_ZONE).value,
+      ),
+      timezone: TimeZone.create(params.timezone ?? DEFAULT_TIME_ZONE),
       status: OrganizationStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
@@ -62,9 +64,13 @@ export class Organization {
     status?: OrganizationStatus;
   }): void {
     if (params.name !== undefined) {
-      this.props.name = requireText(params.name, 'El nombre de la organización', {
-        min: 2,
-      });
+      this.props.name = requireText(
+        params.name,
+        'El nombre de la organización',
+        {
+          min: 2,
+        },
+      );
     }
     if (params.legalName !== undefined) {
       this.props.legalName = params.legalName;
@@ -73,10 +79,10 @@ export class Organization {
       this.props.taxIdentifier = params.taxIdentifier?.trim() || null;
     }
     if (params.currencyCode !== undefined) {
-      this.props.currencyCode = CurrencyCode.create(params.currencyCode).value;
+      this.props.currencyCode = CurrencyCode.create(params.currencyCode);
     }
     if (params.timezone !== undefined) {
-      this.props.timezone = TimeZone.create(params.timezone).value;
+      this.props.timezone = TimeZone.create(params.timezone);
     }
     if (params.status !== undefined) {
       this.props.status = params.status;
@@ -97,10 +103,10 @@ export class Organization {
     return this.props.taxIdentifier;
   }
   get currencyCode(): string {
-    return this.props.currencyCode;
+    return this.props.currencyCode.value;
   }
   get timezone(): string {
-    return this.props.timezone;
+    return this.props.timezone.value;
   }
   get status(): OrganizationStatus {
     return this.props.status;

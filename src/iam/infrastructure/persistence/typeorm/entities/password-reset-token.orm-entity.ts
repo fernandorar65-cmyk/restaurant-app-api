@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, Unique } from 'typeorm';
-import { CreatedOnlyOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { CreatedOnlyOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import type { UserOrmEntity } from './user.orm-entity.js';
 
 // Auth support table (not part of the 38-table business model).

@@ -1,6 +1,6 @@
 import { Check, Column, Entity, Index } from 'typeorm';
-import { CreatedOnlyOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { CreatedOnlyOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 
 // No foreign keys on purpose: an error log must outlive (and never block the
 // deletion of) the user it mentions, and it must be writable even when the

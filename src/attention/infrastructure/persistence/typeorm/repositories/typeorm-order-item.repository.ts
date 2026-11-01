@@ -4,9 +4,9 @@ import { Repository } from 'typeorm';
 import type {
   Page,
   PageRequest,
-} from '../../../../../common/application/pagination.js';
+} from '../../../../../common/domain/pagination.js';
 import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
-import { transactionalRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { transactionalRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { OrderItem } from '../../../../domain/entities/order-item.entity.js';
 import { OrderStatus } from '../../../../domain/enums/order-status.enum.js';
 import { OrderItemRepository } from '../../../../domain/repositories/order-item.repository.js';
@@ -90,33 +90,5 @@ export class TypeOrmOrderItemRepository implements OrderItemRepository {
       page: page.page,
       limit: page.limit,
     };
-  }
-
-  async insert(item: OrderItem, tx?: TransactionContext): Promise<OrderItem> {
-    const saved = await transactionalRepository(this.repository, tx).save(
-      OrderItemMapper.toPersistence(item),
-    );
-    return OrderItemMapper.toDomain(saved);
-  }
-
-  async updateStatus(
-    item: OrderItem,
-    expectedVersion: number,
-    tx?: TransactionContext,
-  ): Promise<boolean> {
-    // TypeORM bumps the @VersionColumn and updated_at on query-builder updates.
-    const result = await transactionalRepository(this.repository, tx)
-      .createQueryBuilder()
-      .update(OrderItemOrmEntity)
-      .set({
-        orderStatusId: item.statusId,
-        rejectionReason: item.rejectionReason,
-      })
-      .where('id = :id AND version = :expectedVersion', {
-        id: item.id,
-        expectedVersion,
-      })
-      .execute();
-    return (result.affected ?? 0) > 0;
   }
 }

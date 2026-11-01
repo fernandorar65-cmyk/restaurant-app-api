@@ -1,5 +1,5 @@
 import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
-import { inValues } from '../../../../../common/persistence/column-options.js';
+import { inValues } from '../../../../../common/infrastructure/persistence/column-options.js';
 import { ProviderEventResult } from '../../../../domain/enums/provider-event-result.enum.js';
 import type { PaymentOrmEntity } from './payment.orm-entity.js';
 

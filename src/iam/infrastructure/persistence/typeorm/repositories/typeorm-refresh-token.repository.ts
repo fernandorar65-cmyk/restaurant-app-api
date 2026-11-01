@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TypeOrmBaseRepository } from '../../../../../common/persistence/typeorm-base.repository.js';
+import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { RefreshToken } from '../../../../domain/entities/refresh-token.entity.js';
 import { RefreshTokenRepository } from '../../../../domain/repositories/refresh-token.repository.js';
 import { RefreshTokenOrmEntity } from '../entities/refresh-token.orm-entity.js';

@@ -2,6 +2,7 @@ import {
   Check,
   Column,
   Entity,
+  ForeignKey,
   Index,
   JoinColumn,
   ManyToOne,
@@ -9,15 +10,12 @@ import {
   Unique,
 } from 'typeorm';
 import { PaymentMethod } from '../../../../../common/domain/payment-method.enum.js';
-import { BaseOrmEntity } from '../../../../../common/persistence/base.orm-entity.js';
+import { BaseOrmEntity } from '../../../../../common/infrastructure/persistence/base.orm-entity.js';
 import {
   decimalTransformer,
   inValues,
-} from '../../../../../common/persistence/column-options.js';
+} from '../../../../../common/infrastructure/persistence/column-options.js';
 import { AllocationMode } from '../../../../domain/enums/allocation-mode.enum.js';
-import type { UserOrmEntity } from '../../../../../iam/infrastructure/persistence/typeorm/entities/user.orm-entity.js';
-import type { OrganizationOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/organization.orm-entity.js';
-import type { RestaurantOrmEntity } from '../../../../../organizations/infrastructure/persistence/typeorm/entities/restaurant.orm-entity.js';
 import type { PaymentAllocationOrmEntity } from './payment-allocation.orm-entity.js';
 import type { PaymentStatusOrmEntity } from './payment-status.orm-entity.js';
 
@@ -50,19 +48,13 @@ import type { PaymentStatusOrmEntity } from './payment-status.orm-entity.js';
   'provider_code IS NOT NULL OR (provider_payment_id IS NULL AND provider_status IS NULL)',
 )
 export class PaymentOrmEntity extends BaseOrmEntity {
+  @ForeignKey('OrganizationOrmEntity')
   @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
 
-  @ManyToOne('OrganizationOrmEntity')
-  @JoinColumn({ name: 'organization_id' })
-  organization?: OrganizationOrmEntity;
-
+  @ForeignKey('RestaurantOrmEntity')
   @Column({ name: 'restaurant_id', type: 'uuid' })
   restaurantId: string;
-
-  @ManyToOne('RestaurantOrmEntity')
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant?: RestaurantOrmEntity;
 
   @Column({ name: 'attention_id', type: 'uuid' })
   attentionId: string;
@@ -91,12 +83,9 @@ export class PaymentOrmEntity extends BaseOrmEntity {
   @Column({ name: 'currency_code', type: 'char', length: 3 })
   currencyCode: string;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'payer_user_id', type: 'uuid', nullable: true })
   payerUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'payer_user_id' })
-  payerUser?: UserOrmEntity;
 
   @Column({ name: 'payer_name', type: 'varchar', length: 150, nullable: true })
   payerName: string | null;
@@ -145,12 +134,9 @@ export class PaymentOrmEntity extends BaseOrmEntity {
   @Column({ name: 'paid_at', type: 'timestamptz', nullable: true })
   paidAt: Date | null;
 
+  @ForeignKey('UserOrmEntity')
   @Column({ name: 'registered_by_user_id', type: 'uuid', nullable: true })
   registeredByUserId: string | null;
-
-  @ManyToOne('UserOrmEntity')
-  @JoinColumn({ name: 'registered_by_user_id' })
-  registeredByUser?: UserOrmEntity;
 
   @OneToMany('PaymentAllocationOrmEntity', 'payment')
   allocations?: PaymentAllocationOrmEntity[];

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -7,7 +15,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import type { PageRequest } from '../../../../common/application/pagination.js';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
   CurrentUser,
   type RequestUser,
@@ -25,16 +33,22 @@ import {
   ClosurePreviewResponseDto,
   DailyClosureResponseDto,
 } from '../dto/finance.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('finance/daily-closures')
 @Controller('daily-closures')
 export class DailyClosuresController {
   constructor(private readonly closuresService: DailyClosuresService) {}
 
+  @Authorize('finance.read', Scope.restaurant('query'))
   @Get('preview')
   @ApiOperation({
     summary: 'Cifras que tendría el cierre del día, sin guardarlo',
-    description: 'Calculadas para la fecha comercial en la zona horaria de la sede',
+    description:
+      'Calculadas para la fecha comercial en la zona horaria de la sede',
   })
   @ApiQuery({ name: 'restaurantId', required: true })
   @ApiQuery({ name: 'businessDate', required: true, example: '2026-10-25' })
@@ -48,6 +62,7 @@ export class DailyClosuresController {
     );
   }
 
+  @Authorize('finance.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({
     summary: 'Cerrar el día de una sede',
@@ -64,6 +79,7 @@ export class DailyClosuresController {
     );
   }
 
+  @Authorize('finance.read', Scope.restaurant('query'))
   @Get()
   @ApiOperation({ summary: 'Listar cierres diarios' })
   @ApiQuery({ name: 'restaurantId', required: false })
@@ -72,23 +88,32 @@ export class DailyClosuresController {
   @ApiPaginatedResponse(DailyClosureResponseDto)
   async findAll(
     @Pagination() page: PageRequest,
-    @Query('restaurantId', new ParseUUIDPipe({ optional: true })) restaurantId?: string,
+    @Query('restaurantId', new ParseUUIDPipe({ optional: true }))
+    restaurantId?: string,
     @Query('from', new ParseBusinessDatePipe({ optional: true })) from?: string,
     @Query('to', new ParseBusinessDatePipe({ optional: true })) to?: string,
   ): Promise<PageResponse<DailyClosureResponseDto>> {
-    const closures = await this.closuresService.findPage({ restaurantId, from, to }, page);
+    const closures = await this.closuresService.findPage(
+      { restaurantId, from, to },
+      page,
+    );
     return toPageResponse(closures, (closure) =>
       DailyClosureResponseDto.fromDomain(closure),
     );
   }
 
+  @Authorize('finance.read', Scope.resource('daily-closure'))
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un cierre con su desglose por método de pago' })
+  @ApiOperation({
+    summary: 'Obtener un cierre con su desglose por método de pago',
+  })
   @ApiOkResponse({ type: DailyClosureResponseDto })
   @ApiNotFoundResponse({ description: 'Cierre no encontrado' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<DailyClosureResponseDto> {
-    return DailyClosureResponseDto.fromDomain(await this.closuresService.findOne(id));
+    return DailyClosureResponseDto.fromDomain(
+      await this.closuresService.findOne(id),
+    );
   }
 }

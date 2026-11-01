@@ -1,4 +1,4 @@
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { JobPosition } from '../entities/job-position.entity.js';
 
 export const JOB_POSITION_REPOSITORY = Symbol('JOB_POSITION_REPOSITORY');

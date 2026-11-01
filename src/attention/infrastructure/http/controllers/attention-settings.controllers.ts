@@ -28,12 +28,17 @@ import {
   UpdateWorkflowStatusDto,
   WorkflowStatusResponseDto,
 } from '../dto/attention-settings.dto.js';
+import {
+  Authorize,
+  Scope,
+} from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 @ApiTags('attention/settings')
 @Controller('attention-statuses')
 export class AttentionStatusesController {
   constructor(private readonly statuses: WorkflowStatusesService) {}
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({
     summary:
@@ -53,6 +58,7 @@ export class AttentionStatusesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un estado de atención propio de la sede' })
   @ApiCreatedResponse({ type: WorkflowStatusResponseDto })
@@ -64,6 +70,7 @@ export class AttentionStatusesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.resource('attention-status'))
   @Patch(':id')
   @ApiOperation({
     summary:
@@ -86,6 +93,7 @@ export class AttentionStatusesController {
 export class OrderStatusesController {
   constructor(private readonly statuses: WorkflowStatusesService) {}
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({
     summary: 'Estados operativos de órdenes y platos de una sede',
@@ -101,6 +109,7 @@ export class OrderStatusesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({
     summary: 'Crear un estado operativo propio de la sede (p. ej. "En horno")',
@@ -114,6 +123,7 @@ export class OrderStatusesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.resource('order-status'))
   @Patch(':id')
   @ApiOperation({
     summary:
@@ -136,6 +146,7 @@ export class OrderStatusesController {
 export class ServiceTypesController {
   constructor(private readonly serviceTypes: ServiceTypesService) {}
 
+  @Authorize(null, Scope.restaurant('query'))
   @Get()
   @ApiOperation({
     summary: 'Tipos de servicio de una sede (activos e inactivos)',
@@ -151,6 +162,7 @@ export class ServiceTypesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.restaurant('body'))
   @Post()
   @ApiOperation({ summary: 'Crear un tipo de servicio de la sede' })
   @ApiCreatedResponse({ type: ServiceTypeResponseDto })
@@ -162,6 +174,7 @@ export class ServiceTypesController {
     );
   }
 
+  @Authorize('settings.manage', Scope.resource('service-type'))
   @Patch(':id')
   @ApiOperation({
     summary: 'Configurar, ordenar o retirar un tipo de servicio',

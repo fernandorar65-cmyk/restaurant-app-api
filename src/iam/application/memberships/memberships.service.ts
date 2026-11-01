@@ -14,11 +14,11 @@ import {
 } from '../../domain/exceptions/membership.errors.js';
 import { ORGANIZATION_MEMBERSHIP_REPOSITORY } from '../../domain/repositories/organization-membership.repository.js';
 import type { OrganizationMembershipRepository } from '../../domain/repositories/organization-membership.repository.js';
-import { ORGANIZATION_LOOKUP } from '../ports/organization-lookup.port.js';
-import type { OrganizationLookupPort } from '../ports/organization-lookup.port.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { RolesService } from '../roles/roles.service.js';
 import { UsersService } from '../users/users.service.js';
-import type { Page, PageRequest } from '../../../common/application/pagination.js';
+import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export interface CreateMembershipInput {
   organizationId: string;
@@ -40,8 +40,8 @@ export class MembershipsService {
   constructor(
     @Inject(ORGANIZATION_MEMBERSHIP_REPOSITORY)
     private readonly membershipRepository: OrganizationMembershipRepository,
-    @Inject(ORGANIZATION_LOOKUP)
-    private readonly organizationLookup: OrganizationLookupPort,
+    @Inject(TENANT_LOOKUP)
+    private readonly organizationLookup: TenantLookup,
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
   ) {}
@@ -122,7 +122,7 @@ export class MembershipsService {
     }
     for (const restaurantId of membership.restaurantIds) {
       const organizationId =
-        await this.organizationLookup.findRestaurantOrganizationId(restaurantId);
+        (await this.organizationLookup.findRestaurant(restaurantId))?.organizationId ?? null;
       if (!organizationId) {
         throw new RestaurantReferenceNotFoundError(restaurantId);
       }

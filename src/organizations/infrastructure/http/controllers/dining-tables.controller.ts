@@ -39,6 +39,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('organizations/dining-tables')
 @Controller('dining-tables')
@@ -158,7 +159,10 @@ export class DiningTablesController {
     summary: 'Desactivar una mesa (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Mesa no encontrada' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

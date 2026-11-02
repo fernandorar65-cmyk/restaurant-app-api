@@ -29,7 +29,7 @@ export class CreateSupplyDto {
   @MaxLength(10)
   unitCode: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -64,7 +64,7 @@ export class SupplyResponseDto {
   @ApiProperty({ example: 'KG' })
   unitCode: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()

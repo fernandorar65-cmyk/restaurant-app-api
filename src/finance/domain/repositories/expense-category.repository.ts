@@ -1,3 +1,4 @@
+import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { ExpenseCategory } from '../entities/expense-category.entity.js';
 
@@ -10,5 +11,5 @@ export interface ExpenseCategoryRepository {
     filter: { organizationId?: string },
     page: PageRequest,
   ): Promise<Page<ExpenseCategory>>;
-  save(category: ExpenseCategory): Promise<ExpenseCategory>;
+  save(category: ExpenseCategory, tx?: TransactionContext): Promise<ExpenseCategory>;
 }

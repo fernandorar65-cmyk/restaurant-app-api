@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional, OmitType } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { MenuProduct } from '../../../../domain/entities/menu-product.entity.js';
 
 export class AddMenuProductDto {
@@ -7,7 +16,7 @@ export class AddMenuProductDto {
   @IsUUID()
   productId: string;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: String,
     description: 'Sección del mismo menú (null = sin sección)',
     nullable: true,
   })
@@ -15,7 +24,7 @@ export class AddMenuProductDto {
   @IsUUID()
   menuSectionId?: string | null;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: Number,
     example: 29.9,
     description: 'Precio a mostrar en este menú (el pedido usa el precio del producto)',
   })
@@ -24,12 +33,14 @@ export class AddMenuProductDto {
   @Min(0)
   displayPrice?: number | null;
 
-  @ApiPropertyOptional({ default: 0 })
+  @ApiPropertyOptional({
+    description: 'Orden dentro de su sección (menor primero)', default: 0 })
   @IsOptional()
   @IsInt()
   sortOrder?: number;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({
+    description: 'false = oculto en la carta sin quitarlo del menú', default: true })
   @IsOptional()
   @IsBoolean()
   isVisible?: boolean;
@@ -46,10 +57,10 @@ export class MenuProductResponseDto {
   @ApiProperty()
   productId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   menuSectionId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   displayPrice: number | null;
 
   @ApiProperty()
@@ -72,4 +83,34 @@ export class MenuProductResponseDto {
     dto.createdAt = menuProduct.createdAt;
     return dto;
   }
+}
+
+export class ReorderMenuSectionsDto {
+  @ApiProperty({
+    type: [String],
+    description: 'Todas las secciones del menú (incluidas las ocultas) en el nuevo orden',
+  })
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsUUID('all', { each: true })
+  ids: string[];
+}
+
+export class ReorderMenuProductsDto {
+  @ApiPropertyOptional({ type: String,
+    nullable: true,
+    description: 'Sección cuyos productos se ordenan; null u omitido = los productos sin sección',
+  })
+  @IsOptional()
+  @IsUUID()
+  menuSectionId?: string | null;
+
+  @ApiProperty({
+    type: [String],
+    description: 'Todos los productos de esa sección en el nuevo orden',
+  })
+  @IsArray()
+  @ArrayMaxSize(500)
+  @IsUUID('all', { each: true })
+  productIds: string[];
 }

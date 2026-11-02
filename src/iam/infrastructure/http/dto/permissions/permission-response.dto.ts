@@ -11,7 +11,7 @@ export class PermissionResponseDto {
   @ApiProperty({ example: 'Gestionar pedidos' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()

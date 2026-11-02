@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 import { JobPosition } from '../../domain/entities/job-position.entity.js';
+import type { WorkArea } from '../../domain/entities/work-area.entity.js';
 import {
   DuplicateJobPositionNameError,
   InactiveWorkAreaError,
@@ -52,6 +53,10 @@ export class JobPositionsService {
       throw new JobPositionNotFoundError(id);
     }
     return jobPosition;
+  }
+
+  findWorkArea(jobPosition: JobPosition): Promise<WorkArea> {
+    return this.workAreasService.findOne(jobPosition.workAreaId);
   }
 
   /** Also activates / deactivates through isActive; can move to another area. */

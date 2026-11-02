@@ -8,34 +8,34 @@ export class ErrorLogResponseDto {
   @ApiProperty({ enum: ['error', 'fatal'] })
   level: ErrorLogLevel;
 
-  @ApiPropertyOptional({ nullable: true, example: 'HttpExceptionFilter' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'HttpExceptionFilter' })
   source: string | null;
 
   @ApiProperty({ example: 'POST /products → INTERNAL_ERROR' })
   message: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   stack: string | null;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: String,
     nullable: true,
     description: 'Mismo valor que el header X-Request-Id de la respuesta',
   })
   requestId: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 'POST' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'POST' })
   method: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: '/products' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: '/products' })
   path: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 500 })
+  @ApiPropertyOptional({ type: Number, nullable: true, example: 500 })
   statusCode: number | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 'INTERNAL_ERROR' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'INTERNAL_ERROR' })
   errorCode: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   userId: string | null;
 
   @ApiProperty()

@@ -27,6 +27,14 @@ export interface CreateEmployeeInput extends EmployeeDetails {
   employeeCode: string;
 }
 
+/** An employee record with the names a profile shows. */
+export interface Employment {
+  employee: Employee;
+  organizationName: string;
+  jobPosition: { id: string; name: string } | null;
+  workArea: { id: string; name: string } | null;
+}
+
 export interface UpdateEmployeeInput extends EmployeeDetails {
   userId?: string | null;
   status?: EmployeeStatus;
@@ -63,6 +71,30 @@ export class EmployeesService {
       throw new EmployeeNotFoundError(id);
     }
     return employee;
+  }
+
+  /** Where the user works: one entry per organization that employs them. */
+  async findEmploymentsOfUser(userId: string): Promise<Employment[]> {
+    const employees = await this.employeeRepository.findAllByUser(userId);
+    return Promise.all(
+      employees.map(async (employee) => {
+        const [organization, jobPosition] = await Promise.all([
+          this.organizationsService.findOne(employee.organizationId),
+          employee.jobPositionId
+            ? this.jobPositionsService.findOne(employee.jobPositionId)
+            : null,
+        ]);
+        const workArea = jobPosition
+          ? await this.jobPositionsService.findWorkArea(jobPosition)
+          : null;
+        return {
+          employee,
+          organizationName: organization.name,
+          jobPosition: jobPosition && { id: jobPosition.id, name: jobPosition.name },
+          workArea: workArea && { id: workArea.id, name: workArea.name },
+        };
+      }),
+    );
   }
 
   async update(id: string, input: UpdateEmployeeInput): Promise<Employee> {

@@ -109,3 +109,9 @@ export class PaymentNotCancellableError extends BusinessRuleDomainError {
     super(`Solo se pueden cancelar pagos pendientes o en proceso (estado actual: ${status})`);
   }
 }
+
+export class RefundsNotEnabledError extends BusinessRuleDomainError {
+  constructor() {
+    super('Los reembolsos aún no están habilitados');
+  }
+}

@@ -6,7 +6,7 @@ export class CreateMembershipDto {
   @IsUUID()
   organizationId: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Usuario que se vincula a la organización' })
   @IsUUID()
   userId: string;
 

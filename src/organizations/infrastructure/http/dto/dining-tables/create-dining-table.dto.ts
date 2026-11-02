@@ -30,18 +30,18 @@ export class CreateDiningTableDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ example: 4 })
+  @ApiPropertyOptional({ type: Number, example: 4 })
   @IsOptional()
   @IsInt()
   @Min(1)
   capacity?: number | null;
 
-  @ApiPropertyOptional({ example: 120.5, description: 'Posición en el plano del piso' })
+  @ApiPropertyOptional({ type: Number, example: 120.5, description: 'Posición en el plano del piso' })
   @IsOptional()
   @IsNumber()
   positionX?: number | null;
 
-  @ApiPropertyOptional({ example: 80 })
+  @ApiPropertyOptional({ type: Number, example: 80 })
   @IsOptional()
   @IsNumber()
   positionY?: number | null;

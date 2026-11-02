@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PaymentMethod } from '../../../../../common/domain/payment-method.enum.js';
 import { Money } from '../../../../../common/domain/value-objects/money.js';
 import {
+  DatedMethodTotals,
   MethodTotals,
   PaymentLedgerRepository,
 } from '../../../../domain/repositories/payment-ledger.repository.js';
@@ -104,5 +105,58 @@ export class TypeOrmPaymentLedgerRepository implements PaymentLedgerRepository {
         ).amount,
       }))
       .filter((totals) => totals.gross > 0 || totals.refunded > 0);
+  }
+
+  async totalsByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+    timeZone: string,
+  ): Promise<DatedMethodTotals[]> {
+    const paidOn = '(payment.paid_at AT TIME ZONE :timeZone)::date';
+    const gross = await this.payments
+      .createQueryBuilder('payment')
+      .innerJoin('payment.status', 'status')
+      .select(`to_char(${paidOn}, 'YYYY-MM-DD')`, 'businessDate')
+      .addSelect('payment.payment_method', 'method')
+      .addSelect('SUM(payment.amount)', 'total')
+      .where('payment.restaurant_id = :restaurantId', { restaurantId })
+      .andWhere('status.counts_toward_balance')
+      .andWhere(`${paidOn} BETWEEN :from AND :to`, { timeZone, from, to })
+      .groupBy(`${paidOn}, payment.payment_method`)
+      .getRawMany<{ businessDate: string; method: PaymentMethod; total: string }>();
+    const refundedOn = '(refund.completed_at AT TIME ZONE :timeZone)::date';
+    const refunded = await this.refunds
+      .createQueryBuilder('refund')
+      .innerJoin('refund.payment', 'payment')
+      .innerJoin('refund.status', 'status')
+      .select(`to_char(${refundedOn}, 'YYYY-MM-DD')`, 'businessDate')
+      .addSelect('payment.payment_method', 'method')
+      .addSelect('SUM(refund.amount)', 'total')
+      .where('payment.restaurant_id = :restaurantId', { restaurantId })
+      .andWhere('status.counts_as_refunded')
+      .andWhere(`${refundedOn} BETWEEN :from AND :to`, { timeZone, from, to })
+      .groupBy(`${refundedOn}, payment.payment_method`)
+      .getRawMany<{ businessDate: string; method: PaymentMethod; total: string }>();
+
+    const keyOf = (row: { businessDate: string; method: PaymentMethod }) =>
+      `${row.businessDate}|${row.method}`;
+    const totals = new Map<string, DatedMethodTotals>();
+    const entry = (row: { businessDate: string; method: PaymentMethod }) => {
+      const key = keyOf(row);
+      if (!totals.has(key)) {
+        totals.set(key, { businessDate: row.businessDate, method: row.method, gross: 0, refunded: 0 });
+      }
+      return totals.get(key)!;
+    };
+    for (const row of gross) {
+      entry(row).gross = Money.parse(row.total).amount;
+    }
+    for (const row of refunded) {
+      entry(row).refunded = Money.parse(row.total).amount;
+    }
+    return [...totals.values()].sort(
+      (a, b) => a.businessDate.localeCompare(b.businessDate) || a.method.localeCompare(b.method),
+    );
   }
 }

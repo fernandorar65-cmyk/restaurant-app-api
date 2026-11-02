@@ -35,6 +35,10 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import {
+  IdResponseDto,
+  idsSchema,
+} from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('iam/roles')
 @Controller('roles')
@@ -98,7 +102,10 @@ export class RolesController {
     summary: 'Desactivar un rol (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Rol no encontrado' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
@@ -123,7 +130,10 @@ export class RolesController {
   @Authorize('staff.manage', Scope.resource('role'))
   @Post(':id/permissions')
   @ApiOperation({ summary: 'Asignar un permiso al rol' })
-  @ApiCreatedResponse({ description: 'Permiso asignado' })
+  @ApiCreatedResponse({
+    description: 'Permiso asignado',
+    schema: idsSchema('roleId', 'permissionId'),
+  })
   async assignPermission(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignPermissionDto,
@@ -138,7 +148,10 @@ export class RolesController {
   @Authorize('staff.manage', Scope.resource('role'))
   @Delete(':id/permissions/:permissionId')
   @ApiOperation({ summary: 'Revocar un permiso del rol' })
-  @ApiOkResponse({ description: 'Asignación eliminada' })
+  @ApiOkResponse({
+    description: 'Asignación eliminada',
+    schema: idsSchema('roleId', 'permissionId'),
+  })
   async revokePermission(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('permissionId', ParseUUIDPipe) permissionId: string,

@@ -25,6 +25,9 @@ export abstract class ForbiddenDomainError extends DomainError {}
 
 export abstract class BusinessRuleDomainError extends DomainError {}
 
+/** A dependency the use case needs (e.g. file storage) is not available. */
+export abstract class UnavailableDomainError extends DomainError {}
+
 function toErrorCode(className: string): string {
   return className
     .replace(/(DomainError|Error)$/, '')

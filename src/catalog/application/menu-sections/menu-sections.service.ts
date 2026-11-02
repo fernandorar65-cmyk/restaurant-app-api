@@ -10,6 +10,9 @@ import { MENU_SECTION_REPOSITORY } from '../../domain/repositories/menu-section.
 import type { MenuSectionRepository } from '../../domain/repositories/menu-section.repository.js';
 import { CategoriesService } from '../categories/categories.service.js';
 import { MenusService } from '../menus/menus.service.js';
+import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import { planReorder } from '../../domain/services/reorder.js';
 import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
 import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { requireRestaurant } from '../restaurant-guard.js';
@@ -24,6 +27,8 @@ export class MenuSectionsService {
     private readonly restaurantLookup: TenantLookup,
     private readonly menusService: MenusService,
     private readonly categoriesService: CategoriesService,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(
@@ -39,6 +44,22 @@ export class MenuSectionsService {
   async list(menuId: string): Promise<MenuSection[]> {
     await this.menusService.findOne(menuId);
     return this.sectionRepository.findByMenu(menuId);
+  }
+
+  /** New order of all the menu's sections (hidden ones included), in one request. */
+  async reorder(menuId: string, sectionIds: string[]): Promise<MenuSection[]> {
+    const sections = await this.list(menuId);
+    const positions = planReorder(
+      sections.map((section) => section.id),
+      sectionIds,
+    );
+    await this.transactionRunner.run(async (tx) => {
+      for (const section of sections) {
+        section.update({ sortOrder: positions.get(section.id)! });
+        await this.sectionRepository.save(section, tx);
+      }
+    });
+    return sections.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   /** Also activates / deactivates through isActive. */

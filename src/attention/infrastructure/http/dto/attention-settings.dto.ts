@@ -22,7 +22,7 @@ const CODE = /^[A-Za-z][A-Za-z0-9_]*$/;
 const COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 class WorkflowStatusFieldsDto {
-  @ApiPropertyOptional({ example: '#D97706', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '#D97706', nullable: true })
   @IsOptional()
   @Matches(COLOR)
   color?: string | null;
@@ -36,7 +36,7 @@ class WorkflowStatusFieldsDto {
 }
 
 export class CreateAttentionStatusDto extends WorkflowStatusFieldsDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Sede dueña del estado' })
   @IsUUID()
   restaurantId: string;
 
@@ -66,7 +66,7 @@ export class CreateAttentionStatusDto extends WorkflowStatusFieldsDto {
 }
 
 export class CreateOrderStatusDto extends WorkflowStatusFieldsDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Sede dueña del estado' })
   @IsUUID()
   restaurantId: string;
 
@@ -141,7 +141,7 @@ export class WorkflowStatusResponseDto {
   @ApiProperty({ description: 'Estado canónico con el que opera el backend' })
   canonicalState: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   color: string | null;
 
   @ApiProperty()
@@ -197,7 +197,7 @@ class ServiceTypeFieldsDto {
 }
 
 export class CreateServiceTypeDto extends ServiceTypeFieldsDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Sede que ofrece el tipo de servicio' })
   @IsUUID()
   restaurantId: string;
 

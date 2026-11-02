@@ -34,6 +34,7 @@ import {
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 import type { Actor } from '../../../../common/domain/access.js';
 import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('organizations/organizations')
 @Controller('organizations')
@@ -99,7 +100,10 @@ export class OrganizationsController {
     summary: 'Desactivar una organización (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Organización no encontrada' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

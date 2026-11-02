@@ -4,6 +4,7 @@ export const TENANT_LOOKUP = Symbol('TENANT_LOOKUP');
 export interface TenantRestaurant {
   id: string;
   organizationId: string;
+  name: string;
   slug: string;
   isActive: boolean;
   currencyCode: string;

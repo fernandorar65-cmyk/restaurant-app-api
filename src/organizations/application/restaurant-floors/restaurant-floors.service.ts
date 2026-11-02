@@ -44,6 +44,10 @@ export class RestaurantFloorsService {
     return this.floorRepository.findPage(filter, page);
   }
 
+  findByRestaurant(restaurantId: string): Promise<RestaurantFloor[]> {
+    return this.floorRepository.findByRestaurant(restaurantId);
+  }
+
   async findOne(id: string): Promise<RestaurantFloor> {
     const floor = await this.floorRepository.findById(id);
     if (!floor) {

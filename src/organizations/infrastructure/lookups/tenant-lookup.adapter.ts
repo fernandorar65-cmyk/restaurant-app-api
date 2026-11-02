@@ -45,6 +45,7 @@ export class TenantLookupAdapter implements TenantLookup {
       return {
         id: restaurant.id,
         organizationId: restaurant.organizationId,
+        name: restaurant.name,
         slug: restaurant.slug,
         isActive: restaurant.isActive,
         currencyCode: restaurant.currencyCode,

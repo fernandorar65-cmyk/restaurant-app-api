@@ -5,6 +5,7 @@ import { EVENT_BUS } from '../../../common/application/ports/event-bus.port.js';
 import type { EventBus } from '../../../common/application/ports/event-bus.port.js';
 import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
 import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import { DomainError } from '../../../common/domain/domain-error.js';
 import { OrderItemStatusHistory } from '../../domain/entities/order-item-status-history.entity.js';
 import { OrderItem } from '../../domain/entities/order-item.entity.js';
 import { Order } from '../../domain/entities/order.entity.js';
@@ -37,6 +38,19 @@ export interface ChangeOrderItemStatusInput {
   expectedVersion?: number;
   reason?: string | null;
   changedByUserId?: string | null;
+  /** When given, an item of another restaurant is treated as not found. */
+  restaurantId?: string;
+}
+
+export interface BulkStatusChangeItem {
+  id: string;
+  expectedVersion?: number;
+}
+
+export interface BulkStatusChangeResult {
+  updated: OrderItem[];
+  /** Items left as they were, with the reason (same codes as one by one). */
+  failed: { id: string; errorCode: string; message: string }[];
 }
 
 @Injectable()
@@ -90,15 +104,48 @@ export class OrderItemsService {
    * status of its order in sync. The attention status is never touched. The
    * target must be an active status of the item's own restaurant.
    */
+  /**
+   * "Confirm all" / "mark all ready": each item changes on its own, exactly
+   * as changeStatus would, so one that can't move (someone else changed it,
+   * transition not allowed...) doesn't block the rest. All items must be of
+   * the given restaurant.
+   */
+  async changeStatusBulk(
+    restaurantId: string,
+    items: BulkStatusChangeItem[],
+    input: Omit<ChangeOrderItemStatusInput, 'expectedVersion' | 'restaurantId'>,
+  ): Promise<BulkStatusChangeResult> {
+    assertTarget(input);
+    const result: BulkStatusChangeResult = { updated: [], failed: [] };
+    // One after the other: items of the same order lock the same row.
+    for (const item of items) {
+      try {
+        result.updated.push(
+          await this.changeStatus(item.id, {
+            ...input,
+            expectedVersion: item.expectedVersion,
+            restaurantId,
+          }),
+        );
+      } catch (error) {
+        if (!(error instanceof DomainError)) {
+          throw error;
+        }
+        result.failed.push({
+          id: item.id,
+          errorCode: error.code,
+          message: error.message,
+        });
+      }
+    }
+    return result;
+  }
+
   async changeStatus(
     id: string,
     input: ChangeOrderItemStatusInput,
   ): Promise<OrderItem> {
-    if (!input.statusId && !input.status) {
-      throw new InvalidServiceSetupError(
-        'Indica el estado destino (statusId o status)',
-      );
-    }
+    assertTarget(input);
     const previous = await this.transactionRunner.run(async (tx) => {
       const item = await this.itemRepository.findById(id, tx);
       if (!item) {
@@ -107,10 +154,15 @@ export class OrderItemsService {
       // Every item change locks its order first, so item changes and order
       // cancellations always lock in the same order and never deadlock.
       const order = await lockOrder(this.orderRepository, item.orderId, tx);
-      const statuses = await this.statuses.orderCatalog(
-        await restaurantOfOrder(this.attentionRepository, order, tx),
+      const restaurantId = await restaurantOfOrder(
+        this.attentionRepository,
+        order,
         tx,
       );
+      if (input.restaurantId && input.restaurantId !== restaurantId) {
+        throw new OrderItemNotFoundError(id);
+      }
+      const statuses = await this.statuses.orderCatalog(restaurantId, tx);
       const target = input.statusId
         ? statuses.require(input.statusId)
         : statuses.defaultFor(input.status as OrderStatus);
@@ -145,5 +197,13 @@ export class OrderItemsService {
       );
     }
     return item;
+  }
+}
+
+function assertTarget(input: ChangeOrderItemStatusInput): void {
+  if (!input.statusId && !input.status) {
+    throw new InvalidServiceSetupError(
+      'Indica el estado destino (statusId o status)',
+    );
   }
 }

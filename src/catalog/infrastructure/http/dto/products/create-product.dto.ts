@@ -41,13 +41,13 @@ export class CreateProductDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Pescado fresco marinado en limón' })
+  @ApiPropertyOptional({ type: String, example: 'Pescado fresco marinado en limón' })
   @IsOptional()
   @IsString()
   @MaxLength(800)
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/ceviche.jpg' })
+  @ApiPropertyOptional({ type: String, example: 'https://cdn.example.com/ceviche.jpg' })
   @IsOptional()
   @IsUrl()
   @MaxLength(1000)
@@ -58,23 +58,26 @@ export class CreateProductDto {
   @Min(0)
   price: number;
 
-  @ApiPropertyOptional({ example: 15 })
+  @ApiPropertyOptional({ type: Number, example: 15 })
   @IsOptional()
   @IsInt()
   @Min(0)
   preparationMinutes?: number | null;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({
+    description: 'false = agotado hoy (sigue en la carta, no se puede pedir)', default: true })
   @IsOptional()
   @IsBoolean()
   isAvailable?: boolean;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({
+    description: 'Se puede pedir para recojo', default: true })
   @IsOptional()
   @IsBoolean()
   isTakeawayAllowed?: boolean;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({
+    description: 'Se puede pedir por delivery', default: true })
   @IsOptional()
   @IsBoolean()
   isDeliveryAllowed?: boolean;

@@ -20,6 +20,7 @@ import {
   ForbiddenDomainError,
   NotFoundDomainError,
   UnauthorizedDomainError,
+  UnavailableDomainError,
   ValidationDomainError,
 } from '../../domain/domain-error.js';
 
@@ -30,6 +31,7 @@ const DOMAIN_ERROR_TYPES = [
   UnauthorizedDomainError,
   ForbiddenDomainError,
   BusinessRuleDomainError,
+  UnavailableDomainError,
 ] as const;
 
 // Postgres error codes that are a client problem, not a server bug. They are
@@ -155,6 +157,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
     if (exception instanceof BusinessRuleDomainError) {
       return HttpStatus.UNPROCESSABLE_ENTITY;
+    }
+    if (exception instanceof UnavailableDomainError) {
+      return HttpStatus.SERVICE_UNAVAILABLE;
     }
     return postgresError(exception)?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
   }

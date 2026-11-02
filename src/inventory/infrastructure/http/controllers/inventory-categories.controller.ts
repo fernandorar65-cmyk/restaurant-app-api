@@ -34,6 +34,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('inventory/categories')
 @Controller('inventory-categories')
@@ -101,7 +102,10 @@ export class InventoryCategoriesController {
     summary: 'Desactivar una categoría de inventario (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

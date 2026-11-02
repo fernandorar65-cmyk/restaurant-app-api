@@ -3,7 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 import { UpdateMeDto } from '../auth/update-me.dto.js';
 
 export class UpdateCustomerMeDto extends UpdateMeDto {
-  @ApiPropertyOptional({ example: 'Vegetariana, sin maní' })
+  @ApiPropertyOptional({ type: String, example: 'Vegetariana, sin maní' })
   @IsOptional()
   @IsString()
   dietaryPreferences?: string | null;

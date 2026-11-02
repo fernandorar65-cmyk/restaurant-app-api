@@ -28,6 +28,10 @@ import { ExpenseOrmEntity } from './infrastructure/persistence/typeorm/entities/
 import { TypeOrmDailyClosureRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-daily-closure.repository.js';
 import { TypeOrmExpenseCategoryRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-expense-category.repository.js';
 import { TypeOrmExpenseRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-expense.repository.js';
+import { FinancialReportsService } from './application/reports/financial-reports.service.js';
+import { ReportsController } from './infrastructure/http/controllers/reports.controller.js';
+import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
 
 @Module({
   imports: [
@@ -45,17 +49,20 @@ import { TypeOrmExpenseRepository } from './infrastructure/persistence/typeorm/r
     ExpenseCategoriesController,
     ExpensesController,
     DailyClosuresController,
+    ReportsController,
   ],
   providers: [
     FinanceScopeResolvers,
     ExpenseCategoriesService,
     ExpensesService,
     DailyClosuresService,
+    FinancialReportsService,
     {
       provide: EXPENSE_CATEGORY_REPOSITORY,
       useClass: TypeOrmExpenseCategoryRepository,
     },
     { provide: EXPENSE_REPOSITORY, useClass: TypeOrmExpenseRepository },
+    { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
     { provide: DAILY_CLOSURE_REPOSITORY, useClass: TypeOrmDailyClosureRepository },
     { provide: SALES_REPORT, useClass: InternalSalesReportAdapter },
     { provide: ATTENTION_STATS, useClass: InternalAttentionStatsAdapter },

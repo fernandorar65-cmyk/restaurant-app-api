@@ -14,7 +14,7 @@ export class CreatePermissionDto {
   @MaxLength(120)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)

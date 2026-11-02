@@ -7,6 +7,8 @@ export interface EmployeeRepository {
   findById(id: string): Promise<Employee | null>;
   findByCode(organizationId: string, code: string): Promise<Employee | null>;
   findByUser(organizationId: string, userId: string): Promise<Employee | null>;
+  /** The user's employee records in every organization. */
+  findAllByUser(userId: string): Promise<Employee[]>;
   findPage(
     filter: { organizationId?: string },
     page: PageRequest,

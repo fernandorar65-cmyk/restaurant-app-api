@@ -18,7 +18,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -36,7 +36,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -54,7 +54,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -72,7 +72,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -90,7 +90,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -108,7 +108,25 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/media/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -126,7 +144,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -144,7 +162,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               }
             ]
@@ -162,7 +180,7 @@
           {
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
               }
             ]
@@ -217,7 +235,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -277,7 +295,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -337,7 +355,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -397,7 +415,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -457,7 +475,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -517,7 +535,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -577,7 +595,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -637,7 +655,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -697,7 +715,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -757,7 +775,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -817,7 +835,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -877,7 +895,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -937,7 +955,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -997,7 +1015,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|payments)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -1057,7 +1075,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -1117,7 +1135,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations)/(domain|application|infrastructure)/",
                 "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
@@ -1177,7 +1195,7 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
               },
               {
@@ -1237,8 +1255,128 @@
             ],
             "patterns": [
               {
-                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|media|observability|organizations|payments)/(domain|application|infrastructure)/",
                 "message": "common no depende de ningún contexto (salvo su raíz de composición en infrastructure/persistence/database, que registra todas las entidades)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              },
+              {
+                "regex": "^\\..*\\bapplication/",
+                "message": "domain no depende de application."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/media/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
+              },
+              {
+                "regex": "^\\..*\\binfrastructure/",
+                "message": "application y domain no dependen de infraestructura: usa un puerto (application/ports) y un adaptador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/media/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/typeorm",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/config",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/jwt",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/swagger",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-validator",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "express",
+                "message": "Librería de infraestructura: úsala desde un adaptador, no desde application/domain."
+              },
+              {
+                "name": "@nestjs/common",
+                "message": "domain no depende de Nest."
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+(attention|catalog|finance|iam|inventory|observability|organizations|payments)/(domain|application|infrastructure)/",
+                "message": "Otro contexto solo se importa desde su public-api.ts (o su *.module.ts para el cableado de Nest)."
               },
               {
                 "regex": "^\\..*\\binfrastructure/",

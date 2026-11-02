@@ -19,13 +19,13 @@ export class OwnerOrganizationDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Grupo Sabores S.A.C.' })
+  @ApiPropertyOptional({ type: String, example: 'Grupo Sabores S.A.C.' })
   @IsOptional()
   @IsString()
   @MaxLength(200)
   legalName?: string | null;
 
-  @ApiPropertyOptional({ example: '20601234567' })
+  @ApiPropertyOptional({ type: String, example: '20601234567' })
   @IsOptional()
   @IsString()
   @MaxLength(50)
@@ -50,19 +50,19 @@ export class OwnerRestaurantDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Av. Larco 123, Miraflores' })
+  @ApiPropertyOptional({ type: String, example: 'Av. Larco 123, Miraflores' })
   @IsOptional()
   @IsString()
   @MaxLength(300)
   address?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(30)
   phone?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsEmail()
   email?: string | null;
@@ -84,13 +84,13 @@ export class RegisterOwnerDto {
   @MaxLength(100)
   firstName: string;
 
-  @ApiPropertyOptional({ example: 'Ramos' })
+  @ApiPropertyOptional({ type: String, example: 'Ramos' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   lastName?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(30)

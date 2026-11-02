@@ -7,6 +7,7 @@ import {
   Param,
   ParseEnumPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Res,
@@ -36,6 +37,7 @@ import { PaymentsService } from '../../../application/payments/payments.service.
 import { PaymentStatusCode } from '../../../domain/enums/payment-status-code.enum.js';
 import {
   AttentionBalanceDto,
+  ChangePaymentStatusDto,
   PaymentResponseDto,
   RegisterPaymentDto,
 } from '../dto/payments.dto.js';
@@ -45,7 +47,7 @@ import {
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 
 /** Staff side of payments: collect, split the bill, follow gateway attempts. */
-@ApiTags('payments')
+@ApiTags('payments/payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(
@@ -159,5 +161,22 @@ export class PaymentsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PaymentResponseDto> {
     return PaymentResponseDto.fromDomain(await this.paymentsService.cancel(id));
+  }
+
+  @Authorize('payments.manage', Scope.resource('payment'))
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Cambiar a mano el estado de un pago pendiente o en proceso',
+    description:
+      'PENDING / PROCESSING → PROCESSING, PAID, FAILED o CANCELLED (p. ej. el voucher del POS salió aprobado o rechazado). Confirmar exige que la atención siga activa; el monto ya estaba reservado, así que nunca supera el saldo. Repetir el estado actual no cambia nada. Sin reembolsos por ahora (422)',
+  })
+  @ApiOkResponse({ type: PaymentResponseDto })
+  async changeStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ChangePaymentStatusDto,
+  ): Promise<PaymentResponseDto> {
+    return PaymentResponseDto.fromDomain(
+      await this.paymentsService.changeStatus(id, dto.status),
+    );
   }
 }

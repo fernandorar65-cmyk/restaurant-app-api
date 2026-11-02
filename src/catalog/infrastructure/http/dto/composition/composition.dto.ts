@@ -16,7 +16,10 @@ export class CreateIngredientDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ default: 0 })
+  @ApiPropertyOptional({
+    description: 'Orden en que se muestra (menor primero)',
+    default: 0,
+  })
   @IsOptional()
   @IsInt()
   sortOrder?: number;

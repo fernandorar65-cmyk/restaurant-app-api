@@ -32,6 +32,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('organizations/employees')
 @Controller('employees')
@@ -99,7 +100,10 @@ export class EmployeesController {
     summary: 'Desactivar un empleado (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

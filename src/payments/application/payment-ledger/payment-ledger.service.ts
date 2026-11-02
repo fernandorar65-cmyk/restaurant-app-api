@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PAYMENT_LEDGER_REPOSITORY } from '../../domain/repositories/payment-ledger.repository.js';
 import type {
+  DatedMethodTotals,
   MethodTotals,
   PaymentLedgerRepository,
 } from '../../domain/repositories/payment-ledger.repository.js';
@@ -30,5 +31,14 @@ export class PaymentLedgerService {
     timeZone: string,
   ): Promise<MethodTotals[]> {
     return this.ledgerRepository.dailyTotals(restaurantId, businessDate, timeZone);
+  }
+
+  totalsByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+    timeZone: string,
+  ): Promise<DatedMethodTotals[]> {
+    return this.ledgerRepository.totalsByDate(restaurantId, from, to, timeZone);
   }
 }

@@ -39,6 +39,7 @@ import {
   AttentionResponseDto,
   FulfillmentResponseDto,
   OrderResponseDto,
+  TimelineEventResponseDto,
 } from '../dto/attention-responses.dto.js';
 import type { PageRequest } from '../../../../common/domain/pagination.js';
 import {
@@ -143,6 +144,23 @@ export class AttentionsController {
       submittedByUserId: dto.submittedByUserId,
     });
     return OrderResponseDto.fromDomain(order, items);
+  }
+
+  @Authorize(null, Scope.resource('attention'))
+  @Get(':id/timeline')
+  @ApiOperation({
+    summary:
+      'Historial de la atención y de sus platos, del más antiguo al más reciente',
+    description:
+      'Apertura, órdenes enviadas y confirmadas, cada cambio de estado de cada plato (con quién y por qué), pedido de cuenta, cierre o cancelación. Solo se conoce el último pedido de cuenta',
+  })
+  @ApiOkResponse({ type: [TimelineEventResponseDto] })
+  @ApiNotFoundResponse({ description: 'Atención no encontrada' })
+  async timeline(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<TimelineEventResponseDto[]> {
+    const events = await this.attentions.getTimeline(id);
+    return events.map((event) => TimelineEventResponseDto.fromDomain(event));
   }
 
   @Authorize(null, Scope.resource('attention'))

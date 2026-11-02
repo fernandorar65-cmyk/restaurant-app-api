@@ -17,6 +17,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { idsSchema } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('inventory/recipes')
 @Controller('product-recipes/:productId')
@@ -57,7 +58,10 @@ export class ProductRecipesController {
   @Authorize('inventory.manage', Scope.resource('product', 'productId'))
   @Delete('supplies/:supplyId')
   @ApiOperation({ summary: 'Quitar un insumo de la receta' })
-  @ApiOkResponse({ description: 'Insumo quitado de la receta' })
+  @ApiOkResponse({
+    description: 'Insumo quitado de la receta',
+    schema: idsSchema('productId', 'supplyId'),
+  })
   async removeLine(
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('supplyId', ParseUUIDPipe) supplyId: string,

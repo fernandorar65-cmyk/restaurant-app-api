@@ -42,4 +42,9 @@ export class TypeOrmMenuRepository
     const found = await this.repository.findOne({ where: { restaurantId, name } });
     return found ? this.toDomain(found) : null;
   }
+
+  async findByRestaurant(restaurantId: string): Promise<Menu[]> {
+    const rows = await this.repository.find({ where: { restaurantId } });
+    return rows.map((row) => this.toDomain(row));
+  }
 }

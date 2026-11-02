@@ -8,13 +8,13 @@ export class CreateOrganizationDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Grupo Sabores S.A.C.' })
+  @ApiPropertyOptional({ type: String, example: 'Grupo Sabores S.A.C.' })
   @IsOptional()
   @IsString()
   @MaxLength(200)
   legalName?: string | null;
 
-  @ApiPropertyOptional({ example: '20601234567', description: 'RUC u otro identificador fiscal' })
+  @ApiPropertyOptional({ type: String, example: '20601234567', description: 'RUC u otro identificador fiscal' })
   @IsOptional()
   @IsString()
   @MaxLength(50)

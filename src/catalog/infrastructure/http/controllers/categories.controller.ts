@@ -35,6 +35,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Product categories of an organization, as a tree (Comidas > Carnes > Parrillas). */
 @ApiTags('catalog/categories')
@@ -134,7 +135,10 @@ export class CategoriesController {
     description:
       'No se borra: los productos y secciones que la usan la conservan',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Categoría no encontrada' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

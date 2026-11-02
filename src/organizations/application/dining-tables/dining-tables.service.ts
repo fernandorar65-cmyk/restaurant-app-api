@@ -5,6 +5,7 @@ import {
   hashToken,
 } from '../../../common/application/security/opaque-token.js';
 import { DiningTable } from '../../domain/entities/dining-table.entity.js';
+import type { RestaurantFloor } from '../../domain/entities/restaurant-floor.entity.js';
 import { Restaurant } from '../../domain/entities/restaurant.entity.js';
 import type { DiningTableDetails } from '../../domain/entities/dining-table.entity.js';
 import { TableOperationalStatus } from '../../domain/enums/table-operational-status.enum.js';
@@ -65,6 +66,18 @@ export class DiningTablesService {
     page: PageRequest,
   ): Promise<Page<DiningTable>> {
     return this.diningTableRepository.findPage(filter, page);
+  }
+
+  /** Floors and tables of a restaurant (inactive ones included), for its floor plan. */
+  async findLayout(
+    restaurantId: string,
+  ): Promise<{ floors: RestaurantFloor[]; tables: DiningTable[] }> {
+    await this.restaurantsService.findOne(restaurantId);
+    const [floors, tables] = await Promise.all([
+      this.floorsService.findByRestaurant(restaurantId),
+      this.diningTableRepository.findByRestaurant(restaurantId),
+    ]);
+    return { floors, tables };
   }
 
   async findOne(id: string): Promise<DiningTable> {

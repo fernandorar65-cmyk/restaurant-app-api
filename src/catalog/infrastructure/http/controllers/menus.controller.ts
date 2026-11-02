@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -22,6 +23,7 @@ import { CreateMenuDto } from '../dto/menus/create-menu.dto.js';
 import {
   AddMenuProductDto,
   MenuProductResponseDto,
+  ReorderMenuProductsDto,
   UpdateMenuProductDto,
 } from '../dto/menus/menu-product.dto.js';
 import { MenuResponseDto } from '../dto/menus/menu-response.dto.js';
@@ -37,6 +39,10 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import {
+  IdResponseDto,
+  idsSchema,
+} from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('catalog/menus')
 @Controller('menus')
@@ -97,7 +103,10 @@ export class MenusController {
     summary: 'Desactivar un menú (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Menú no encontrado' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
@@ -139,6 +148,27 @@ export class MenusController {
   }
 
   @Authorize('catalog.manage', Scope.resource('menu'))
+  @Put(':id/products/order')
+  @ApiOperation({
+    summary:
+      'Reordenar los productos de una sección del menú en una sola petición',
+    description:
+      'productIds debe traer todos los productos de esa sección (o, sin menuSectionId, todos los que no tienen sección) una sola vez; si no, 400 y no cambia nada',
+  })
+  @ApiOkResponse({ type: [MenuProductResponseDto] })
+  async reorderProducts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReorderMenuProductsDto,
+  ): Promise<MenuProductResponseDto[]> {
+    const entries = await this.menusService.reorderProducts(
+      id,
+      dto.menuSectionId ?? null,
+      dto.productIds,
+    );
+    return entries.map((entry) => MenuProductResponseDto.fromDomain(entry));
+  }
+
+  @Authorize('catalog.manage', Scope.resource('menu'))
   @Patch(':id/products/:productId')
   @ApiOperation({
     summary: 'Cambiar sección, precio mostrado, orden o visibilidad',
@@ -160,7 +190,10 @@ export class MenusController {
   @Authorize('catalog.manage', Scope.resource('menu'))
   @Delete(':id/products/:productId')
   @ApiOperation({ summary: 'Quitar un producto del menú' })
-  @ApiOkResponse({ description: 'Producto quitado del menú' })
+  @ApiOkResponse({
+    description: 'Producto quitado del menú',
+    schema: idsSchema('menuId', 'productId'),
+  })
   async removeProduct(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('productId', ParseUUIDPipe) productId: string,

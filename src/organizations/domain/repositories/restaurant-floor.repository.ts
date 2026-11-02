@@ -10,6 +10,8 @@ export interface RestaurantFloorRepository {
     filter: { restaurantId?: string },
     page: PageRequest,
   ): Promise<Page<RestaurantFloor>>;
+  /** Every floor of the restaurant, active or not, in display order. */
+  findByRestaurant(restaurantId: string): Promise<RestaurantFloor[]>;
   save(floor: RestaurantFloor): Promise<RestaurantFloor>;
   delete(id: string): Promise<boolean>;
 }

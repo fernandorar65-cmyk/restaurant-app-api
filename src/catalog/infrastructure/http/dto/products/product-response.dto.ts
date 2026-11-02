@@ -15,16 +15,16 @@ export class ProductResponseDto {
   @ApiProperty({ example: 'Ceviche clásico' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   imageUrl: string | null;
 
   @ApiProperty({ example: 32.5 })
   price: number;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   preparationMinutes: number | null;
 
   @ApiProperty()

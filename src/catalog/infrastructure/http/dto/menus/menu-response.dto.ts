@@ -12,16 +12,16 @@ export class MenuResponseDto {
   @ApiProperty({ example: 'Carta principal' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty({ enum: MenuStatus })
   status: MenuStatus;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   validFrom: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   validUntil: Date | null;
 
   @ApiProperty()

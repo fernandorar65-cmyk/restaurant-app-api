@@ -19,7 +19,10 @@ import {
   SupplyFromAnotherOrganizationError,
 } from '../../domain/exceptions/inventory.errors.js';
 import { INVENTORY_MOVEMENT_REPOSITORY } from '../../domain/repositories/inventory-movement.repository.js';
-import type { InventoryMovementRepository } from '../../domain/repositories/inventory-movement.repository.js';
+import type {
+  InventoryMovementRepository,
+  RestaurantMovementFilter,
+} from '../../domain/repositories/inventory-movement.repository.js';
 import { RESTAURANT_SUPPLY_REPOSITORY } from '../../domain/repositories/restaurant-supply.repository.js';
 import type {
   RestaurantSupplyFilter,
@@ -176,6 +179,21 @@ export class RestaurantSuppliesService {
       throw new MovementNotFoundError(id);
     }
     return movement;
+  }
+
+  /** Movements of every supply of the restaurant (the stock screen's history). */
+  async listRestaurantMovements(
+    filter: Omit<RestaurantMovementFilter, 'timeZone'>,
+    page: PageRequest,
+  ): Promise<Page<InventoryMovement>> {
+    const restaurant = await this.organizationLookup.findRestaurant(filter.restaurantId);
+    if (!restaurant) {
+      throw new RestaurantReferenceNotFoundError(filter.restaurantId);
+    }
+    return this.movementRepository.findByRestaurant(
+      { ...filter, timeZone: restaurant.timeZone },
+      page,
+    );
   }
 
   async listMovements(id: string, page: PageRequest): Promise<Page<InventoryMovement>> {

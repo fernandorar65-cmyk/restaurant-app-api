@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type {
   AttentionBill,
   AttentionDetail,
+  AttentionVisit,
 } from '../../../application/attentions/attention-queries.service.js';
 import { AttentionParticipant } from '../../../domain/entities/attention-participant.entity.js';
 import { Attention } from '../../../domain/entities/attention.entity.js';
@@ -15,6 +16,8 @@ import { FulfillmentType } from '../../../domain/enums/fulfillment-type.enum.js'
 import { OrderSource } from '../../../domain/enums/order-source.enum.js';
 import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
 import { FulfillmentMode } from '../../../domain/enums/fulfillment-mode.enum.js';
+import type { BulkStatusChangeResult } from '../../../application/order-items/order-items.service.js';
+import type { TimelineEvent } from '../../../domain/services/timeline.js';
 
 export class AttentionResponseDto {
   @ApiProperty()
@@ -23,10 +26,10 @@ export class AttentionResponseDto {
   @ApiProperty()
   restaurantId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   diningTableId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   customerUserId: string | null;
 
   @ApiProperty({ example: 'A-7KX2QF' })
@@ -47,19 +50,19 @@ export class AttentionResponseDto {
   })
   statusId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   billRequestedAt: Date | null;
 
   @ApiProperty()
   openedAt: Date;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   closedAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   cancelledAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   cancellationReason: string | null;
 
   @ApiProperty()
@@ -96,7 +99,7 @@ export class OrderItemResponseDto {
   @ApiProperty()
   productId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   requestedByParticipantId: string | null;
 
   @ApiProperty({ description: 'Nombre del producto al momento del pedido' })
@@ -111,7 +114,7 @@ export class OrderItemResponseDto {
   @ApiProperty()
   subtotal: number;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   customerNote: string | null;
 
   @ApiProperty({ enum: OrderStatus, description: 'Estado canónico' })
@@ -122,7 +125,7 @@ export class OrderItemResponseDto {
   })
   statusId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   rejectionReason: string | null;
 
   @ApiProperty({
@@ -170,10 +173,10 @@ export class OrderResponseDto {
   @ApiProperty({ enum: OrderSource })
   source: OrderSource;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   submittedByUserId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   submittedByParticipantId: string | null;
 
   @ApiProperty({ enum: OrderStatus, description: 'Estado canónico' })
@@ -185,7 +188,7 @@ export class OrderResponseDto {
   @ApiProperty()
   submittedAt: Date;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   confirmedAt: Date | null;
 
   @ApiProperty({ type: [OrderItemResponseDto] })
@@ -214,10 +217,10 @@ export class ParticipantResponseDto {
   @ApiProperty()
   id: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   userId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   displayName: string | null;
 
   @ApiProperty()
@@ -246,22 +249,22 @@ export class FulfillmentResponseDto {
   @ApiProperty()
   customerPhone: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   scheduledAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   deliveryAddress: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   deliveryReference: string | null;
 
   @ApiProperty()
   deliveryFee: number;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   estimatedReadyAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   deliveredAt: Date | null;
 
   static fromDomain(fulfillment: Fulfillment): FulfillmentResponseDto {
@@ -366,7 +369,7 @@ export class OrderItemHistoryResponseDto {
   @ApiPropertyOptional({ enum: OrderStatus, nullable: true })
   previousStatus: OrderStatus | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   previousStatusId: string | null;
 
   @ApiProperty({ enum: OrderStatus })
@@ -375,16 +378,16 @@ export class OrderItemHistoryResponseDto {
   @ApiProperty()
   newStatusId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   changedByUserId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   reason: string | null;
 
   @ApiProperty()
   changedAt: Date;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   versionBefore: number | null;
 
   static fromDomain(
@@ -435,4 +438,147 @@ export class TableQrResolveResponseDto {
 
   @ApiPropertyOptional({ type: AttentionResponseDto, nullable: true })
   activeAttention: AttentionResponseDto | null;
+}
+
+export class VisitRestaurantDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ example: 'Sabores Miraflores' })
+  name: string;
+
+  @ApiProperty({ example: 'sabores-miraflores' })
+  slug: string;
+}
+
+export class AttentionVisitResponseDto {
+  @ApiProperty({ type: AttentionResponseDto })
+  attention: AttentionResponseDto;
+
+  @ApiPropertyOptional({ type: VisitRestaurantDto, nullable: true })
+  restaurant: VisitRestaurantDto | null;
+
+  @ApiProperty({
+    type: [OrderItemResponseDto],
+    description: 'Productos cobrables de la visita',
+  })
+  items: OrderItemResponseDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  paid: number;
+
+  @ApiProperty()
+  balance: number;
+
+  static fromVisit(visit: AttentionVisit): AttentionVisitResponseDto {
+    const dto = new AttentionVisitResponseDto();
+    dto.attention = AttentionResponseDto.fromDomain(visit.attention);
+    dto.restaurant = visit.restaurant;
+    dto.items = visit.items.map((item) =>
+      OrderItemResponseDto.fromDomain(item),
+    );
+    dto.total = visit.total;
+    dto.paid = visit.paid;
+    dto.balance = visit.balance;
+    return dto;
+  }
+}
+
+export class TimelineEventResponseDto {
+  @ApiProperty({
+    enum: [
+      'ATTENTION_OPENED',
+      'ORDER_SUBMITTED',
+      'ORDER_CONFIRMED',
+      'ITEM_STATUS_CHANGED',
+      'BILL_REQUESTED',
+      'ATTENTION_CLOSED',
+      'ATTENTION_CANCELLED',
+    ],
+  })
+  type: string;
+
+  @ApiProperty()
+  at: Date;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  orderId: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  orderItemId: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: 'Lomo saltado',
+  })
+  productName: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Estado canónico anterior del plato',
+  })
+  fromStatus: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Estado canónico nuevo del plato',
+  })
+  toStatus: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Estado de la sede (nombre y color en GET /order-statuses)',
+  })
+  toStatusId: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Quién envió la orden o cambió el plato',
+  })
+  userId: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  reason: string | null;
+
+  static fromDomain(event: TimelineEvent): TimelineEventResponseDto {
+    return Object.assign(new TimelineEventResponseDto(), event);
+  }
+}
+
+export class BulkStatusFailureDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ example: 'STALE_ORDER_ITEM_VERSION' })
+  errorCode: string;
+
+  @ApiProperty()
+  message: string;
+}
+
+export class BulkStatusChangeResponseDto {
+  @ApiProperty({ type: [OrderItemResponseDto] })
+  updated: OrderItemResponseDto[];
+
+  @ApiProperty({ type: [BulkStatusFailureDto] })
+  failed: BulkStatusFailureDto[];
+
+  static fromResult(
+    result: BulkStatusChangeResult,
+  ): BulkStatusChangeResponseDto {
+    const dto = new BulkStatusChangeResponseDto();
+    dto.updated = result.updated.map((item) =>
+      OrderItemResponseDto.fromDomain(item),
+    );
+    dto.failed = result.failed;
+    return dto;
+  }
 }

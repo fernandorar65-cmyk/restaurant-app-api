@@ -27,6 +27,7 @@ import {
 import { ExpenseCategoriesService } from '../../../application/expense-categories/expense-categories.service.js';
 import {
   CreateExpenseCategoryDto,
+  DeactivatedExpenseCategoryDto,
   ExpenseCategoryResponseDto,
   UpdateExpenseCategoryDto,
 } from '../dto/finance.dto.js';
@@ -101,12 +102,25 @@ export class ExpenseCategoriesController {
   @Delete(':id')
   @ApiOperation({
     summary: 'Desactivar una categoría de gasto (baja lógica)',
-    description: 'No se borra: los gastos pasados siguen apuntando a ella',
+    description:
+      'No se borra. Sin moveTo, los gastos pasados siguen apuntando a ella. Con moveTo, todos sus gastos (también los anulados) pasan a esa otra categoría activa de la misma organización, en la misma transacción',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiQuery({
+    name: 'moveTo',
+    required: false,
+    description: 'Categoría que recibe los gastos',
+  })
+  @ApiOkResponse({ type: DeactivatedExpenseCategoryDto })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<{ id: string }> {
+    @Query('moveTo', new ParseUUIDPipe({ optional: true })) moveTo?: string,
+  ): Promise<{ id: string; movedExpenses?: number }> {
+    if (moveTo) {
+      return {
+        id,
+        ...(await this.categoriesService.deactivateMovingExpenses(id, moveTo)),
+      };
+    }
     await this.categoriesService.deactivate(id);
     return { id };
   }

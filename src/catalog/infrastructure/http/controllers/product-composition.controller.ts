@@ -24,6 +24,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Visible ingredients of a product (optional). */
 @ApiTags('catalog/products')
@@ -79,7 +80,7 @@ export class ProductCompositionController {
   @Authorize('catalog.manage', Scope.resource('product', 'productId'))
   @Delete('ingredients/:ingredientId')
   @ApiOperation({ summary: 'Eliminar un ingrediente' })
-  @ApiOkResponse({ description: 'Ingrediente eliminado' })
+  @ApiOkResponse({ type: IdResponseDto, description: 'Ingrediente eliminado' })
   async removeIngredient(
     @Param('productId', ParseUUIDPipe) productId: string,
     @Param('ingredientId', ParseUUIDPipe) ingredientId: string,

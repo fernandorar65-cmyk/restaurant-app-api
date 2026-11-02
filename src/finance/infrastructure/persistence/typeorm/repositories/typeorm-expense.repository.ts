@@ -1,3 +1,4 @@
+import type { TransactionContext } from '../../../../../common/domain/transaction-context.js';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { Expense } from '../../../../domain/entities/expense.entity.js';
 import { ExpenseStatus } from '../../../../domain/enums/expense-status.enum.js';
 import {
   DailyExpenseTotals,
+  DatedExpenseTotals,
   ExpenseFilter,
   ExpenseRepository,
 } from '../../../../domain/repositories/expense.repository.js';
@@ -83,5 +85,46 @@ export class TypeOrmExpenseRepository
       total: Money.parse(row?.total).amount,
       cash: Money.parse(row?.cash).amount,
     };
+  }
+
+  async reassignCategory(
+    fromCategoryId: string,
+    toCategoryId: string,
+    tx: TransactionContext,
+  ): Promise<number> {
+    const result = await this.getRepository(tx).update(
+      { categoryId: fromCategoryId },
+      { categoryId: toCategoryId },
+    );
+    return result.affected ?? 0;
+  }
+
+  async totalsByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+  ): Promise<DatedExpenseTotals[]> {
+    const rows = await this.repository
+      .createQueryBuilder('expense')
+      .select("to_char(expense.expense_date, 'YYYY-MM-DD')", 'businessDate')
+      .addSelect('SUM(expense.amount)', 'total')
+      .addSelect(
+        'COALESCE(SUM(expense.amount) FILTER (WHERE expense.payment_method = :cash), 0)',
+        'cash',
+      )
+      .where('expense.restaurant_id = :restaurantId', { restaurantId })
+      .andWhere('expense.expense_date BETWEEN :from AND :to', { from, to })
+      .andWhere('expense.status = :registered', {
+        registered: ExpenseStatus.REGISTERED,
+      })
+      .setParameter('cash', PaymentMethod.CASH)
+      .groupBy('expense.expense_date')
+      .orderBy('expense.expense_date')
+      .getRawMany<{ businessDate: string; total: string; cash: string }>();
+    return rows.map((row) => ({
+      businessDate: row.businessDate,
+      total: Money.parse(row.total).amount,
+      cash: Money.parse(row.cash).amount,
+    }));
   }
 }

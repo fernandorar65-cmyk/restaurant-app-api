@@ -1,3 +1,7 @@
+import {
+  InactiveExpenseCategoryError,
+  InvalidExpenseCategoryMoveError,
+} from '../exceptions/finance.errors.js';
 import { requireText } from '../../../common/domain/value-objects/required-text.js';
 
 export interface ExpenseCategoryProps {
@@ -53,6 +57,23 @@ export class ExpenseCategory {
       this.props.isActive = params.isActive;
     }
     this.props.updatedAt = new Date();
+  }
+
+  /** Where this category's expenses can go when it is retired. */
+  assertCanReceiveExpensesOf(source: ExpenseCategory): void {
+    if (this.id === source.id) {
+      throw new InvalidExpenseCategoryMoveError(
+        'el destino es la misma categoría',
+      );
+    }
+    if (this.organizationId !== source.organizationId) {
+      throw new InvalidExpenseCategoryMoveError(
+        'el destino es de otra organización',
+      );
+    }
+    if (!this.isActive) {
+      throw new InactiveExpenseCategoryError();
+    }
   }
 
   get id(): string {

@@ -100,6 +100,7 @@ import { TypeOrmRestaurantRepository } from './infrastructure/persistence/typeor
   ],
   exports: [
     OrganizationsService,
+    EmployeesService,
     RestaurantsService,
     DiningTablesService,
     TENANT_LOOKUP,

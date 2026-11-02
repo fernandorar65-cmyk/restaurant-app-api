@@ -39,7 +39,7 @@ export class CreateExpenseCategoryDto {
   @MaxLength(120)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Luz, agua, internet' })
+  @ApiPropertyOptional({ type: String, example: 'Luz, agua, internet' })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -65,7 +65,7 @@ export class ExpenseCategoryResponseDto {
   @ApiProperty({ example: 'Servicios' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()
@@ -131,7 +131,7 @@ export class ExpenseResponseDto {
   @ApiProperty()
   categoryId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   inventoryMovementId: string | null;
 
   @ApiProperty()
@@ -146,7 +146,7 @@ export class ExpenseResponseDto {
   @ApiPropertyOptional({ enum: PaymentMethod, nullable: true })
   paymentMethod: PaymentMethod | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   registeredByUserId: string | null;
 
   @ApiProperty({ enum: ExpenseStatus })
@@ -186,20 +186,20 @@ export class CloseDayDto {
   @Matches(DATE_ONLY, { message: 'businessDate debe tener el formato YYYY-MM-DD' })
   businessDate: string;
 
-  @ApiPropertyOptional({ example: 1250, description: 'Efectivo contado en caja' })
+  @ApiPropertyOptional({ type: Number, example: 1250, description: 'Efectivo contado en caja' })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   actualCash?: number | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   notes?: string | null;
 }
 
-class PaymentMethodTotalDto {
+export class PaymentMethodTotalDto {
   @ApiProperty({ enum: PaymentMethod })
   method: PaymentMethod;
 
@@ -280,13 +280,13 @@ export class DailyClosureResponseDto extends PickType(ClosurePreviewResponseDto,
   @ApiProperty()
   id: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   actualCash: number | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'actualCash - expectedCash' })
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'actualCash - expectedCash' })
   differenceAmount: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   notes: string | null;
 
   @ApiProperty()
@@ -316,4 +316,12 @@ export class DailyClosureResponseDto extends PickType(ClosurePreviewResponseDto,
     dto.closedAt = closure.closedAt;
     return dto;
   }
+}
+
+export class DeactivatedExpenseCategoryDto {
+  @ApiProperty({ format: 'uuid' })
+  id: string;
+
+  @ApiPropertyOptional({ description: 'Solo con moveTo: gastos movidos a la otra categoría' })
+  movedExpenses?: number;
 }

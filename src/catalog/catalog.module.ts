@@ -8,6 +8,7 @@ import { MenuSectionsService } from './application/menu-sections/menu-sections.s
 import { MenusService } from './application/menus/menus.service.js';
 import { ProductCompositionService } from './application/product-composition/product-composition.service.js';
 import { ProductsService } from './application/products/products.service.js';
+import { StorefrontService } from './application/storefront/storefront.service.js';
 import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository.js';
 import { MENU_PRODUCT_REPOSITORY } from './domain/repositories/menu-product.repository.js';
 import { MENU_SECTION_REPOSITORY } from './domain/repositories/menu-section.repository.js';
@@ -22,6 +23,7 @@ import { MenuSectionsController } from './infrastructure/http/controllers/menu-s
 import { MenusController } from './infrastructure/http/controllers/menus.controller.js';
 import { ProductCompositionController } from './infrastructure/http/controllers/product-composition.controller.js';
 import { ProductsController } from './infrastructure/http/controllers/products.controller.js';
+import { StorefrontController } from './infrastructure/http/controllers/storefront.controller.js';
 import { CategoryOrmEntity } from './infrastructure/persistence/typeorm/entities/category.orm-entity.js';
 import { MenuProductOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-product.orm-entity.js';
 import { MenuSectionOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-section.orm-entity.js';
@@ -38,6 +40,10 @@ import { TypeOrmProductIngredientRepository } from './infrastructure/persistence
 import { TypeOrmProductRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-product.repository.js';
 import { SERVICE_TYPE_LOOKUP } from './application/ports/service-type-lookup.port.js';
 import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/internal-service-type-lookup.adapter.js';
+import { TRANSACTION_RUNNER } from '../common/application/ports/transaction-runner.port.js';
+import { TypeOrmTransactionRunner } from '../common/infrastructure/persistence/typeorm-transaction-runner.js';
+import { RESTAURANT_DIRECTORY } from './application/ports/restaurant-directory.port.js';
+import { InternalRestaurantDirectoryAdapter } from './infrastructure/lookups/internal-restaurant-directory.adapter.js';
 
 @Module({
   imports: [
@@ -60,6 +66,7 @@ import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/inter
     MenuSectionsController,
     ProductCompositionController,
     CartValidationController,
+    StorefrontController,
   ],
   providers: [
     CatalogScopeResolvers,
@@ -69,6 +76,7 @@ import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/inter
     MenuSectionsService,
     ProductCompositionService,
     CartValidationService,
+    StorefrontService,
     { provide: CATEGORY_REPOSITORY, useClass: TypeOrmCategoryRepository },
     { provide: PRODUCT_REPOSITORY, useClass: TypeOrmProductRepository },
     {
@@ -91,6 +99,11 @@ import { InternalServiceTypeLookupAdapter } from './infrastructure/lookups/inter
     {
       provide: SERVICE_TYPE_LOOKUP,
       useClass: InternalServiceTypeLookupAdapter,
+    },
+    { provide: TRANSACTION_RUNNER, useClass: TypeOrmTransactionRunner },
+    {
+      provide: RESTAURANT_DIRECTORY,
+      useClass: InternalRestaurantDirectoryAdapter,
     },
   ],
   exports: [ProductsService],

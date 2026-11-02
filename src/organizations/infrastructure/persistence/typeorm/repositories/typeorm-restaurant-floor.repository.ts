@@ -50,4 +50,12 @@ export class TypeOrmRestaurantFloorRepository
     });
     return found ? this.toDomain(found) : null;
   }
+
+  async findByRestaurant(restaurantId: string): Promise<RestaurantFloor[]> {
+    const rows = await this.repository.find({
+      where: { restaurantId },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
 }

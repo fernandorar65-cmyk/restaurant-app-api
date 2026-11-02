@@ -32,6 +32,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('iam/memberships')
 @Controller('memberships')
@@ -106,7 +107,10 @@ export class MembershipsController {
     summary: 'Desactivar una membresía (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Membresía no encontrada' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

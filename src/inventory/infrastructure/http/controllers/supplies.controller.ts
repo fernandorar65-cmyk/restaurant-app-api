@@ -35,6 +35,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Master catalog of supplies of an organization; stock lives per restaurant. */
 @ApiTags('inventory/supplies')
@@ -116,7 +117,10 @@ export class SuppliesController {
     description:
       'Las sedes conservan su historial; ya no se puede habilitar en nuevas sedes',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ id: string }> {

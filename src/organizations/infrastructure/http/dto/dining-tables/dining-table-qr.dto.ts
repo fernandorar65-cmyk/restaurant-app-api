@@ -4,6 +4,7 @@ import { DiningTableResponseDto } from './dining-table-response.dto.js';
 
 export class GenerateQrDto {
   @ApiPropertyOptional({
+    type: String,
     example: 'https://storage.example.com/qr/mesa-1.png',
     description:
       'Ubicación de la imagen si se guarda en almacenamiento externo. Si se genera bajo demanda, omitir',

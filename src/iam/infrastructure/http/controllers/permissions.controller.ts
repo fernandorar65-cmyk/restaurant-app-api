@@ -28,6 +28,7 @@ import {
 } from '../../../../common/infrastructure/http/pagination.js';
 import { Authenticated } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
 import { PlatformAdmin } from '../../../../common/infrastructure/http/platform-admin.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('iam/permissions')
 @Controller('permissions')
@@ -89,7 +90,10 @@ export class PermissionsController {
     summary: 'Desactivar un permiso (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Permiso no encontrado' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,

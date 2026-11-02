@@ -22,7 +22,7 @@ import {
 import type { ManualMovementType } from '../../../domain/enums/movement-type-code.enum.js';
 
 export class EnableRestaurantSupplyDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Sede donde se habilita el insumo' })
   @IsUUID()
   restaurantId: string;
 
@@ -51,13 +51,13 @@ export class ConfigureRestaurantSupplyDto {
 }
 
 class MovementAuthorDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
   notes?: string | null;
 
-  @ApiPropertyOptional({ description: 'Repetir la misma clave devuelve el mismo movimiento' })
+  @ApiPropertyOptional({ type: String, description: 'Repetir la misma clave devuelve el mismo movimiento' })
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -75,7 +75,7 @@ export class RegisterMovementDto extends MovementAuthorDto {
   @Min(0.001)
   quantity: number;
 
-  @ApiPropertyOptional({ example: 4.5, description: 'Solo en compras: recalcula el costo promedio' })
+  @ApiPropertyOptional({ type: Number, example: 4.5, description: 'Solo en compras: recalcula el costo promedio' })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0)
@@ -96,7 +96,8 @@ export class ReverseMovementDto {
   @MaxLength(500)
   notes: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Repetirla devuelve la misma reversión (200) en vez de crear otra', type: String })
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -184,28 +185,28 @@ export class InventoryMovementResponseDto {
   @ApiProperty()
   resultingQuantity: number;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Solo en conteos' })
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Solo en conteos' })
   countedQuantity: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   unitCost: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   notes: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   originModule: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   originId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   idempotencyKey: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   createdByUserId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   reversalOfMovementId: string | null;
 
   @ApiProperty()

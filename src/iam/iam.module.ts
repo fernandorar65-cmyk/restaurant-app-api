@@ -16,6 +16,9 @@ import { ROLE_PERMISSION_REPOSITORY } from './domain/repositories/role-permissio
 import { ROLE_REPOSITORY } from './domain/repositories/role.repository.js';
 import { IdentityModule } from './identity.module.js';
 import { CustomerAuthController } from './infrastructure/http/controllers/customer-auth.controller.js';
+import { StaffProfileService } from './application/staff-profile/staff-profile.service.js';
+import { STAFF_DIRECTORY } from './application/ports/staff-directory.port.js';
+import { InternalStaffDirectoryAdapter } from './infrastructure/lookups/internal-staff-directory.adapter.js';
 import { IamScopeResolvers } from './infrastructure/http/iam-scope-resolvers.js';
 import { OrganizationCreatedListener } from './infrastructure/events/organization-created.listener.js';
 import { CustomerMeController } from './infrastructure/http/controllers/customer-me.controller.js';
@@ -68,6 +71,7 @@ import { TypeOrmRoleRepository } from './infrastructure/persistence/typeorm/repo
     RolePermissionsService,
     MembershipsService,
     OwnerRegistrationService,
+    StaffProfileService,
     { provide: ROLE_REPOSITORY, useClass: TypeOrmRoleRepository },
     { provide: PERMISSION_REPOSITORY, useClass: TypeOrmPermissionRepository },
     {
@@ -78,6 +82,7 @@ import { TypeOrmRoleRepository } from './infrastructure/persistence/typeorm/repo
       provide: ORGANIZATION_MEMBERSHIP_REPOSITORY,
       useClass: TypeOrmOrganizationMembershipRepository,
     },
+    { provide: STAFF_DIRECTORY, useClass: InternalStaffDirectoryAdapter },
     {
       provide: ORGANIZATION_PROVISIONING,
       useClass: InternalOrganizationProvisioningAdapter,

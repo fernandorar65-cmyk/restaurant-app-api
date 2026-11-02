@@ -4,16 +4,28 @@ import {
   Get,
   HttpStatus,
   Param,
+  ParseEnumPipe,
   ParseUUIDPipe,
   Post,
+  Query,
   Res,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import type { PageRequest } from '../../../../common/domain/pagination.js';
+import { ParseBusinessDatePipe } from '../../../../common/infrastructure/http/parse-business-date.pipe.js';
+import {
+  ApiPaginatedResponse,
+  Pagination,
+  toPageResponse,
+  type PageResponse,
+} from '../../../../common/infrastructure/http/pagination.js';
+import { MovementTypeCode } from '../../../domain/enums/movement-type-code.enum.js';
 import type { Response } from 'express';
 import {
   CurrentUser,
@@ -37,6 +49,42 @@ export class InventoryMovementsController {
   constructor(
     private readonly restaurantSuppliesService: RestaurantSuppliesService,
   ) {}
+
+  @Authorize(null, Scope.restaurant('query'))
+  @Get()
+  @ApiOperation({
+    summary: 'Movimientos de todo el stock de una sede (más reciente primero)',
+    description:
+      'from / to son fechas comerciales (YYYY-MM-DD) en la zona horaria de la sede',
+  })
+  @ApiQuery({ name: 'restaurantId', required: true })
+  @ApiQuery({
+    name: 'supplyId',
+    required: false,
+    description: 'Insumo maestro',
+  })
+  @ApiQuery({ name: 'type', required: false, enum: MovementTypeCode })
+  @ApiQuery({ name: 'from', required: false, example: '2026-10-01' })
+  @ApiQuery({ name: 'to', required: false, example: '2026-10-31' })
+  @ApiPaginatedResponse(InventoryMovementResponseDto)
+  async findByRestaurant(
+    @Pagination() page: PageRequest,
+    @Query('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Query('supplyId', new ParseUUIDPipe({ optional: true })) supplyId?: string,
+    @Query('type', new ParseEnumPipe(MovementTypeCode, { optional: true }))
+    type?: MovementTypeCode,
+    @Query('from', new ParseBusinessDatePipe({ optional: true })) from?: string,
+    @Query('to', new ParseBusinessDatePipe({ optional: true })) to?: string,
+  ): Promise<PageResponse<InventoryMovementResponseDto>> {
+    const movements =
+      await this.restaurantSuppliesService.listRestaurantMovements(
+        { restaurantId, supplyId, type, from, to },
+        page,
+      );
+    return toPageResponse(movements, (movement) =>
+      InventoryMovementResponseDto.fromDomain(movement),
+    );
+  }
 
   @Authorize(null, Scope.resource('inventory-movement'))
   @Get(':id')

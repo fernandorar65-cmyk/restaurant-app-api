@@ -93,6 +93,14 @@ export class RestaurantsService {
     return this.restaurantRepository.findPage(filter, page);
   }
 
+  /** Restaurants a diner can see: only the active ones. */
+  findActivePage(page: PageRequest): Promise<Page<Restaurant>> {
+    return this.restaurantRepository.findPage(
+      { status: RestaurantStatus.ACTIVE },
+      page,
+    );
+  }
+
   async findOne(id: string): Promise<Restaurant> {
     const restaurant = await this.restaurantRepository.findById(id);
     if (!restaurant) {

@@ -9,25 +9,25 @@ export class EmployeeResponseDto {
   @ApiProperty()
   organizationId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   userId: string | null;
 
   @ApiProperty({ example: 'EMP-001' })
   employeeCode: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   documentNumber: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   jobPositionId: string | null;
 
   @ApiProperty({ enum: EmployeeStatus })
   status: EmployeeStatus;
 
-  @ApiPropertyOptional({ nullable: true, example: '2026-01-15' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: '2026-01-15' })
   hiredAt: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   terminatedAt: string | null;
 
   @ApiProperty()

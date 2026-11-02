@@ -4,7 +4,7 @@ import { User } from '../../../../domain/entities/user.entity.js';
 import { UserResponseDto } from '../users/user-response.dto.js';
 
 export class CustomerMeResponseDto extends UserResponseDto {
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   dietaryPreferences: string | null;
 
   static fromProfile(user: User, profile: CustomerProfile): CustomerMeResponseDto {

@@ -35,6 +35,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Job positions (Cocinero, Mozo...). They describe the job; IAM roles grant access. */
 @ApiTags('organizations/job-positions')
@@ -118,7 +119,10 @@ export class JobPositionsController {
     description:
       'No se borra ni afecta a los empleados que ya lo tienen; solo deja de poder asignarse',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ id: string }> {

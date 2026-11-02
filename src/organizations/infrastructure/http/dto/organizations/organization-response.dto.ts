@@ -9,10 +9,10 @@ export class OrganizationResponseDto {
   @ApiProperty({ example: 'Grupo Sabores' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   legalName: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   taxIdentifier: string | null;
 
   @ApiProperty({ example: 'PEN' })

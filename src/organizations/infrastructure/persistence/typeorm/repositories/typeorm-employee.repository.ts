@@ -60,4 +60,12 @@ export class TypeOrmEmployeeRepository
     });
     return found ? this.toDomain(found) : null;
   }
+
+  async findAllByUser(userId: string): Promise<Employee[]> {
+    const rows = await this.repository.find({
+      where: { userId },
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
 }

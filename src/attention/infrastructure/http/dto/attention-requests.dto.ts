@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
@@ -31,7 +32,7 @@ export class OrderLineDto {
   @Min(1)
   quantity: number;
 
-  @ApiPropertyOptional({ example: 'Sin cebolla' })
+  @ApiPropertyOptional({ type: String, example: 'Sin cebolla' })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -56,7 +57,10 @@ export class SubmitOrderDto {
 }
 
 export class WaiterOrderDto extends SubmitOrderDto {
-  @ApiPropertyOptional({ description: 'Mozo que registra la orden' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Mozo que registra la orden',
+  })
   @IsOptional()
   @IsUUID()
   submittedByUserId?: string | null;
@@ -75,13 +79,17 @@ export class FulfillmentDto {
   @MaxLength(30)
   customerPhone: string;
 
-  @ApiPropertyOptional({ description: 'Hora programada de recojo/entrega' })
+  @ApiPropertyOptional({
+    type: Date,
+    description: 'Hora programada de recojo/entrega',
+  })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   scheduledAt?: Date | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Av. Larco 123, Miraflores',
     description: 'Requerido en DELIVERY',
   })
@@ -90,23 +98,26 @@ export class FulfillmentDto {
   @MaxLength(500)
   deliveryAddress?: string | null;
 
-  @ApiPropertyOptional({ example: 'Puerta verde, 3er piso' })
+  @ApiPropertyOptional({ type: String, example: 'Puerta verde, 3er piso' })
   @IsOptional()
   @IsString()
   @MaxLength(500)
   deliveryReference?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: Number })
   @IsOptional()
   @IsLatitude()
   latitude?: number | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: Number })
   @IsOptional()
   @IsLongitude()
   longitude?: number | null;
 
-  @ApiPropertyOptional({ description: 'PICKUP: comerá en el local' })
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'PICKUP: comerá en el local',
+  })
   @IsOptional()
   @IsBoolean()
   eatAtRestaurant?: boolean | null;
@@ -143,6 +154,7 @@ export class OpenAttentionDto {
   restaurantId?: string;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Comensal registrado titular de la cuenta',
   })
   @IsOptional()
@@ -202,16 +214,72 @@ export class ChangeOrderItemStatusDto {
   @Min(0)
   version?: number;
 
-  @ApiPropertyOptional({ description: 'Obligatorio para REJECTED' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Obligatorio para REJECTED',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
   reason?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Quién hizo el cambio, para el historial',
+    type: String,
+  })
   @IsOptional()
   @IsUUID()
   changedByUserId?: string | null;
+}
+
+export class BulkStatusItemDto {
+  @ApiProperty()
+  @IsUUID()
+  id: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Versión leída del plato; si cambió, ese plato falla con 409 y los demás siguen',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  version?: number;
+}
+
+export class BulkChangeOrderItemStatusDto {
+  @ApiProperty({ description: 'Sede de todos los platos' })
+  @IsUUID()
+  restaurantId: string;
+
+  @ApiProperty({ type: [BulkStatusItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => BulkStatusItemDto)
+  items: BulkStatusItemDto[];
+
+  @ApiPropertyOptional({
+    description: 'Estado de la sede. Alternativa a status',
+  })
+  @IsOptional()
+  @IsUUID()
+  statusId?: string;
+
+  @ApiPropertyOptional({ enum: OrderStatus })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Obligatorio para REJECTED',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string | null;
 }
 
 export class ChangeFulfillmentStatusDto {
@@ -224,6 +292,7 @@ export class ChangeFulfillmentStatusDto {
   status: FulfillmentStatus;
 
   @ApiPropertyOptional({
+    type: Date,
     description: 'Hora estimada de listo (útil al confirmar)',
   })
   @IsOptional()
@@ -264,6 +333,7 @@ export class StartCustomerAttentionDto extends SubmitOrderDto {
   restaurantId?: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Ana',
     description: 'Cómo verán al comensal en la mesa',
   })

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeOrmBaseRepository } from '../../../../../common/infrastructure/persistence/typeorm-base.repository.js';
 import { Restaurant } from '../../../../domain/entities/restaurant.entity.js';
+import type { RestaurantStatus } from '../../../../domain/enums/restaurant-status.enum.js';
 import { RestaurantRepository } from '../../../../domain/repositories/restaurant.repository.js';
 import { RestaurantOrmEntity } from '../entities/restaurant.orm-entity.js';
 import { RestaurantMapper } from '../mappers/restaurant.mapper.js';
@@ -32,11 +33,11 @@ export class TypeOrmRestaurantRepository
   }
 
   async findPage(
-    filter: { organizationId?: string },
+    filter: { organizationId?: string; status?: RestaurantStatus },
     page: PageRequest,
   ): Promise<Page<Restaurant>> {
     return this.findPageBy({
-      where: { organizationId: filter.organizationId },
+      where: { organizationId: filter.organizationId, status: filter.status },
       order: { name: 'ASC' },
     }, page);
   }

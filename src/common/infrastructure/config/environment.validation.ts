@@ -1,3 +1,9 @@
+import {
+  REQUIRED_STORAGE_VARIABLES,
+  STORAGE_PROVIDERS,
+  type StorageProvider,
+} from './storage-config.js';
+
 const REQUIRED_SECRETS = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const;
 
 /** Values published in .env.example; never acceptable outside local dev. */
@@ -53,6 +59,21 @@ export function validateEnvironment(
     !(Number.isInteger(Number(retentionDays)) && Number(retentionDays) >= 1)
   ) {
     errors.push('ERROR_LOG_RETENTION_DAYS debe ser un entero mayor o igual a 1');
+  }
+
+  // Empty: uploads answer 503 until the provider is configured.
+  const storage = config.STORAGE_PROVIDER;
+  if (storage !== undefined && storage !== '') {
+    if (!STORAGE_PROVIDERS.includes(storage as StorageProvider)) {
+      errors.push(`STORAGE_PROVIDER debe ser uno de: ${STORAGE_PROVIDERS.join(', ')} (o vacío)`);
+    } else {
+      const provider = storage as StorageProvider;
+      for (const key of REQUIRED_STORAGE_VARIABLES[provider]) {
+        if (typeof config[key] !== 'string' || config[key].trim() === '') {
+          errors.push(`${key} es obligatorio con STORAGE_PROVIDER=${provider}`);
+        }
+      }
+    }
   }
 
   if (errors.length > 0) {

@@ -6,4 +6,6 @@ export const ORDER_ITEM_STATUS_HISTORY_REPOSITORY = Symbol(
 
 export interface OrderItemStatusHistoryRepository {
   findByItem(orderItemId: string): Promise<OrderItemStatusHistory[]>;
+  /** History of several items, oldest first. */
+  findByItems(orderItemIds: string[]): Promise<OrderItemStatusHistory[]>;
 }

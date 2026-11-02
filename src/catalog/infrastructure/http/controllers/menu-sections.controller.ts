@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -20,10 +21,12 @@ import {
   MenuSectionResponseDto,
   UpdateMenuSectionDto,
 } from '../dto/categories/category.dto.js';
+import { ReorderMenuSectionsDto } from '../dto/menus/menu-product.dto.js';
 import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Visible sections of a menu; its products are placed in them via menuSectionId. */
 @ApiTags('catalog/menus')
@@ -58,6 +61,24 @@ export class MenuSectionsController {
   }
 
   @Authorize('catalog.manage', Scope.resource('menu', 'menuId'))
+  @Put('order')
+  @ApiOperation({
+    summary: 'Reordenar todas las secciones del menú en una sola petición',
+    description:
+      'ids debe traer todas las secciones del menú (incluidas las ocultas) una sola vez; si no, 400 y no cambia nada',
+  })
+  @ApiOkResponse({ type: [MenuSectionResponseDto] })
+  async reorder(
+    @Param('menuId', ParseUUIDPipe) menuId: string,
+    @Body() dto: ReorderMenuSectionsDto,
+  ): Promise<MenuSectionResponseDto[]> {
+    const sections = await this.sectionsService.reorder(menuId, dto.ids);
+    return sections.map((section) =>
+      MenuSectionResponseDto.fromDomain(section),
+    );
+  }
+
+  @Authorize('catalog.manage', Scope.resource('menu', 'menuId'))
   @Patch(':sectionId')
   @ApiOperation({ summary: 'Editar, ordenar u ocultar una sección' })
   @ApiOkResponse({ type: MenuSectionResponseDto })
@@ -77,7 +98,10 @@ export class MenuSectionsController {
     summary: 'Desactivar una sección (baja lógica)',
     description: 'Los productos siguen en el menú',
   })
-  @ApiOkResponse({ description: 'Id de la sección desactivada' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id de la sección desactivada',
+  })
   async deactivate(
     @Param('menuId', ParseUUIDPipe) menuId: string,
     @Param('sectionId', ParseUUIDPipe) sectionId: string,

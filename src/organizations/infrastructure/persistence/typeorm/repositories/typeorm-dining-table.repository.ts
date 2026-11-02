@@ -55,4 +55,12 @@ export class TypeOrmDiningTableRepository
     });
     return found ? this.toDomain(found) : null;
   }
+
+  async findByRestaurant(restaurantId: string): Promise<DiningTable[]> {
+    const rows = await this.repository.find({
+      where: { restaurantId },
+      order: { code: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
 }

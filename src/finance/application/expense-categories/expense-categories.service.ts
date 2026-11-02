@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Page, PageRequest } from '../../../common/domain/pagination.js';
+import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import { EXPENSE_REPOSITORY } from '../../domain/repositories/expense.repository.js';
+import type { ExpenseRepository } from '../../domain/repositories/expense.repository.js';
 import { ExpenseCategory } from '../../domain/entities/expense-category.entity.js';
 import {
   DuplicateExpenseCategoryNameError,
@@ -19,6 +23,10 @@ export class ExpenseCategoriesService {
     private readonly categoryRepository: ExpenseCategoryRepository,
     @Inject(TENANT_LOOKUP)
     private readonly organizationLookup: TenantLookup,
+    @Inject(EXPENSE_REPOSITORY)
+    private readonly expenseRepository: ExpenseRepository,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(input: {
@@ -64,6 +72,31 @@ export class ExpenseCategoriesService {
     const category = await this.findOne(id);
     category.update({ isActive: false });
     await this.categoryRepository.save(category);
+  }
+
+  /**
+   * Retires the category moving all its expenses (voided ones too) to
+   * another active category of the same organization, in one transaction.
+   */
+  async deactivateMovingExpenses(
+    id: string,
+    targetId: string,
+  ): Promise<{ movedExpenses: number }> {
+    const [category, target] = await Promise.all([
+      this.findOne(id),
+      this.findOne(targetId),
+    ]);
+    target.assertCanReceiveExpensesOf(category);
+    return this.transactionRunner.run(async (tx) => {
+      const movedExpenses = await this.expenseRepository.reassignCategory(
+        category.id,
+        target.id,
+        tx,
+      );
+      category.update({ isActive: false });
+      await this.categoryRepository.save(category, tx);
+      return { movedExpenses };
+    });
   }
 
   private async assertNameIsFree(category: ExpenseCategory): Promise<void> {

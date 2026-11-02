@@ -14,6 +14,8 @@ export interface DiningTableRepository {
   },
     page: PageRequest,
   ): Promise<Page<DiningTable>>;
+  /** Every table of the restaurant, whatever its status, by code. */
+  findByRestaurant(restaurantId: string): Promise<DiningTable[]>;
   save(diningTable: DiningTable): Promise<DiningTable>;
   delete(id: string): Promise<boolean>;
 }

@@ -36,6 +36,10 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import {
+  IdResponseDto,
+  idsSchema,
+} from '../../../../common/infrastructure/http/id-response.dto.js';
 
 @ApiTags('catalog/products')
 @Controller('products')
@@ -117,7 +121,10 @@ export class ProductsController {
     summary: 'Desactivar un producto (baja lógica)',
     description: 'No se borra: queda inactivo para conservar el historial',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   @ApiNotFoundResponse({ description: 'Producto no encontrado' })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
@@ -157,7 +164,10 @@ export class ProductsController {
   @Authorize('catalog.manage', Scope.resource('product'))
   @Delete(':id/categories/:categoryId')
   @ApiOperation({ summary: 'Quitar el producto de una categoría' })
-  @ApiOkResponse({ description: 'Producto quitado de la categoría' })
+  @ApiOkResponse({
+    description: 'Producto quitado de la categoría',
+    schema: idsSchema('productId', 'categoryId'),
+  })
   async removeCategory(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('categoryId', ParseUUIDPipe) categoryId: string,

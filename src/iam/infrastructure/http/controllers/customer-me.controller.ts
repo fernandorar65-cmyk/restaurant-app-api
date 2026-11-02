@@ -1,12 +1,21 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { PasswordsService } from '../../../application/auth/passwords.service.js';
 import { CustomerProfilesService } from '../../../application/customer-profiles/customer-profiles.service.js';
 import { UsersService } from '../../../application/users/users.service.js';
+import { ChangeOwnPasswordDto } from '../dto/auth/change-own-password.dto.js';
 import { CustomerMeResponseDto } from '../dto/customers/customer-me-response.dto.js';
 import { UpdateCustomerMeDto } from '../dto/customers/update-customer-me.dto.js';
 import { CurrentUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
@@ -20,6 +29,7 @@ export class CustomerMeController {
   constructor(
     private readonly usersService: UsersService,
     private readonly profilesService: CustomerProfilesService,
+    private readonly passwords: PasswordsService,
   ) {}
 
   @Authenticated()
@@ -50,5 +60,20 @@ export class CustomerMeController {
       dietaryPreferences,
     });
     return CustomerMeResponseDto.fromProfile(user, profile);
+  }
+
+  @Authenticated()
+  @Patch('password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cambia la contraseña (pide la actual)' })
+  async changePassword(
+    @CurrentUser() current: RequestUser,
+    @Body() dto: ChangeOwnPasswordDto,
+  ): Promise<void> {
+    await this.passwords.changeOwnPassword(
+      current.id,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 }

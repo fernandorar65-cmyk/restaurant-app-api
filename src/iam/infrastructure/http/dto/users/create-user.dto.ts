@@ -24,13 +24,13 @@ export class CreateUserDto {
   @MaxLength(100)
   firstName: string;
 
-  @ApiPropertyOptional({ example: 'Pérez' })
+  @ApiPropertyOptional({ type: String, example: 'Pérez' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   lastName?: string | null;
 
-  @ApiPropertyOptional({ example: '+51 999 999 999' })
+  @ApiPropertyOptional({ type: String, example: '+51 999 999 999' })
   @IsOptional()
   @IsString()
   @MaxLength(30)

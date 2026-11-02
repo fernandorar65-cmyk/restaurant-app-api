@@ -18,7 +18,7 @@ export class CreateRoleDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Toma pedidos en sala' })
+  @ApiPropertyOptional({ type: String, example: 'Toma pedidos en sala' })
   @IsOptional()
   @IsString()
   @MaxLength(500)

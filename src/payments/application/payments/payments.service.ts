@@ -9,8 +9,10 @@ import type { TransactionContext } from '../../../common/domain/transaction-cont
 import { Payment } from '../../domain/entities/payment.entity.js';
 import { PaymentStatusCode } from '../../domain/enums/payment-status-code.enum.js';
 import {
+  AttentionNotPayableError,
   PaymentNotCancellableError,
   PaymentNotFoundError,
+  RefundsNotEnabledError,
 } from '../../domain/exceptions/payment.errors.js';
 import { PAYMENT_REPOSITORY } from '../../domain/repositories/payment.repository.js';
 import type {
@@ -18,6 +20,7 @@ import type {
   PaymentRepository,
 } from '../../domain/repositories/payment.repository.js';
 import { summarizeBalance } from '../../domain/services/charge-lines.js';
+import { REFUND_STATUSES_DISABLED } from '../../domain/status-catalog.js';
 import type { BalanceSummary } from '../../domain/services/charge-lines.js';
 import { ATTENTION_BILLING } from '../ports/attention-billing.port.js';
 import type { AttentionBillingPort } from '../ports/attention-billing.port.js';
@@ -68,6 +71,41 @@ export class PaymentsService {
         throw new PaymentNotCancellableError(payment.status);
       }
       payment.changeStatus(PaymentStatusCode.CANCELLED);
+      await this.paymentRepository.updateStatus(payment, tx);
+    });
+    return this.findOne(id);
+  }
+
+  /**
+   * Manual follow-up of a payment registered in the restaurant (e.g. a POS
+   * voucher that came back approved or declined): PENDING / PROCESSING to
+   * PROCESSING, PAID, FAILED or CANCELLED. The amount was already reserved
+   * while pending, so confirming it never exceeds the balance; it only
+   * requires the attention to still be active. Repeating the current status
+   * changes nothing. Refunds have their own flow (not enabled yet).
+   */
+  async changeStatus(id: string, target: PaymentStatusCode): Promise<Payment> {
+    if (REFUND_STATUSES_DISABLED.includes(target)) {
+      throw new RefundsNotEnabledError();
+    }
+    await this.transactionRunner.run(async (tx) => {
+      const current = await this.findOne(id, tx);
+      if (current.status === target) {
+        return;
+      }
+      if (target === PaymentStatusCode.PAID) {
+        const bill = await requireBill(this.attentionBilling, current.attentionId);
+        if (!bill.isActive) {
+          throw new AttentionNotPayableError(bill.status);
+        }
+        // Same lock order as registering a payment: attention, then payment.
+        await this.paymentRepository.lockAttention(current.attentionId, tx);
+      }
+      const payment = await this.paymentRepository.findByIdForUpdate(id, tx);
+      if (!payment) {
+        throw new PaymentNotFoundError(id);
+      }
+      payment.changeStatus(target);
       await this.paymentRepository.updateStatus(payment, tx);
     });
     return this.findOne(id);

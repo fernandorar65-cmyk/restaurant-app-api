@@ -19,8 +19,14 @@ import { ORDER_ITEM_REPOSITORY } from '../../domain/repositories/order-item.repo
 import type { OrderItemRepository } from '../../domain/repositories/order-item.repository.js';
 import { ORDER_REPOSITORY } from '../../domain/repositories/order.repository.js';
 import type { OrderRepository } from '../../domain/repositories/order.repository.js';
+import { ORDER_ITEM_STATUS_HISTORY_REPOSITORY } from '../../domain/repositories/order-item-status-history.repository.js';
+import type { OrderItemStatusHistoryRepository } from '../../domain/repositories/order-item-status-history.repository.js';
 import { computeBill } from '../../domain/services/bill.js';
+import { buildTimeline } from '../../domain/services/timeline.js';
+import type { TimelineEvent } from '../../domain/services/timeline.js';
 import type { Bill } from '../../domain/services/bill.js';
+import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
+import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { PAYMENT_LEDGER } from '../ports/payment-ledger.port.js';
 import type { PaymentLedgerPort } from '../ports/payment-ledger.port.js';
 import { requireAttention } from './require-attention.js';
@@ -35,6 +41,12 @@ export interface AttentionDetail {
 
 export interface AttentionBill extends Bill {
   attention: Attention;
+}
+
+/** One entry of a diner's visit history. */
+export interface AttentionVisit extends AttentionBill {
+  /** null if the restaurant no longer exists. */
+  restaurant: { id: string; name: string; slug: string } | null;
 }
 
 /** Read side of attentions: listings, detail and what is owed. */
@@ -52,6 +64,9 @@ export class AttentionQueriesService {
     @Inject(FULFILLMENT_REPOSITORY)
     private readonly fulfillmentRepository: FulfillmentRepository,
     @Inject(PAYMENT_LEDGER) private readonly paymentLedger: PaymentLedgerPort,
+    @Inject(TENANT_LOOKUP) private readonly restaurantLookup: TenantLookup,
+    @Inject(ORDER_ITEM_STATUS_HISTORY_REPOSITORY)
+    private readonly historyRepository: OrderItemStatusHistoryRepository,
   ) {}
 
   findPage(
@@ -59,6 +74,39 @@ export class AttentionQueriesService {
     page: PageRequest,
   ): Promise<Page<Attention>> {
     return this.attentionRepository.findPage(filter, page);
+  }
+
+  /** The user's visits (attentions they took part in) with what each one cost. */
+  async findVisitsOfUser(
+    userId: string,
+    page: PageRequest,
+  ): Promise<Page<AttentionVisit>> {
+    const attentions = await this.attentionRepository.findPageByUser(
+      userId,
+      page,
+    );
+    const restaurantIds = [
+      ...new Set(attentions.items.map((attention) => attention.restaurantId)),
+    ];
+    const restaurants = new Map(
+      await Promise.all(
+        restaurantIds.map(
+          async (id) => [id, await this.restaurantLookup.findRestaurant(id)] as const,
+        ),
+      ),
+    );
+    const items = await Promise.all(
+      attentions.items.map(async (attention) => {
+        const restaurant = restaurants.get(attention.restaurantId);
+        return {
+          ...(await this.billFor(attention)),
+          restaurant: restaurant
+            ? { id: restaurant.id, name: restaurant.name, slug: restaurant.slug }
+            : null,
+        };
+      }),
+    );
+    return { ...attentions, items };
   }
 
   findActiveByTable(diningTableId: string): Promise<Attention | null> {
@@ -78,6 +126,19 @@ export class AttentionQueriesService {
       this.fulfillmentRepository.findByAttention(id),
     ]);
     return { attention, participants, orders, items, fulfillment };
+  }
+
+  /** Everything that happened to the attention and its items, oldest first. */
+  async getTimeline(id: string): Promise<TimelineEvent[]> {
+    const attention = await this.findOne(id);
+    const [orders, items] = await Promise.all([
+      this.orderRepository.findByAttention(id),
+      this.itemRepository.findByAttention(id),
+    ]);
+    const history = await this.historyRepository.findByItems(
+      items.map((item) => item.id),
+    );
+    return buildTimeline({ attention, orders, items, history });
   }
 
   /** Rejected and cancelled items are never charged. */

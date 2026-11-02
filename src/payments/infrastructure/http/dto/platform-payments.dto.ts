@@ -22,7 +22,7 @@ export class RenamePaymentStatusDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -39,7 +39,7 @@ export class PaymentStatusResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()
@@ -157,19 +157,24 @@ export class ProviderEventDto {
   @MaxLength(100)
   eventType: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Id del pago en la pasarela (identifica el pago a actualizar)',
+    type: String,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
   providerPaymentId?: string | null;
 
-  @ApiPropertyOptional({ example: 'approved' })
+  @ApiPropertyOptional({ type: String, example: 'approved' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   externalStatus?: string | null;
 
   @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
     description: 'Payload original (los datos de tarjeta se eliminan)',
   })
   @IsOptional()
@@ -190,28 +195,32 @@ export class ProviderEventResponseDto {
   @ApiProperty()
   eventType: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   providerPaymentId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   externalStatus: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   paymentId: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Cuerpo del evento tal como llegó (sin datos de tarjeta)',
+  })
   payload: Record<string, unknown>;
 
   @ApiProperty()
   receivedAt: Date;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   processedAt: Date | null;
 
   @ApiPropertyOptional({ enum: ProviderEventResult, nullable: true })
   result: ProviderEventResult | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   resultMessage: string | null;
 
   @ApiProperty({

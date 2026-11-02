@@ -1,8 +1,10 @@
 import {
+  applyDecorators,
   createParamDecorator,
   ExecutionContext,
   SetMetadata,
 } from '@nestjs/common';
+import { ApiAccess } from '../openapi.js';
 import type { Request } from 'express';
 import type { Actor, PermissionCode } from '../../../domain/access.js';
 
@@ -53,15 +55,23 @@ export const Authorize = (
   permission: PermissionCode | null,
   ...scopes: [ScopeSource, ...ScopeSource[]]
 ) =>
-  SetMetadata(ACCESS_POLICY, {
-    type: 'tenant',
-    permission,
-    scopes,
-  } satisfies AccessPolicy);
+  applyDecorators(
+    SetMetadata(ACCESS_POLICY, {
+      type: 'tenant',
+      permission,
+      scopes,
+    } satisfies AccessPolicy),
+    ApiAccess({ type: 'tenant', permission }),
+  );
 
 /** Any logged-in user, no tenant involved (e.g. their own profile). */
 export const Authenticated = () =>
-  SetMetadata(ACCESS_POLICY, { type: 'authenticated' } satisfies AccessPolicy);
+  applyDecorators(
+    SetMetadata(ACCESS_POLICY, {
+      type: 'authenticated',
+    } satisfies AccessPolicy),
+    ApiAccess({ type: 'session' }),
+  );
 
 /** The Actor the authorization guard resolved for this request. */
 export const CurrentActor = createParamDecorator(

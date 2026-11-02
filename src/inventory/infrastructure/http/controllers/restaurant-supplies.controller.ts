@@ -46,6 +46,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Stock of each restaurant: balance, minimum, average cost and its movements. */
 @ApiTags('inventory/restaurant-supplies')
@@ -136,7 +137,10 @@ export class RestaurantSuppliesController {
     summary:
       'Desactivar el insumo en la sede (baja lógica; conserva el historial)',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ id: string }> {

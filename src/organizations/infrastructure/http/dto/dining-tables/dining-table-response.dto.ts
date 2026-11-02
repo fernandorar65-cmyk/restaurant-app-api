@@ -7,13 +7,13 @@ export class DiningTableQrDto {
   @ApiProperty({ description: 'Hay un QR vigente para la mesa' })
   active: boolean;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Aumenta en cada regeneración' })
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Aumenta en cada regeneración' })
   version: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   generatedAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Imagen del QR, si se almacena afuera' })
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Imagen del QR, si se almacena afuera' })
   assetUrl: string | null;
 }
 
@@ -33,7 +33,7 @@ export class DiningTableResponseDto {
   @ApiProperty({ example: 'Mesa 1' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   capacity: number | null;
 
   @ApiProperty({ enum: TableOperationalStatus })
@@ -42,10 +42,10 @@ export class DiningTableResponseDto {
   @ApiProperty({ enum: TableServiceStatus })
   serviceStatus: TableServiceStatus;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   positionX: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   positionY: number | null;
 
   @ApiProperty({ type: DiningTableQrDto, description: 'Nunca incluye el token ni su hash' })

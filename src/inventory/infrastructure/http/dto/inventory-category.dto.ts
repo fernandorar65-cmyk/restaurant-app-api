@@ -13,7 +13,7 @@ export class CreateInventoryCategoryDto {
   @MaxLength(120)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -39,7 +39,7 @@ export class InventoryCategoryResponseDto {
   @ApiProperty({ example: 'Verduras' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()

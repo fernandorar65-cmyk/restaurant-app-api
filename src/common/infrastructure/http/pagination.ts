@@ -88,16 +88,19 @@ export function toPageResponse<T, R>(
 /** Swagger: documents ?page&limit and the { items, meta } envelope. */
 export function ApiPaginatedResponse(model: Type<unknown>) {
   return applyDecorators(
-    ApiQuery({ name: 'page', required: false, example: 1 }),
+    ApiQuery({ name: 'page', required: false, type: Number, example: 1 }),
     ApiQuery({
       name: 'limit',
       required: false,
+      type: Number,
       example: DEFAULT_PAGE_LIMIT,
       description: `Máximo ${MAX_PAGE_LIMIT}`,
     }),
     ApiExtraModels(PageMetaDto, model),
     ApiOkResponse({
       schema: {
+        type: 'object',
+        required: ['items', 'meta'],
         properties: {
           items: { type: 'array', items: { $ref: getSchemaPath(model) } },
           meta: { $ref: getSchemaPath(PageMetaDto) },

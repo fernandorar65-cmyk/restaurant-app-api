@@ -12,10 +12,10 @@ export class UserResponseDto {
   @ApiProperty({ example: 'Ana' })
   firstName: string;
 
-  @ApiPropertyOptional({ nullable: true, example: 'Pérez' })
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Pérez' })
   lastName: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   phone: string | null;
 
   @ApiProperty({ enum: UserStatus })
@@ -24,7 +24,7 @@ export class UserResponseDto {
   @ApiProperty()
   mustChangePassword: boolean;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   lastLoginAt: Date | null;
 
   @ApiProperty()

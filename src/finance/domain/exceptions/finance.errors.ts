@@ -70,3 +70,9 @@ export class RestaurantReferenceNotFoundError extends NotFoundDomainError {
     super(`No existe el restaurante con id "${id}"`);
   }
 }
+
+export class InvalidExpenseCategoryMoveError extends ValidationDomainError {
+  constructor(reason: string) {
+    super(`No se pueden mover los gastos: ${reason}`);
+  }
+}

@@ -56,6 +56,16 @@ export class Menu {
     this.props.updatedAt = new Date();
   }
 
+  /** ACTIVE and, when it has a validity window, inside it at `at`. */
+  isCurrentAt(at: Date): boolean {
+    const { status, validFrom, validUntil } = this.props;
+    return (
+      status === MenuStatus.ACTIVE &&
+      (!validFrom || validFrom <= at) &&
+      (!validUntil || at <= validUntil)
+    );
+  }
+
   private applyDetails(params: MenuDetails): void {
     const next = { ...this.props };
     if (params.name !== undefined) {

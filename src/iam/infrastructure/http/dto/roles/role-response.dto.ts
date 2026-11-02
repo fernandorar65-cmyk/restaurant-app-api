@@ -14,7 +14,7 @@ export class RoleResponseDto {
   @ApiProperty({ example: 'Mozo' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()

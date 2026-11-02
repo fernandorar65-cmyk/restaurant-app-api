@@ -40,35 +40,35 @@ export class CreateRestaurantDto {
   @MaxLength(180)
   slug?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'Av. Larco 123, Miraflores' })
+  @ApiPropertyOptional({ type: String, example: 'Av. Larco 123, Miraflores' })
   @IsOptional()
   @IsString()
   @MaxLength(300)
   address?: string | null;
 
-  @ApiPropertyOptional({ example: '+51 1 234 5678' })
+  @ApiPropertyOptional({ type: String, example: '+51 1 234 5678' })
   @IsOptional()
   @IsString()
   @MaxLength(30)
   phone?: string | null;
 
-  @ApiPropertyOptional({ example: 'miraflores@sabores.pe' })
+  @ApiPropertyOptional({ type: String, example: 'miraflores@sabores.pe' })
   @IsOptional()
   @IsEmail()
   email?: string | null;
 
-  @ApiPropertyOptional({ example: -12.1211 })
+  @ApiPropertyOptional({ type: Number, example: -12.1211 })
   @IsOptional()
   @IsLatitude()
   latitude?: number | null;
 
-  @ApiPropertyOptional({ example: -77.0297 })
+  @ApiPropertyOptional({ type: Number, example: -77.0297 })
   @IsOptional()
   @IsLongitude()
   longitude?: number | null;

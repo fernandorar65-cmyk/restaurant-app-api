@@ -74,3 +74,36 @@ describe('Menu update atomicity', () => {
     expect(menu.name).toBe('Carta');
   });
 });
+
+describe('Menu.isCurrentAt', () => {
+  const mid = new Date('2026-03-15T12:00:00Z');
+
+  function active(details: MenuDetails = {}): Menu {
+    const menu = createMenu(details);
+    menu.update({ status: MenuStatus.ACTIVE });
+    return menu;
+  }
+
+  it('is current when ACTIVE and inside its validity', () => {
+    expect(active().isCurrentAt(mid)).toBe(true);
+    expect(
+      active({ validFrom: march1, validUntil: march31 }).isCurrentAt(mid),
+    ).toBe(true);
+    expect(active({ validFrom: march1 }).isCurrentAt(march1)).toBe(true);
+    expect(active({ validUntil: march31 }).isCurrentAt(march31)).toBe(true);
+  });
+
+  it('is not current outside its validity', () => {
+    expect(active({ validFrom: mid }).isCurrentAt(march1)).toBe(false);
+    expect(active({ validUntil: march1 }).isCurrentAt(mid)).toBe(false);
+  });
+
+  it.each([MenuStatus.DRAFT, MenuStatus.INACTIVE])(
+    'is never current while %s',
+    (status) => {
+      const menu = createMenu();
+      menu.update({ status });
+      expect(menu.isCurrentAt(mid)).toBe(false);
+    },
+  );
+});

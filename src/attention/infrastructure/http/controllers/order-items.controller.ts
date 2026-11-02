@@ -2,11 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseArrayPipe,
   ParseBoolPipe,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import {
@@ -26,8 +29,12 @@ import {
 } from '../../../../common/infrastructure/http/pagination.js';
 import { OrderItemsService } from '../../../application/order-items/order-items.service.js';
 import { OrderStatus } from '../../../domain/enums/order-status.enum.js';
-import { ChangeOrderItemStatusDto } from '../dto/attention-requests.dto.js';
 import {
+  BulkChangeOrderItemStatusDto,
+  ChangeOrderItemStatusDto,
+} from '../dto/attention-requests.dto.js';
+import {
+  BulkStatusChangeResponseDto,
   OrderItemHistoryResponseDto,
   OrderItemResponseDto,
 } from '../dto/attention-responses.dto.js';
@@ -35,6 +42,8 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { CurrentUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
+import type { RequestUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
 
 /** Kitchen and floor: follow each dish through its states. */
 @ApiTags('attention/order-items')
@@ -54,6 +63,12 @@ export class OrderItemsController {
   @ApiQuery({
     name: 'status',
     required: false,
+    style: 'form',
+    explode: false,
+    schema: {
+      type: 'array',
+      items: { type: 'string', enum: Object.values(OrderStatus) },
+    },
     description:
       'Uno o varios estados canónicos separados por coma, ej. SUBMITTED,IN_PREPARATION',
   })
@@ -94,6 +109,32 @@ export class OrderItemsController {
   ): Promise<OrderItemResponseDto> {
     const item = await this.itemsService.findOne(id);
     return OrderItemResponseDto.fromDomain(item);
+  }
+
+  @Authorize('kitchen.manage', Scope.restaurant('body'))
+  @Post('status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cambiar el estado de varios platos a la vez',
+    description:
+      '"Confirmar todo" / "Marcar listos". Cada plato cambia por separado con las mismas reglas que PATCH :id/status: uno que no puede cambiar (transición no permitida, versión distinta, de otra sede) va a failed con su errorCode y los demás siguen. Queda a nombre del usuario de la sesión',
+  })
+  @ApiOkResponse({ type: BulkStatusChangeResponseDto })
+  async changeStatusBulk(
+    @Body() dto: BulkChangeOrderItemStatusDto,
+    @CurrentUser() current: RequestUser,
+  ): Promise<BulkStatusChangeResponseDto> {
+    const result = await this.itemsService.changeStatusBulk(
+      dto.restaurantId,
+      dto.items.map((item) => ({ id: item.id, expectedVersion: item.version })),
+      {
+        statusId: dto.statusId,
+        status: dto.status,
+        reason: dto.reason,
+        changedByUserId: current.id,
+      },
+    );
+    return BulkStatusChangeResponseDto.fromResult(result);
   }
 
   @Authorize('kitchen.manage', Scope.resource('order-item'))

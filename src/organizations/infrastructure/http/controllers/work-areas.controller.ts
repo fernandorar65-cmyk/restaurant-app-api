@@ -35,6 +35,7 @@ import {
   Authorize,
   Scope,
 } from '../../../../common/infrastructure/http/access/authorize.decorator.js';
+import { IdResponseDto } from '../../../../common/infrastructure/http/id-response.dto.js';
 
 /** Work areas of an organization (Cocina, Sala...). They never grant permissions. */
 @ApiTags('organizations/work-areas')
@@ -107,7 +108,10 @@ export class WorkAreasController {
     description:
       'No se borra: puestos y empleados pueden seguir apuntando a ella',
   })
-  @ApiOkResponse({ description: 'Id del registro desactivado' })
+  @ApiOkResponse({
+    type: IdResponseDto,
+    description: 'Id del registro desactivado',
+  })
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ id: string }> {

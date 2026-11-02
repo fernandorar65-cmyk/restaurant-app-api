@@ -26,6 +26,7 @@ import { PaymentStatusCode } from '../../../domain/enums/payment-status-code.enu
 
 export class RequestedAllocationDto {
   @ApiPropertyOptional({
+    type: String,
     description: 'Producto a pagar; omitirlo para pagar el costo de envío',
   })
   @IsOptional()
@@ -45,13 +46,17 @@ export class ProviderDataDto {
   @MaxLength(50)
   code: string;
 
-  @ApiPropertyOptional({ description: 'Identificador del pago en la pasarela' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Identificador del pago en la pasarela',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
   paymentId?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'approved',
     description: 'Estado original informado por la pasarela',
   })
@@ -62,7 +67,7 @@ export class ProviderDataDto {
 }
 
 export class RegisterPaymentDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Atención que se cobra (activa)' })
   @IsUUID()
   attentionId: string;
 
@@ -102,18 +107,22 @@ export class RegisterPaymentDto {
   @Type(() => RequestedAllocationDto)
   allocations?: RequestedAllocationDto[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Usuario que paga, si tiene cuenta',
+    type: String,
+  })
   @IsOptional()
   @IsUUID()
   payerUserId?: string | null;
 
-  @ApiPropertyOptional({ example: 'Ana' })
+  @ApiPropertyOptional({ type: String, example: 'Ana' })
   @IsOptional()
   @IsString()
   @MaxLength(150)
   payerName?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Referencia manual, p. ej. número de operación Yape',
   })
   @IsOptional()
@@ -121,7 +130,7 @@ export class RegisterPaymentDto {
   @MaxLength(255)
   externalReference?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -144,10 +153,14 @@ export class AllocationResponseDto {
   @ApiProperty({ enum: AllocationConcept })
   concept: AllocationConcept;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   orderItemId: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Solo DELIVERY_FEE' })
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Solo DELIVERY_FEE',
+  })
   fulfillmentId: string | null;
 
   @ApiProperty()
@@ -168,10 +181,11 @@ export class ProviderResponseDto {
   @ApiProperty()
   code: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   paymentId: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     nullable: true,
     description: 'Último estado original de la pasarela',
   })
@@ -206,13 +220,13 @@ export class PaymentResponseDto {
   @ApiProperty({ example: 'PEN' })
   currencyCode: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   payerUserId: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   payerName: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   externalReference: string | null;
 
   @ApiPropertyOptional({ type: ProviderResponseDto, nullable: true })
@@ -221,13 +235,13 @@ export class PaymentResponseDto {
   @ApiProperty()
   requestId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   notes: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Date, nullable: true })
   paidAt: Date | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   registeredByUserId: string | null;
 
   @ApiProperty({ type: [AllocationResponseDto] })
@@ -270,7 +284,7 @@ export class ChargeLineBalanceDto {
   @ApiProperty({ enum: AllocationConcept })
   concept: AllocationConcept;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   orderItemId: string | null;
 
   @ApiProperty({ example: '"Lomo saltado"' })
@@ -322,4 +336,14 @@ export class AttentionBalanceDto {
     dto.lines = balance.lines.map((line) => ChargeLineBalanceDto.from(line));
     return dto;
   }
+}
+
+export class ChangePaymentStatusDto {
+  @ApiProperty({
+    enum: PaymentStatusCode,
+    description:
+      'PROCESSING, PAID, FAILED o CANCELLED. Los reembolsos (PARTIALLY_REFUNDED / REFUNDED) aún no están habilitados (422)',
+  })
+  @IsEnum(PaymentStatusCode)
+  status: PaymentStatusCode;
 }

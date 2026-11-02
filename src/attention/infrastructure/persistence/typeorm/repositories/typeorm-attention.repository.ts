@@ -10,6 +10,7 @@ import { ActiveAttentionAlreadyExistsError } from '../../../../domain/exceptions
 import {
   AttentionRepository,
   DailyAttentionCounts,
+  DatedAttentionCounts,
 } from '../../../../domain/repositories/attention.repository.js';
 import { AttentionOrmEntity } from '../entities/attention.orm-entity.js';
 import { AttentionMapper } from '../mappers/attention.mappers.js';
@@ -70,6 +71,31 @@ export class TypeOrmAttentionRepository
     );
   }
 
+  async findPageByUser(
+    userId: string,
+    page: PageRequest,
+  ): Promise<Page<Attention>> {
+    const [rows, total] = await this.repository
+      .createQueryBuilder('attention')
+      .leftJoinAndSelect('attention.status', 'status')
+      .leftJoinAndSelect('attention.serviceType', 'serviceType')
+      .where('attention.customer_user_id = :userId', { userId })
+      .orWhere(
+        `EXISTS (SELECT 1 FROM attention_participants participant
+          WHERE participant.attention_id = attention.id AND participant.user_id = :userId)`,
+      )
+      .orderBy('attention.openedAt', 'DESC')
+      .skip((page.page - 1) * page.limit)
+      .take(page.limit)
+      .getManyAndCount();
+    return {
+      items: rows.map((row) => this.toDomain(row)),
+      total,
+      page: page.page,
+      limit: page.limit,
+    };
+  }
+
   async countDaily(
     restaurantId: string,
     businessDate: string,
@@ -90,6 +116,53 @@ export class TypeOrmAttentionRepository
       closed: Number(row?.closed ?? 0),
       cancelled: Number(row?.cancelled ?? 0),
     };
+  }
+
+  async countByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+    timeZone: string,
+  ): Promise<DatedAttentionCounts[]> {
+    // One row per (attention, event): opened, closed and cancelled can fall on different days.
+    const rows = await this.repository.query<
+      {
+        business_date: string;
+        opened: string;
+        closed: string;
+        cancelled: string;
+      }[]
+    >(
+      `SELECT to_char(event.day, 'YYYY-MM-DD') AS business_date,
+              COUNT(*) FILTER (WHERE event.kind = 'opened') AS opened,
+              COUNT(*) FILTER (WHERE event.kind = 'closed') AS closed,
+              COUNT(*) FILTER (WHERE event.kind = 'cancelled') AS cancelled
+         FROM attentions a
+         CROSS JOIN LATERAL (VALUES
+           ('opened', (a.opened_at AT TIME ZONE $2)::date),
+           ('closed', (a.closed_at AT TIME ZONE $2)::date),
+           ('cancelled', (a.cancelled_at AT TIME ZONE $2)::date)
+         ) AS event(kind, day)
+        WHERE a.restaurant_id = $1 AND event.day BETWEEN $3 AND $4
+        GROUP BY event.day
+        ORDER BY event.day`,
+      [restaurantId, timeZone, from, to],
+    );
+    return rows.map((row) => ({
+      businessDate: row.business_date,
+      opened: Number(row.opened),
+      closed: Number(row.closed),
+      cancelled: Number(row.cancelled),
+    }));
+  }
+
+  async findActiveByRestaurant(restaurantId: string): Promise<Attention[]> {
+    const rows = await this.repository.find({
+      where: { restaurantId, closedAt: IsNull(), cancelledAt: IsNull() },
+      relations: this.relations,
+      order: { openedAt: 'ASC' },
+    });
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findActiveByDiningTable(

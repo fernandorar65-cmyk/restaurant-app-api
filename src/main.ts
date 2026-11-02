@@ -1,16 +1,17 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { configureHttpApp } from './common/infrastructure/http/configure-http-app.js';
+import { createOpenApiDocument } from './common/infrastructure/http/openapi.js';
 import { AppLogger, logLevelsFrom } from './common/infrastructure/logging/app-logger.js';
 import { requestLoggingMiddleware } from './common/infrastructure/logging/request-logging.middleware.js';
 import { ErrorLogsService } from './observability/application/error-logs/error-logs.service.js';
 
 async function bootstrap() {
-  // Startup logs are buffered until the logger can be built from the .env values.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // Show startup logs immediately, including failures before AppLogger is ready.
+  const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   const isProduction = config.get<string>('NODE_ENV') === 'production';
   const logger = new AppLogger({
@@ -28,16 +29,7 @@ async function bootstrap() {
 
   configureHttpApp(app);
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Restaurant API')
-    .setDescription('API para la gestión de un restaurante')
-    .setVersion('1.0')
-    .addBearerAuth()
-    // Session is required by default; public routes are marked @Public().
-    .addSecurityRequirements('bearer')
-    .build();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, swaggerDocument);
+  SwaggerModule.setup('docs', app, createOpenApiDocument(app));
 
   await app.listen(process.env.PORT ?? 3000);
 }

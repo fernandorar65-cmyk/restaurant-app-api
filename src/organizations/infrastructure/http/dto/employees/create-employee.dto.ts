@@ -15,7 +15,7 @@ export class CreateEmployeeDto {
   @IsUUID()
   organizationId: string;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: String,
     description: 'Usuario con acceso al sistema. Omitir si el empleado no tiene acceso',
   })
   @IsOptional()
@@ -28,13 +28,13 @@ export class CreateEmployeeDto {
   @MaxLength(50)
   employeeCode: string;
 
-  @ApiPropertyOptional({ example: '70123456' })
+  @ApiPropertyOptional({ type: String, example: '70123456' })
   @IsOptional()
   @IsString()
   @MaxLength(50)
   documentNumber?: string | null;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: String,
     description:
       'Puesto vigente (de la misma organización y activo). El área se obtiene del puesto',
   })
@@ -42,12 +42,12 @@ export class CreateEmployeeDto {
   @IsUUID()
   jobPositionId?: string | null;
 
-  @ApiPropertyOptional({ example: '2026-01-15' })
+  @ApiPropertyOptional({ type: String, example: '2026-01-15' })
   @IsOptional()
   @Matches(DATE_ONLY, { message: 'hiredAt debe tener el formato YYYY-MM-DD' })
   hiredAt?: string | null;
 
-  @ApiPropertyOptional({ example: '2026-12-31' })
+  @ApiPropertyOptional({ type: String, example: '2026-12-31' })
   @IsOptional()
   @Matches(DATE_ONLY, { message: 'terminatedAt debe tener el formato YYYY-MM-DD' })
   terminatedAt?: string | null;

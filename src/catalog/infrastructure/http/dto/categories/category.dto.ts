@@ -8,7 +8,7 @@ export class CreateCategoryDto {
   @IsUUID()
   organizationId: string;
 
-  @ApiPropertyOptional({
+  @ApiPropertyOptional({ type: String,
     description: 'Categoría padre de la misma organización (vacío = categoría raíz)',
   })
   @IsOptional()
@@ -24,7 +24,7 @@ export class CreateCategoryDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -47,13 +47,13 @@ export class CategoryResponseDto {
   @ApiProperty()
   organizationId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   parentCategoryId: string | null;
 
   @ApiProperty({ example: 'Bebidas' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()
@@ -92,12 +92,13 @@ export class CreateMenuSectionDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ description: 'Categoría que reutiliza la sección (opcional)' })
+  @ApiPropertyOptional({ type: String, description: 'Categoría que reutiliza la sección (opcional)' })
   @IsOptional()
   @IsUUID()
   categoryId?: string | null;
 
-  @ApiPropertyOptional({ default: 0 })
+  @ApiPropertyOptional({
+    description: 'Orden de la sección en el menú (menor primero)', default: 0 })
   @IsOptional()
   @IsInt()
   sortOrder?: number;
@@ -117,7 +118,7 @@ export class MenuSectionResponseDto {
   @ApiProperty()
   menuId: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   categoryId: string | null;
 
   @ApiProperty({ example: 'Entradas' })

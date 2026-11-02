@@ -10,6 +10,11 @@ export interface MethodTotals {
   refunded: number;
 }
 
+export interface DatedMethodTotals extends MethodTotals {
+  /** Business date (YYYY-MM-DD) in the restaurant's time zone. */
+  businessDate: string;
+}
+
 /** Read model over payments and refunds. */
 export interface PaymentLedgerRepository {
   /** Confirmed payments minus confirmed refunds of an attention. */
@@ -22,4 +27,11 @@ export interface PaymentLedgerRepository {
     businessDate: string,
     timeZone: string,
   ): Promise<MethodTotals[]>;
+  /** Per business date and payment method, for an inclusive range of dates. */
+  totalsByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+    timeZone: string,
+  ): Promise<DatedMethodTotals[]>;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ServiceTypesService } from '../../../attention/public-api.js';
 import type {
+  ServiceOffer,
   ServiceTypeLookupPort,
   ServiceTypeSnapshot,
 } from '../../application/ports/service-type-lookup.port.js';
@@ -25,5 +26,18 @@ export class InternalServiceTypeLookupAdapter implements ServiceTypeLookupPort {
           deliveryFee: serviceType.deliveryFee,
         }
       : null;
+  }
+
+  async listActive(restaurantId: string): Promise<ServiceOffer[]> {
+    const serviceTypes = await this.serviceTypes.list(restaurantId);
+    return serviceTypes
+      .filter((serviceType) => serviceType.isActive)
+      .map((serviceType) => ({
+        code: serviceType.code,
+        name: serviceType.name,
+        mode: serviceType.fulfillmentMode,
+        minimumOrderAmount: serviceType.minimumOrderAmount,
+        deliveryFee: serviceType.deliveryFee,
+      }));
   }
 }

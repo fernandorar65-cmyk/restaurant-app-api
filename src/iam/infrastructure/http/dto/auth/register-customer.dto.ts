@@ -17,19 +17,19 @@ export class RegisterCustomerDto {
   @MaxLength(100)
   firstName: string;
 
-  @ApiPropertyOptional({ example: 'Torres' })
+  @ApiPropertyOptional({ type: String, example: 'Torres' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   lastName?: string | null;
 
-  @ApiPropertyOptional({ example: '+51 999 999 999' })
+  @ApiPropertyOptional({ type: String, example: '+51 999 999 999' })
   @IsOptional()
   @IsString()
   @MaxLength(30)
   phone?: string | null;
 
-  @ApiPropertyOptional({ example: 'Vegetariana, sin maní' })
+  @ApiPropertyOptional({ type: String, example: 'Vegetariana, sin maní' })
   @IsOptional()
   @IsString()
   dietaryPreferences?: string | null;

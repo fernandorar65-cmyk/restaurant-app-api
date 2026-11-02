@@ -1,5 +1,6 @@
 import type { TransactionContext } from '../../../common/domain/transaction-context.js';
 import { Restaurant } from '../entities/restaurant.entity.js';
+import type { RestaurantStatus } from '../enums/restaurant-status.enum.js';
 import type { Page, PageRequest } from '../../../common/domain/pagination.js';
 
 export const RESTAURANT_REPOSITORY = Symbol('RESTAURANT_REPOSITORY');
@@ -9,7 +10,7 @@ export interface RestaurantRepository {
   findBySlug(slug: string): Promise<Restaurant | null>;
   findByCode(organizationId: string, code: string): Promise<Restaurant | null>;
   findPage(
-    filter: { organizationId?: string },
+    filter: { organizationId?: string; status?: RestaurantStatus },
     page: PageRequest,
   ): Promise<Page<Restaurant>>;
   save(restaurant: Restaurant, tx?: TransactionContext): Promise<Restaurant>;

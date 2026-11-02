@@ -126,3 +126,9 @@ export class InactiveMenuSectionError extends BusinessRuleDomainError {
     super('La sección del menú está desactivada');
   }
 }
+
+export class InvalidReorderError extends ValidationDomainError {
+  constructor(detail: string) {
+    super(`El nuevo orden no es válido: ${detail}`);
+  }
+}

@@ -13,8 +13,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PasswordsService } from '../../../application/auth/passwords.service.js';
+import { StaffProfileService } from '../../../application/staff-profile/staff-profile.service.js';
 import { UsersService } from '../../../application/users/users.service.js';
 import { ChangeOwnPasswordDto } from '../dto/auth/change-own-password.dto.js';
+import { StaffProfileResponseDto } from '../dto/auth/staff-profile-response.dto.js';
 import { UpdateMeDto } from '../dto/auth/update-me.dto.js';
 import { UserResponseDto } from '../dto/users/user-response.dto.js';
 import { CurrentUser } from '../../../../common/infrastructure/http/current-user.decorator.js';
@@ -28,6 +30,7 @@ export class StaffMeController {
   constructor(
     private readonly usersService: UsersService,
     private readonly passwords: PasswordsService,
+    private readonly profiles: StaffProfileService,
   ) {}
 
   @Authenticated()
@@ -37,6 +40,22 @@ export class StaffMeController {
   async me(@CurrentUser() current: RequestUser): Promise<UserResponseDto> {
     const user = await this.usersService.findOne(current.id);
     return UserResponseDto.fromDomain(user);
+  }
+
+  @Authenticated()
+  @Get('profile')
+  @ApiOperation({
+    summary: 'Perfil del personal',
+    description:
+      'Datos del usuario, su acceso por organización (rol, sedes y permisos efectivos) y los empleados vinculados con su puesto y área',
+  })
+  @ApiOkResponse({ type: StaffProfileResponseDto })
+  async profile(
+    @CurrentUser() current: RequestUser,
+  ): Promise<StaffProfileResponseDto> {
+    return StaffProfileResponseDto.from(
+      await this.profiles.getProfile(current.id),
+    );
   }
 
   @Authenticated()

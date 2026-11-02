@@ -13,19 +13,19 @@ export class CreateMenuDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
   description?: string | null;
 
-  @ApiPropertyOptional({ example: '2026-11-01T00:00:00-05:00' })
+  @ApiPropertyOptional({ type: Date, example: '2026-11-01T00:00:00-05:00' })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   validFrom?: Date | null;
 
-  @ApiPropertyOptional({ example: '2026-12-31T23:59:59-05:00' })
+  @ApiPropertyOptional({ type: Date, example: '2026-12-31T23:59:59-05:00' })
   @IsOptional()
   @Type(() => Date)
   @IsDate()

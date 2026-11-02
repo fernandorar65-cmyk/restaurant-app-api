@@ -11,6 +11,10 @@ export interface DailyAttentionCounts {
   cancelled: number;
 }
 
+export interface DatedAttentionCounts extends DailyAttentionCounts {
+  businessDate: string;
+}
+
 export interface AttentionRepository {
   findById(id: string, tx?: TransactionContext): Promise<Attention | null>;
   /**
@@ -24,6 +28,15 @@ export interface AttentionRepository {
     businessDate: string,
     timeZone: string,
   ): Promise<DailyAttentionCounts>;
+  /** Active (OPEN / BILL_REQUESTED) attentions of the restaurant, oldest first. */
+  findActiveByRestaurant(restaurantId: string): Promise<Attention[]>;
+  /** Same counts per business date of an inclusive range (only dates with activity). */
+  countByDate(
+    restaurantId: string,
+    from: string,
+    to: string,
+    timeZone: string,
+  ): Promise<DatedAttentionCounts[]>;
   findActiveByDiningTable(
     diningTableId: string,
     tx?: TransactionContext,
@@ -35,6 +48,11 @@ export interface AttentionRepository {
   },
     page: PageRequest,
   ): Promise<Page<Attention>>;
+  /**
+   * Attentions the user took part in (as its customer or as a participant),
+   * most recent first.
+   */
+  findPageByUser(userId: string, page: PageRequest): Promise<Page<Attention>>;
   /**
    * Throws ActiveAttentionAlreadyExistsError if another active attention was
    * opened for the same table concurrently.

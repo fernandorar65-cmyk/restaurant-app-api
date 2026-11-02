@@ -29,6 +29,9 @@ import { ORDER_ITEM_REPOSITORY } from './domain/repositories/order-item.reposito
 import { DinerIdentityResolver } from './infrastructure/http/auth/diner-identity.resolver.js';
 import { AttentionScopeResolvers } from './infrastructure/http/attention-scope-resolvers.js';
 import { AttentionsController } from './infrastructure/http/controllers/attentions.controller.js';
+import { FloorPlanController } from './infrastructure/http/controllers/floor-plan.controller.js';
+import { FloorPlanService } from './application/floor-plan/floor-plan.service.js';
+import { CustomerVisitsController } from './infrastructure/http/controllers/customer-visits.controller.js';
 import { CustomerAttentionsController } from './infrastructure/http/controllers/customer-attentions.controller.js';
 import { OrderItemsController } from './infrastructure/http/controllers/order-items.controller.js';
 import { TableQrController } from './infrastructure/http/controllers/table-qr.controller.js';
@@ -70,12 +73,15 @@ import { TypeOrmOrderItemRepository } from './infrastructure/persistence/typeorm
     OrderItemsController,
     CustomerAttentionsController,
     TableQrController,
+    CustomerVisitsController,
+    FloorPlanController,
   ],
   providers: [
     AttentionScopeResolvers,
     AttentionOpeningService,
     AttentionLifecycleService,
     AttentionQueriesService,
+    FloorPlanService,
     AttentionReportsService,
     OrderSubmissionService,
     OrdersService,

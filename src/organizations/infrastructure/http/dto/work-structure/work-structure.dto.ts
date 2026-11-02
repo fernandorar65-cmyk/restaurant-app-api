@@ -14,7 +14,7 @@ export class CreateWorkAreaDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -40,7 +40,7 @@ export class WorkAreaResponseDto {
   @ApiProperty({ example: 'Cocina' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()
@@ -79,7 +79,7 @@ export class CreateJobPositionDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -106,7 +106,7 @@ export class JobPositionResponseDto {
   @ApiProperty({ example: 'Cocinero' })
   name: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   description: string | null;
 
   @ApiProperty()

@@ -19,6 +19,9 @@ import { MENU_SECTION_REPOSITORY } from '../../domain/repositories/menu-section.
 import type { MenuSectionRepository } from '../../domain/repositories/menu-section.repository.js';
 import { MENU_REPOSITORY } from '../../domain/repositories/menu.repository.js';
 import type { MenuRepository } from '../../domain/repositories/menu.repository.js';
+import { TRANSACTION_RUNNER } from '../../../common/application/ports/transaction-runner.port.js';
+import type { TransactionRunner } from '../../../common/application/ports/transaction-runner.port.js';
+import { planReorder } from '../../domain/services/reorder.js';
 import { TENANT_LOOKUP } from '../../../common/application/ports/tenant-lookup.port.js';
 import type { TenantLookup } from '../../../common/application/ports/tenant-lookup.port.js';
 import { ProductsService } from '../products/products.service.js';
@@ -53,6 +56,8 @@ export class MenusService {
     @Inject(TENANT_LOOKUP)
     private readonly restaurantLookup: TenantLookup,
     private readonly productsService: ProductsService,
+    @Inject(TRANSACTION_RUNNER)
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(input: CreateMenuInput): Promise<Menu> {
@@ -133,6 +138,38 @@ export class MenusService {
     }
     menuProduct.update(input);
     return this.menuProductRepository.save(menuProduct);
+  }
+
+  /**
+   * New order of the products of one section of the menu (null: those
+   * without a section), in one request. The list must hold all of them.
+   */
+  async reorderProducts(
+    menuId: string,
+    menuSectionId: string | null,
+    productIds: string[],
+  ): Promise<MenuProduct[]> {
+    await this.findOne(menuId);
+    if (menuSectionId) {
+      const section = await this.sectionRepository.findById(menuSectionId);
+      if (!section || section.menuId !== menuId) {
+        throw new MenuSectionNotFoundError(menuSectionId);
+      }
+    }
+    const entries = (await this.menuProductRepository.findByMenu(menuId)).filter(
+      (entry) => entry.menuSectionId === menuSectionId,
+    );
+    const positions = planReorder(
+      entries.map((entry) => entry.productId),
+      productIds,
+    );
+    await this.transactionRunner.run(async (tx) => {
+      for (const entry of entries) {
+        entry.update({ sortOrder: positions.get(entry.productId)! });
+        await this.menuProductRepository.save(entry, tx);
+      }
+    });
+    return entries.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async removeProduct(menuId: string, productId: string): Promise<void> {
